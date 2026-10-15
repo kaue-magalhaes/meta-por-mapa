@@ -11,8 +11,19 @@ site oficial da Supercell.
 ## Como funciona
 
 `atualizar.mjs` puxa os dados e gera `site/index.html` a partir de `modelo.html`.
-A automação em `.github/workflows/atualizar.yml` roda isso a cada 3 horas e publica
-no GitHub Pages.
+`deploy/publicar.sh` gera e publica na branch `gh-pages`, que o GitHub Pages serve.
+Um timer do systemd (`deploy/meta-por-mapa.timer`) roda isso a cada 3 horas.
+
+A publicação roda numa máquina de casa, e não no GitHub Actions: o Brawl Time Ninja
+fica atrás do Cloudflare, que barra os servidores do GitHub.
+
+Para ligar o timer:
+
+```bash
+systemctl --user link ~/codes/personal/brawl-meta/deploy/meta-por-mapa.service
+systemctl --user enable --now ~/codes/personal/brawl-meta/deploy/meta-por-mapa.timer
+journalctl --user -u meta-por-mapa  # log das rodadas
+```
 
 Para gerar na sua máquina (Node 24, sem dependências):
 

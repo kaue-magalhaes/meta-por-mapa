@@ -1,0 +1,9 @@
+[Unit]
+Description=Gera e publica o site Meta por Mapa
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=PATH=%h/.local/share/mise/installs/node/lts/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/codes/personal/brawl-meta/deploy/publicar.sh
