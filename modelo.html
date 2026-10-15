@@ -1,0 +1,1105 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meta por Mapa</title>
+<meta name="description" content="Quais brawlers escolher em cada mapa de Brawl Stars, no ranqueado e no troféu, com counters e duplas.">
+<meta property="og:title" content="Meta por Mapa">
+<meta property="og:description" content="Quais brawlers escolher em cada mapa de Brawl Stars, no ranqueado e no troféu, com counters e duplas.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Rubik:wght@400;500;600&display=swap">
+<style>
+/* Layout: no PC, seletor de mapa numa coluna fixa à esquerda e o mapa à direita (tier list + painel).
+   No celular, barra do mapa atual presa no topo com "Trocar", que abre o seletor numa folha de baixo. */
+:root {
+  --bg: #eaf0f8;
+  --surface: #ffffff;
+  --surface-2: #f4f7fc;
+  --ink: #13213b;
+  --muted: #5a6a86;
+  --line: #d3dbe8;
+  --accent: #ffc21a;
+  --on-accent: #13213b;
+  --tier-s: #d93a31;
+  --tier-a: #c96a0c;
+  --tier-b: #2f6cc4;
+  --tier-c: #6b778b;
+  --good: #1f9d6b;
+  --bad: #d4453c;
+  --rot: #0b7148;
+  --rot-bg: #dcf5ea;
+  --font-display: "Lilita One", "Arial Black", Impact, sans-serif;
+  --font-body: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1424; --surface: #142038; --surface-2: #101a2e; --ink: #e9eef8; --muted: #93a2bc; --line: #24334f;
+    --accent: #ffc21a; --on-accent: #13213b;
+    --tier-s: #c8433a; --tier-a: #b8650f; --tier-b: #3567b8; --tier-c: #5d6a82;
+    --good: #3cc98f; --bad: #ff6a5f;
+    --rot: #4fd69c; --rot-bg: #12392c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1424; --surface: #142038; --surface-2: #101a2e; --ink: #e9eef8; --muted: #93a2bc; --line: #24334f;
+  --accent: #ffc21a; --on-accent: #13213b;
+  --tier-s: #c8433a; --tier-a: #b8650f; --tier-b: #3567b8; --tier-c: #5d6a82;
+  --good: #3cc98f; --bad: #ff6a5f;
+  --rot: #4fd69c; --rot-bg: #12392c;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scrollbar-gutter: stable; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+  -webkit-tap-highlight-color: transparent;
+}
+body:has(dialog[open]) { overflow: hidden; }
+button, input { font: inherit; color: inherit; }
+button { touch-action: manipulation; }
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 16px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+h1 { font-size: 2.1rem; line-height: 1.05; }
+h2 { font-size: 1.6rem; line-height: 1.1; }
+h3 { font-size: 1.05rem; }
+.sub { color: var(--muted); font-size: 0.88rem; }
+.num { font-variant-numeric: tabular-nums; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* Cabeçalho: título, linha de informação e a troca Ranqueado / Troféu */
+.topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.marca { display: grid; gap: 6px; min-width: 0; }
+.marca .sub span + span::before { content: "·"; margin: 0 8px; }
+.segmento { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 2px; }
+.segmento button {
+  border: 0; background: none; border-radius: 9px; padding: 8px 16px; min-height: 40px;
+  font-weight: 600; font-size: 0.9rem; color: var(--muted); cursor: pointer;
+}
+.segmento button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.voce { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
+.voce select {
+  min-height: 40px; max-width: 220px; padding: 6px 10px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 500;
+}
+
+/* Corpo: coluna do seletor só a partir de 1000px */
+.corpo { display: grid; gap: 16px; align-items: start; }
+.principal { display: grid; gap: 16px; min-width: 0; }
+.trilho { display: none; }
+@media (min-width: 1000px) {
+  .corpo { grid-template-columns: 300px minmax(0, 1fr); gap: 24px; }
+  .trilho {
+    display: block; position: sticky; top: 16px;
+    max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  }
+}
+
+/* ===== Seletor de mapa (o mesmo no trilho do PC e na folha do celular) ===== */
+.seletor { display: grid; gap: 4px; padding: 12px 12px 16px; }
+.busca { position: sticky; top: 0; z-index: 2; background: var(--surface); padding: 2px 0 8px; }
+.busca label { position: relative; display: block; }
+.busca svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 17px; height: 17px; color: var(--muted); pointer-events: none; }
+.busca input {
+  width: 100%; min-height: 44px; padding: 10px 40px 10px 38px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2);
+  font-size: 16px; /* evita o zoom automático do iOS */
+}
+.busca input::placeholder { color: var(--muted); }
+.busca input:focus-visible { outline-offset: 0; }
+.busca kbd {
+  position: absolute; right: 10px; top: 50%; translate: 0 -50%;
+  font: 500 0.72rem var(--font-body); color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px;
+}
+@media (hover: none) { .busca kbd { display: none; } }
+.busca input:not(:placeholder-shown) ~ kbd { display: none; }
+
+.secao-titulo {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  font: 600 0.72rem var(--font-body); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted);
+  margin: 10px 4px 6px;
+}
+.secao-titulo span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+.lista-mapas { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.mapa-btn {
+  width: 100%; min-height: 44px; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  text-align: left; background: none; border: 0; border-radius: 10px; padding: 6px 10px; cursor: pointer;
+}
+.mapa-btn:hover { background: var(--surface-2); }
+.mapa-btn[aria-current="true"] { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.mapa-btn .ponto { width: 10px; height: 10px; border-radius: 3px; background: var(--c, var(--muted)); }
+.mapa-btn .txt { display: grid; min-width: 0; line-height: 1.25; }
+.mapa-btn .txt b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mapa-btn .txt small { color: var(--muted); font-size: 0.76rem; }
+.mapa-btn mark { background: color-mix(in srgb, var(--accent) 45%, transparent); color: inherit; border-radius: 3px; }
+.selo-rot {
+  font: 600 0.68rem var(--font-body); color: var(--rot); background: var(--rot-bg);
+  border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+}
+
+/* Mapa que existe em mais de um Showdown: uma entrada só, o modo sai nos botões pequenos */
+.entrada { display: grid; border-radius: 10px; }
+.entrada.multi > .mapa-btn { min-height: 36px; padding-bottom: 2px; }
+.mini { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px 8px 30px; }
+details.modo .mini { padding-left: 10px; }
+.mini button {
+  min-height: 28px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  font-size: 0.76rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+}
+@media (pointer: coarse) { .mini button { min-height: 32px; } }
+.mini button:hover { border-color: var(--muted); }
+.mini button.rot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--rot); }
+.mini button[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.trilho .entrada.multi > .mapa-btn { min-height: 30px; padding-block: 4px 2px; }
+.trilho .entrada.multi > .mini { padding-bottom: 6px; }
+.trilho .entrada.multi:has(> .mapa-btn[aria-current="true"]) { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.trilho .entrada.multi > .mapa-btn[aria-current="true"] { background: none; }
+
+/* Modos agrupados em famílias; cada modo abre e fecha */
+.familia { margin-top: 6px; }
+.familia > h3 { font: 600 0.72rem var(--font-body); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 8px 4px 4px; }
+details.modo { border-radius: 12px; }
+details.modo[open] { background: var(--surface-2); }
+details.modo > summary {
+  list-style: none; cursor: pointer; min-height: 44px; border-radius: 12px;
+  display: grid; grid-template-columns: 12px minmax(0, 1fr) 14px; align-items: center; gap: 10px; padding: 6px 10px;
+  font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.02em;
+}
+details.modo > summary::-webkit-details-marker { display: none; }
+details.modo > summary:hover { background: var(--surface-2); }
+details.modo > summary .ponto { width: 12px; height: 12px; border-radius: 4px; background: var(--c); }
+details.modo > summary .modo-txt { display: grid; line-height: 1.15; }
+details.modo > summary small { font: 400 0.76rem var(--font-body); color: var(--muted); letter-spacing: 0; }
+details.modo > summary em { font-style: normal; font-weight: 600; color: var(--rot); }
+.seta { width: 14px; height: 14px; color: var(--muted); }
+details[open] > summary .seta { rotate: 90deg; }
+@media (prefers-reduced-motion: no-preference) { .seta { transition: rotate .15s; } }
+details.modo.atual > summary { box-shadow: inset 3px 0 0 var(--accent); }
+details.modo .lista-mapas { padding: 0 4px 8px 26px; }
+details.modo .mapa-btn { grid-template-columns: minmax(0, 1fr) auto; min-height: 40px; }
+details.modo .mapa-btn .ponto { display: none; }
+@media (pointer: fine) { details.modo .mapa-btn { min-height: 34px; padding-block: 4px; } }
+
+/* "Mais modos": 5 contra 5 e Especiais ficam guardados */
+details.mais { margin-top: 8px; }
+details.mais > summary {
+  list-style: none; cursor: pointer; min-height: 44px; border-radius: 12px; border: 1px dashed var(--line);
+  display: flex; align-items: center; gap: 10px; padding: 6px 12px; font-weight: 600; font-size: 0.9rem;
+}
+details.mais > summary::-webkit-details-marker { display: none; }
+details.mais > summary:hover { border-color: var(--muted); }
+details.mais > summary em { font-style: normal; font-size: 0.76rem; color: var(--rot); }
+details.mais > summary .seta { margin-left: auto; }
+.vazio-busca { color: var(--muted); font-size: 0.9rem; padding: 10px 6px; }
+
+/* ===== Folha de baixo (celular) ===== */
+dialog.folha {
+  border: 0; padding: 0; margin: auto 0 0; width: 100%; max-width: 100%;
+  height: 88dvh; max-height: 88dvh; border-radius: 20px 20px 0 0; /* altura fixa: a folha não pula quando a busca filtra */
+  background: var(--surface); color: var(--ink);
+  display: none; flex-direction: column; overscroll-behavior: contain;
+}
+dialog.folha[open] { display: flex; }
+dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
+.folha-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px 4px 16px; position: relative; }
+.folha-topo::before { content: ""; position: absolute; top: 6px; left: 50%; translate: -50% 0; width: 40px; height: 4px; border-radius: 4px; background: var(--line); }
+.folha-topo h2 { font-size: 1.25rem; padding-top: 8px; outline: none; }
+.folha-corpo { overflow: auto; overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom); }
+.fechar {
+  width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+  display: grid; place-items: center; cursor: pointer; color: var(--muted);
+}
+.fechar svg { width: 18px; height: 18px; }
+@media (prefers-reduced-motion: no-preference) {
+  dialog.folha[open] { animation: subir .22s cubic-bezier(.2, .8, .2, 1); }
+  @keyframes subir { from { transform: translateY(24px); opacity: .6; } }
+}
+.folha details.modo .lista-mapas { grid-template-columns: 1fr 1fr; gap: 4px; padding: 2px 6px 10px 8px; }
+
+/* Cartões: rotação em grade de 2 colunas (faixa da página e folha) e mapas de cada modo na folha */
+.faixa .cartoes, .folha .rotacao { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.faixa .cartoes > li, .folha .rotacao > li, .folha details.modo .lista-mapas > li {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; align-content: start;
+}
+.faixa .cartoes > li, .folha .rotacao > li { border-left: 4px solid var(--c); }
+.faixa .cartoes > li:has(> .mapa-btn[aria-current="true"]),
+.folha .rotacao > li:has(> .mapa-btn[aria-current="true"]),
+.folha details.modo .lista-mapas > li:has(> .mapa-btn[aria-current="true"]) {
+  border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+}
+.faixa .cartoes > li:has(> .mapa-btn[aria-current="true"]), .folha .rotacao > li:has(> .mapa-btn[aria-current="true"]) { border-left-color: var(--c); }
+.faixa .cartoes .mapa-btn, .folha .rotacao .mapa-btn, .folha details.modo .mapa-btn {
+  grid-template-columns: minmax(0, 1fr); gap: 0; padding: 6px 10px; min-height: 44px; background: none; align-content: center;
+}
+.faixa .cartoes .mapa-btn .ponto, .folha .rotacao .mapa-btn .ponto,
+.faixa .cartoes .mapa-btn > span:empty, .folha .rotacao .mapa-btn > span:empty, .folha details.modo .mapa-btn > span:empty { display: none; }
+.faixa .cartoes .txt small, .folha .rotacao .txt small { order: -1; font-size: 0.72rem; }
+.faixa .cartoes .txt b, .folha .rotacao .txt b, .folha details.modo .txt b { white-space: normal; font-size: 0.88rem; font-weight: 600; }
+.folha details.modo .mapa-btn .selo-rot { justify-self: start; font-size: 0.64rem; padding: 0 6px; }
+.faixa .cartoes .mini, .folha .rotacao .mini, .folha details.modo .mini { gap: 3px; flex-wrap: nowrap; padding: 0 6px 8px 8px; }
+.faixa .cartoes .mini button, .folha .rotacao .mini button, .folha details.modo .mini button { padding: 2px 7px; font-size: 0.74rem; }
+
+/* ===== Barra do mapa atual: gruda no topo ao rolar ===== */
+.barra-mapa {
+  position: sticky; top: 0; z-index: 5;
+  margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: 10px max(16px, env(safe-area-inset-left, 0px));
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid transparent;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px;
+}
+.barra-mapa.grudada { border-bottom-color: var(--line); }
+@media (min-width: 1000px) { .barra-mapa { margin-inline: 0; padding-inline: 0; } }
+.barra-mapa .onde { display: grid; gap: 2px; min-width: 0; }
+.modo-nome { display: flex; align-items: center; gap: 8px; font: 500 0.82rem var(--font-body); color: var(--muted); }
+.modo-nome i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.barra-mapa h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 700px) { .barra-mapa h2 { font-size: 2rem; } }
+.trocar {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px;
+  border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent);
+  font: 400 1rem var(--font-display); letter-spacing: 0.02em; cursor: pointer; box-shadow: 0 2px 0 rgb(0 0 0 / .18);
+}
+.trocar svg { width: 16px; height: 16px; }
+@media (min-width: 1000px) { .trocar { display: none; } }
+.barra-info { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.irmaos { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 0.84rem; }
+.irmaos button {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 10px; min-height: 30px;
+  font-size: 0.8rem; cursor: pointer;
+}
+.irmaos button:hover { border-color: var(--muted); }
+
+/* Rotação na página (celular): toda a rotação numa tela, um toque troca de mapa */
+.faixa { display: grid; gap: 6px; }
+.faixa > h3 { font: 600 0.72rem var(--font-body); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.faixa > h3 span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+@media (min-width: 1000px) { .faixa { display: none; } }
+
+/* ===== Conteúdo do mapa ===== */
+/* Duas colunas (tier list e painel) só quando sobra largura; no celular "Pra escolher agora" vem antes da lista */
+.grade { display: grid; gap: 20px; align-items: start; grid-template-areas: "agora" "lista" "painel"; grid-template-columns: minmax(0, 1fr); }
+.grade > .lista { grid-area: lista; }
+.grade > .agora { grid-area: agora; }
+.grade > .painel { grid-area: painel; }
+@media (min-width: 860px) and (max-width: 999px), (min-width: 1180px) {
+  .grade { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: "lista agora" "lista painel"; grid-template-rows: auto 1fr; }
+}
+
+.lista { display: grid; gap: 14px; min-width: 0; }
+.tier { display: grid; grid-template-columns: 44px minmax(0, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.tier-letra {
+  font-family: var(--font-display); font-size: 1.6rem; color: #fff;
+  display: grid; place-items: center;
+  -webkit-text-stroke: 0.5px rgba(0,0,0,.35);
+}
+.tier[data-t="S"] .tier-letra { background: var(--tier-s); }
+.tier[data-t="A"] .tier-letra { background: var(--tier-a); }
+.tier[data-t="B"] .tier-letra { background: var(--tier-b); }
+.tier[data-t="C"] .tier-letra { background: var(--tier-c); }
+.linhas { display: grid; min-width: 0; }
+
+.linha {
+  display: grid;
+  grid-template-columns: minmax(96px, 1.1fr) minmax(70px, 1fr) 62px 58px 30px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+.linha:first-child { border-top: 0; }
+.linha .val { text-align: right; }
+.linha .val small { display: block; color: var(--muted); font-size: 0.74rem; line-height: 1.2; }
+.barra { position: relative; height: 8px; background: color-mix(in srgb, var(--line) 60%, transparent); border-radius: 4px; }
+.barra::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--muted); opacity: .6; }
+.barra i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.barra i.pos { left: 50%; background: var(--good); }
+.barra i.neg { right: 50%; background: var(--bad); }
+.bloq {
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  cursor: pointer; display: grid; place-items: center; padding: 0;
+}
+.bloq svg { width: 15px; height: 15px; }
+.bloq:hover { border-color: var(--muted); color: var(--ink); }
+.linha.bloqueado .nome { text-decoration: line-through; color: var(--muted); }
+.linha.bloqueado .barra, .linha.bloqueado .val { opacity: .4; }
+.linha.bloqueado .bloq { background: var(--bad); border-color: var(--bad); color: #fff; }
+.cabeca { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-top: 0; padding-block: 0 2px; }
+.cabeca .val { text-align: right; }
+
+@media (max-width: 520px) {
+  .linha { grid-template-columns: minmax(80px, 1fr) 54px 50px 30px; }
+  .linha .barra, .cabeca .c-barra { display: none; }
+}
+
+.painel { display: grid; gap: 14px; min-width: 0; }
+.bloco { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; }
+.bloco.destaque { border: 2px solid var(--accent); }
+.bloco p { margin: 0; color: var(--muted); font-size: 0.84rem; }
+.picks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.picks li { display: flex; justify-content: space-between; gap: 10px; font-size: 0.92rem; }
+.picks li b { font-weight: 600; }
+.picks li span { color: var(--muted); }
+.picks .pos { color: var(--good); }
+.picks .neg { color: var(--bad); }
+.picks.ordenada { counter-reset: n; }
+.picks.ordenada li::before { counter-increment: n; content: counter(n); font-family: var(--font-display); color: var(--muted); width: 1.2em; }
+.picks.ordenada li b { flex: 1; }
+.picks.ordenada li.vazio::before { content: none; }
+.vazio { color: var(--muted); font-size: 0.86rem; }
+
+.ferramentas { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.alternar { display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--muted); cursor: pointer; }
+.alternar input { accent-color: var(--tier-b); width: 16px; height: 16px; }
+
+/* Selo que não cabe ao lado do nome desce pra linha de baixo */
+.linha .nome { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; font-weight: 600; }
+.nome button {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+}
+.nome button:hover { text-decoration: underline; }
+.max { font: 400 0.66rem var(--font-display); letter-spacing: 0.04em; color: var(--on-accent); background: var(--accent); border-radius: 4px; padding: 1px 5px; flex: none; }
+.nicho { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
+.linha.nao-tenho .nome button { color: var(--muted); font-weight: 400; }
+.linha.selecionado { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+
+.detalhe-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.detalhe-topo h3 { font-size: 1.35rem; }
+.colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.colunas h4 { margin: 0 0 4px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
+.colunas .picks li { font-size: 0.86rem; }
+.fora { font-size: 0.84rem; color: var(--muted); }
+.fora b { color: var(--ink); font-weight: 500; }
+
+.investir { display: grid; gap: 10px; }
+.investir ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.investir li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+.investir li b { font-family: var(--font-display); font-weight: 400; font-size: 1.05rem; }
+.investir li span { color: var(--muted); font-size: 0.82rem; }
+
+.guia { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 28px; border-top: 1px solid var(--line); padding-top: 18px; }
+.guia div { display: grid; gap: 4px; max-width: 62ch; }
+.guia a { color: inherit; text-decoration: underline; }
+.guia p { margin: 0; color: var(--muted); font-size: 0.88rem; }
+.limpar { justify-self: start; font: 500 0.82rem var(--font-body); background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0; }
+
+.trofeu .linha { grid-template-columns: minmax(96px, 1.1fr) minmax(70px, 1fr) 62px 58px 52px; }
+@media (max-width: 520px) {
+  .trofeu .linha { grid-template-columns: minmax(80px, 1fr) 54px 50px 46px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .linha { transition: opacity .15s; }
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="topo">
+    <div class="marca">
+      <h1>Meta por Mapa</h1>
+      <div class="sub" id="info"></div>
+    </div>
+    <div class="controles">
+      <label class="voce" id="voce" hidden>Você <select id="perfil"></select></label>
+      <div class="segmento" id="partes" role="group" aria-label="Tipo de partida"></div>
+    </div>
+  </header>
+
+  <div class="corpo">
+    <aside class="trilho" id="trilho" aria-label="Escolher mapa"></aside>
+
+    <main class="principal">
+      <div class="barra-mapa" id="barraMapa">
+        <div class="onde">
+          <span class="modo-nome" id="modoNome"></span>
+          <h2 id="nomeMapa"></h2>
+        </div>
+        <button class="trocar" type="button" id="abrir" aria-haspopup="dialog" aria-controls="folha">
+          Trocar
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+        </button>
+        <div class="barra-info">
+          <span class="selo-rot" id="seloRot" hidden></span>
+          <span class="sub num" id="statsMapa"></span>
+          <span class="irmaos" id="irmaos" hidden></span>
+        </div>
+      </div>
+
+      <section class="faixa" id="faixa" aria-label="Mapas na rotação agora" hidden></section>
+
+      <div class="ferramentas" id="ferramentas" hidden>
+        <label class="alternar"><input type="checkbox" id="soMeus"> Esconder os que não tenho no máximo</label>
+      </div>
+
+      <div class="grade">
+        <div class="lista" id="lista"></div>
+        <div class="bloco destaque agora">
+          <h3>Pra escolher agora</h3>
+          <ol class="picks ordenada num" id="agora"></ol>
+          <p id="agoraNota">Os 5 melhores que sobraram. Marque com o cadeado quem foi bloqueado e a lista se ajusta.</p>
+          <p class="fora" id="fora"></p>
+          <button class="limpar" id="limpar" type="button">Desmarcar bloqueios deste mapa</button>
+        </div>
+        <div class="painel">
+          <div class="bloco" id="detalhe"></div>
+          <div class="bloco">
+            <h3>Especialistas</h3>
+            <ul class="picks num" id="especialistas"></ul>
+            <p>Rendem neste mapa mais do que no próprio modo, com diferença grande demais pra ser sorte.</p>
+          </div>
+          <div class="bloco">
+            <h3>Duplas que ganham</h3>
+            <ul class="picks num" id="duplasBoas"></ul>
+          </div>
+          <div class="bloco">
+            <h3>Duplas que perdem</h3>
+            <ul class="picks num" id="duplasRuins"></ul>
+          </div>
+          <div class="bloco">
+            <h3>Pouca amostra, de olho</h3>
+            <ul class="picks num" id="pouca"></ul>
+            <p id="poucaNota"></p>
+          </div>
+        </div>
+      </div>
+
+      <section class="investir" id="investir" hidden>
+        <h2>Vale maximizar</h2>
+        <p class="sub">Brawlers que você ainda não tem no máximo, pela quantidade de mapas do ranqueado em que estão no tier S ou A.</p>
+        <ol id="investirLista"></ol>
+      </section>
+
+      <section class="guia">
+        <div>
+          <h3>Counters</h3>
+          <p>Clique no nome de um brawler. "Perde para" lista quem mais ganha dele neste mapa: se o inimigo escolheu esse brawler, são boas respostas. A conta compara com a taxa normal dele, então mostra o efeito do confronto e não só a força do brawler.</p>
+        </div>
+        <div>
+          <h3>Como a lista é ordenada</h3>
+          <p>Pela vitória ajustada: a taxa de vitória do brawler puxada um pouco pra média do mapa. Quem tem muitas partidas fica perto da taxa real; quem tem poucas fica perto da média. Isso impede que um brawler com 9 partidas e 8 vitórias apareça no topo.</p>
+        </div>
+        <div>
+          <h3>Por que a média passa de 50%</h3>
+          <p>O site só registra partidas de quem já pesquisou o próprio perfil lá, e essa turma joga melhor que a média. Por isso cada mapa tem a própria média, e a barra mostra quanto o brawler fica acima ou abaixo dela.</p>
+        </div>
+        <div>
+          <h3>Especialistas</h3>
+          <p>Compara a vitória do brawler neste mapa com a vitória dele no modo inteiro. Entra quem fica acima com diferença que dificilmente é sorte. A tier list diz quem é forte aqui; este quadro diz quem fica mais forte aqui do que costuma ser.</p>
+        </div>
+        <div id="guiaNicho" hidden>
+          <h3>Selo "nicho"</h3>
+          <p>Marca brawler com menos de 0,5% de uso no mapa. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, e a vitória alta mede a mão desses jogadores tanto quanto a força do brawler. Por isso, no troféu, a vitória ajustada puxa mais forte pra média do mapa: vale como 1.000 partidas na média, contra 100 no ranqueado. Como as diferenças ficam menores, os tiers do troféu também começam mais perto da média.</p>
+        </div>
+        <div id="guiaVoce" hidden>
+          <h3>Seu perfil</h3>
+          <p>Escolha seu nome em "Você" e a página marca quem você tem no máximo: nível 11 com gadget, star power e hipercarga. A lista vem do seu perfil e se atualiza sozinha. Se marcar ou desmarcar algum brawler na mão, o ajuste fica guardado neste navegador.</p>
+        </div>
+        <div id="guiaBloqueio">
+          <h3>Bloqueio</h3>
+          <p>O jogo não informa quem foi bloqueado. Abaixo de Diamante I não tem bloqueio, mas o nível é baixo demais pra servir de referência. Então o bloqueio entra na mão, pelo cadeado.</p>
+        </div>
+        <div>
+          <h3>De onde vêm os dados</h3>
+          <p>Das partidas registradas pelo <a href="https://brawltime.ninja" target="_blank" rel="noopener">Brawl Time Ninja</a>, desde a data que aparece no topo. As contas (vitória ajustada, tiers, duplas, counters) são desta página. Não é um site oficial da Supercell.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<dialog class="folha" id="folha" aria-labelledby="folhaTitulo">
+  <div class="folha-topo">
+    <h2 id="folhaTitulo" tabindex="-1" autofocus>Escolher mapa</h2>
+    <button class="fechar" type="button" id="fechar" aria-label="Fechar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="folha-corpo" id="folhaCorpo"></div>
+</dialog>
+
+<template id="tplSeletor">
+  <div class="seletor">
+    <div class="busca" role="search">
+      <label>
+        <span class="sr">Buscar mapa ou modo</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="search" id="busca" placeholder="Buscar mapa ou modo…" autocomplete="off" spellcheck="false" enterkeyhint="go">
+        <kbd>/</kbd>
+      </label>
+    </div>
+    <div id="resultados" hidden></div>
+    <div id="navegar"></div>
+  </div>
+</template>
+
+<script>
+const DADOS = /*__DADOS__*/null;
+
+// Nomes como aparecem no jogo em inglês. Os nomes internos vêm do Brawl Time Ninja.
+const MODOS = {
+  gemGrab: 'Gem Grab', brawlBall: 'Brawl Ball', heist: 'Heist',
+  bounty: 'Bounty', knockout: 'Knockout', hotZone: 'Hot Zone',
+  soloShowdown: 'Solo Showdown', duoShowdown: 'Duo Showdown', trioShowdown: 'Trio Showdown',
+  airHockey: 'Brawl Hockey', brawlBall5V5: 'Brawl Ball 5v5', knockout5V5: 'Knockout 5v5',
+  gemGrab5V5: 'Gem Grab 5v5', deathmatch: 'Wipeout', deathmatch5v5: 'Wipeout 5v5',
+  basketBrawl: 'Basket Brawl', brawlArena: 'Brawl Arena', hunterSurvivor: 'Hide & Seek',
+};
+// Ordem fixa dos modos no seletor: o mesmo modo fica sempre no mesmo lugar.
+// Cada modo tem cor (aproximada da do jogo) e família.
+const ORDEM = [
+  'gemGrab', 'brawlBall', 'bounty', 'heist', 'knockout', 'hotZone', 'basketBrawl',
+  'soloShowdown', 'duoShowdown', 'trioShowdown',
+  'gemGrab5V5', 'brawlBall5V5', 'knockout5V5', 'deathmatch5v5',
+  'airHockey', 'brawlArena', 'hunterSurvivor', 'deathmatch',
+];
+const COR = {
+  gemGrab: '#a24bf2', brawlBall: '#4f78e6', bounty: '#14a9d9', heist: '#d14bc2', knockout: '#ef7d16', hotZone: '#e0364b',
+  basketBrawl: '#e5672b', soloShowdown: '#54b72a', duoShowdown: '#3fa33a', trioShowdown: '#2f8f45',
+  gemGrab5V5: '#a24bf2', brawlBall5V5: '#4f78e6', knockout5V5: '#ef7d16', deathmatch5v5: '#cf4545',
+  airHockey: '#22a99a', brawlArena: '#c39a1f', hunterSurvivor: '#7a5cd6', deathmatch: '#cf4545',
+};
+const FAMILIA = {
+  gemGrab: 'tres', brawlBall: 'tres', bounty: 'tres', heist: 'tres', knockout: 'tres', hotZone: 'tres', basketBrawl: 'tres',
+  soloShowdown: 'sd', duoShowdown: 'sd', trioShowdown: 'sd',
+  gemGrab5V5: 'cinco', brawlBall5V5: 'cinco', knockout5V5: 'cinco', deathmatch5v5: 'cinco',
+};
+const FAMILIAS = { tres: '3 contra 3', sd: 'Showdown', cinco: '5 contra 5', esp: 'Especiais' };
+const ESCONDIDAS = ['cinco', 'esp']; // ficam atrás de "Mais modos"
+const PARTES = { ranqueado: 'Ranqueado', trofeu: 'Troféu' };
+const RANKS = { 10: 'Diamante I', 13: 'Mítico I', 16: 'Lendário I', 19: 'Mestre I' };
+const CADEADO = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="none"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
+const SETA = '<svg class="seta" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>';
+
+const pct = (x, d = 1) => (x * 100).toFixed(d).replace('.', ',') + '%';
+const pp = (x) => (x >= 0 ? '+' : '−') + Math.abs(x * 100).toFixed(1).replace('.', ',');
+const trof = (x) => (x == null ? '–' : (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1).replace('.', ','));
+const posicao = (x) => x.toFixed(1).replace('.', ',') + 'º';
+const hora = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const nomeModo = (modo) => MODOS[modo] ?? modo;
+const corModo = (modo) => COR[modo] ?? '#8b97ab';
+const famDe = (modo) => FAMILIA[modo] ?? 'esp';
+const curto = (modo) => nomeModo(modo).replace(' Showdown', '');
+const posModo = (m) => { const i = ORDEM.indexOf(m.modo); return i < 0 ? ORDEM.length : i; };
+
+// Só no troféu: brawler raro a 1.000 troféus costuma estar na mão de especialista.
+const TEXTO_NICHO = 'Menos de 0,5% de uso. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, então a vitória mede também a mão desses jogadores.';
+const nicho = (b) => atual.parte === 'trofeu' && b.uso < (DADOS.partes.trofeu.nicho ?? 0.005);
+
+// Onde cada tier começa, em diferença pra média do mapa. No troféu a vitória
+// ajustada puxa mais forte pra média, então as diferenças são menores e as faixas também.
+const FAIXAS = {
+  ranqueado: { S: 0.04, A: 0.02, B: -0.01 },
+  trofeu: { S: 0.015, A: 0.0075, B: -0.005 },
+};
+
+function tierDe(delta, parte) {
+  const f = FAIXAS[parte];
+  if (delta >= f.S) return 'S';
+  if (delta >= f.A) return 'A';
+  if (delta >= f.B) return 'B';
+  return 'C';
+}
+
+const forte = (b, m) => b.adj - m.media >= FAIXAS[m.parte].A;
+
+const guardar = {
+  ler(k, padrao) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : padrao; } catch { return padrao; } },
+  gravar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+// Quem a pessoa tem no máximo. Com um perfil do clube escolhido, vem do perfil
+// (renovado a cada geração da página) mais os ajustes feitos na mão. Sem perfil,
+// vale só o que foi marcado na mão. Tudo fica no navegador de quem usa.
+const MEMBROS = DADOS.clube?.membros ?? [];
+let perfil = MEMBROS.find((p) => p.tag === guardar.ler('perfil', null)) ?? null;
+const meus = new Set();
+const temLista = () => meus.size > 0;
+
+function carregarMeus() {
+  meus.clear();
+  if (!perfil) {
+    for (const b of guardar.ler('meus', [])) meus.add(b);
+    return;
+  }
+  const { mais = [], menos = [] } = guardar.ler('ajustes:' + perfil.tag, {});
+  for (const b of perfil.maximizados) if (!menos.includes(b)) meus.add(b);
+  for (const b of mais) meus.add(b);
+}
+
+// Com perfil, guarda só a diferença pra ele: brawler que chegar ao máximo depois
+// aparece sozinho na próxima geração.
+function salvarMeus() {
+  if (!perfil) return guardar.gravar('meus', [...meus]);
+  const base = new Set(perfil.maximizados);
+  guardar.gravar('ajustes:' + perfil.tag, {
+    mais: [...meus].filter((b) => !base.has(b)),
+    menos: perfil.maximizados.filter((b) => !meus.has(b)),
+  });
+}
+carregarMeus();
+
+// Cada mapa sabe de qual parte veio: o mesmo nome existe em duas partes
+// (Shooting Star) ou em dois modos (Rockwall Brawl no Solo e no Duo Showdown).
+for (const [id, p] of Object.entries(DADOS.partes)) for (const m of p.mapas) m.parte = id;
+const TODOS = Object.values(DADOS.partes).flatMap((p) => p.mapas);
+const chave = (m) => slug(`${m.parte} ${m.modo} ${m.mapa}`);
+
+let atual = null;
+let selecionado = null;
+
+const quandoDa = (parte) => hora(DADOS.partes[parte].geradoEm);
+const modosDa = (parte) => [...new Set(DADOS.partes[parte].mapas.map((m) => m.modo))]
+  .sort((a, b) => posModo({ modo: a }) - posModo({ modo: b }));
+
+// Primeiro mapa ao trocar de parte: o primeiro da rotação, se houver.
+function primeiroDa(parte) {
+  const mapas = DADOS.partes[parte].mapas;
+  const rot = mapas.filter((m) => m.rotacao).sort((a, b) => posModo(a) - posModo(b))[0];
+  if (rot) return rot;
+  const modo = modosDa(parte)[0];
+  return mapas.filter((m) => m.modo === modo).sort((a, b) => a.mapa.localeCompare(b.mapa))[0];
+}
+
+function info() {
+  const p = DADOS.partes[atual.parte];
+  // O site rotula cada bloco de duas semanas pela data do fim; o começo é 15 dias antes.
+  const desde = new Date(p.desde + 'T00:00:00Z');
+  desde.setUTCDate(desde.getUTCDate() - 15);
+  const gerado = new Date(p.geradoEm);
+  const fmt = (d, o) => d.toLocaleDateString('pt-BR', o);
+  const filtro = atual.parte === 'ranqueado'
+    ? `Ranqueado, ${RANKS[p.rank] ?? 'faixa ' + p.rank} ou acima`
+    : `Partidas normais, brawler com ${(p.faixa * 100).toLocaleString('pt-BR')} troféus ou mais`;
+  const partes = [
+    filtro,
+    `partidas desde ${fmt(desde, { day: '2-digit', month: '2-digit', timeZone: 'UTC' })}`,
+    `atualizado em ${fmt(gerado, { day: '2-digit', month: '2-digit' })} às ${hora(p.geradoEm)}`,
+  ];
+  if (perfil) partes.push(`perfil ${esc(perfil.nome)}, ${meus.size} no máximo`);
+  else if (temLista()) partes.push(`${meus.size} marcados no máximo`);
+  document.getElementById('info').innerHTML = partes.map((t) => `<span>${t}</span>`).join('');
+}
+
+// ---------- Seletor de mapa ----------
+const seletor = document.getElementById('tplSeletor').content.firstElementChild.cloneNode(true);
+const busca = seletor.querySelector('#busca');
+const resultados = seletor.querySelector('#resultados');
+const navegar = seletor.querySelector('#navegar');
+
+// Mapa que existe em mais de um Showdown vira uma entrada só; o modo se escolhe nos botões pequenos.
+function agrupar(mapas) {
+  const grupos = new Map();
+  for (const m of mapas) {
+    const k = famDe(m.modo) === 'sd' ? `sd|${m.mapa}` : chave(m);
+    if (!grupos.has(k)) grupos.set(k, { mapa: m.mapa, membros: [] });
+    grupos.get(k).membros.push(m);
+  }
+  for (const g of grupos.values()) {
+    g.membros.sort((a, b) => posModo(a) - posModo(b));
+    g.rot = g.membros.some((m) => m.rotacao);
+  }
+  return [...grupos.values()];
+}
+const ordemGrupo = (a, b) => (b.rot - a.rot) || a.mapa.localeCompare(b.mapa);
+const ordemRot = (a, b) => posModo(a.membros[0]) - posModo(b.membros[0]) || a.mapa.localeCompare(b.mapa);
+
+function realcar(texto, q) {
+  const i = q ? norm(texto).indexOf(q) : -1;
+  if (i < 0) return esc(texto);
+  return esc(texto.slice(0, i)) + '<mark>' + esc(texto.slice(i, i + q.length)) + '</mark>' + esc(texto.slice(i + q.length));
+}
+
+function entrada(g, { comModo = false, realce = '', semSelo = false } = {}) {
+  const ms = g.membros;
+  const multi = ms.length > 1;
+  const sd = famDe(ms[0].modo) === 'sd';
+  // O nome do mapa abre o modo atual, se o mapa tiver; senão o da rotação; senão o primeiro.
+  const padrao = ms.find((m) => m === atual) ?? ms.find((m) => m.modo === atual.modo) ?? ms.find((m) => m.rotacao) ?? ms[0];
+  const legenda = multi ? 'Showdown' : nomeModo(ms[0].modo);
+  const mini = multi || (sd && !comModo)
+    ? `<div class="mini" role="group" aria-label="Modo de ${esc(g.mapa)}">${ms.map((m) => {
+        const rot = m.rotacao && !semSelo;
+        return `<button type="button" data-chave="${chave(m)}" class="${rot ? 'rot' : ''}" aria-current="${m === atual}" aria-label="${esc(g.mapa)}, ${esc(nomeModo(m.modo))}${m.rotacao ? ', na rotação' : ''}"${rot ? ' title="Na rotação"' : ''}>${esc(curto(m.modo))}</button>`;
+      }).join('')}</div>`
+    : '';
+  return `<li class="entrada${mini ? ' multi' : ''}" style="--c:${corModo(padrao.modo)}">
+    <button type="button" class="mapa-btn" data-chave="${chave(padrao)}" aria-current="${ms.includes(atual)}">
+      <span class="ponto" aria-hidden="true"></span>
+      <span class="txt"><b>${realcar(g.mapa, realce)}</b>${comModo ? `<small>${esc(legenda)}</small>` : ''}</span>
+      ${!mini && g.rot && !semSelo ? '<span class="selo-rot">rotação</span>' : '<span></span>'}
+    </button>${mini}</li>`;
+}
+
+function desenharSeletor() {
+  const parte = atual.parte;
+  const todos = DADOS.partes[parte].mapas;
+  const rot = agrupar(todos.filter((m) => m.rotacao)).sort(ordemRot);
+  let html = '';
+  if (rot.length) {
+    html += `<h3 class="secao-titulo">Na rotação agora <span>atualizado às ${quandoDa(parte)}</span></h3>
+      <ul class="lista-mapas rotacao">${rot.map((g) => entrada(g, { comModo: true, semSelo: true })).join('')}</ul>`;
+  }
+  // Cada modo é um bloco, menos o Showdown: Solo, Duo e Trio dividem os mapas, então viram um bloco só.
+  const blocos = [];
+  for (const modo of modosDa(parte)) {
+    const fam = parte === 'ranqueado' ? 'rank' : famDe(modo);
+    if (fam === 'sd') {
+      let b = blocos.find((x) => x.id === 'sd');
+      if (!b) blocos.push(b = { id: 'sd', fam, nome: 'Showdown', cor: corModo(modo), modos: [] });
+      b.modos.push(modo);
+    } else blocos.push({ id: modo, fam, nome: nomeModo(modo), cor: corModo(modo), modos: [modo] });
+  }
+  const familias = {};
+  for (const b of blocos) (familias[b.fam] ??= []).push(b);
+
+  const htmlBloco = (b) => {
+    const grupos = agrupar(todos.filter((m) => b.modos.includes(m.modo))).sort(ordemGrupo);
+    const nRot = grupos.filter((g) => g.rot).length;
+    const eAtual = b.modos.includes(atual.modo);
+    return `<details class="modo${eAtual ? ' atual' : ''}" ${eAtual ? 'open' : ''} style="--c:${b.cor}">
+      <summary><span class="ponto" aria-hidden="true"></span>
+        <span class="modo-txt">${esc(b.nome)}<small class="num">${grupos.length} ${grupos.length === 1 ? 'mapa' : 'mapas'}${nRot ? ` · <em>${nRot} na rotação</em>` : ''}</small></span>
+        ${SETA}
+      </summary>
+      <ul class="lista-mapas">${grupos.map((g) => entrada(g)).join('')}</ul>
+    </details>`;
+  };
+  // Showdown já é um bloco só com o mesmo nome: o título da família seria repetido.
+  const htmlFamilia = (fam) => `<div class="familia">${fam !== 'rank' && fam !== 'sd' ? `<h3>${FAMILIAS[fam]}</h3>` : ''}${familias[fam].map(htmlBloco).join('')}</div>`;
+  const ordemFam = ['rank', 'tres', 'sd', 'cinco', 'esp'];
+  const fams = Object.keys(familias).sort((a, b) => ordemFam.indexOf(a) - ordemFam.indexOf(b));
+
+  html += `<h3 class="secao-titulo">Todos os modos <span>${todos.length} mapas</span></h3>`;
+  html += fams.filter((f) => !ESCONDIDAS.includes(f)).map(htmlFamilia).join('');
+  const guardadas = fams.filter((f) => ESCONDIDAS.includes(f));
+  if (guardadas.length) {
+    const bs = guardadas.flatMap((f) => familias[f]);
+    const nModos = bs.reduce((s, b) => s + b.modos.length, 0);
+    const nRot = todos.filter((m) => m.rotacao && bs.some((b) => b.modos.includes(m.modo))).length;
+    const aberto = bs.some((b) => b.modos.includes(atual.modo));
+    html += `<details class="mais" ${aberto ? 'open' : ''}>
+      <summary><span>Mais modos (${nModos})</span>${nRot ? `<em>${nRot} na rotação</em>` : ''}${SETA}</summary>
+      ${guardadas.map(htmlFamilia).join('')}
+    </details>`;
+  }
+  navegar.innerHTML = html;
+  filtrar();
+}
+
+function filtrar() {
+  const q = norm(busca.value.trim());
+  navegar.hidden = !!q;
+  resultados.hidden = !q;
+  if (!q) return;
+  const grupos = agrupar(DADOS.partes[atual.parte].mapas
+    .filter((m) => norm(m.mapa).includes(q) || norm(nomeModo(m.modo)).includes(q)))
+    .sort((a, b) => (norm(b.mapa).startsWith(q) - norm(a.mapa).startsWith(q)) || ordemGrupo(a, b) || posModo(a.membros[0]) - posModo(b.membros[0]));
+  resultados.innerHTML = grupos.length
+    ? `<h3 class="secao-titulo">${grupos.length} ${grupos.length === 1 ? 'mapa' : 'mapas'}</h3>
+       <ul class="lista-mapas">${grupos.slice(0, 40).map((g) => entrada(g, { comModo: true, realce: q })).join('')}</ul>`
+    : `<p class="vazio-busca">Nenhum mapa ou modo com “${esc(busca.value.trim())}”.</p>`;
+}
+busca.addEventListener('input', filtrar);
+busca.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') resultados.querySelector('.mapa-btn')?.click();
+  if (e.key === 'Escape' && busca.value) { e.preventDefault(); e.stopPropagation(); busca.value = ''; filtrar(); }
+});
+
+// O seletor mora no trilho (PC) ou dentro da folha (celular).
+const folha = document.getElementById('folha');
+const largo = matchMedia('(min-width: 1000px)');
+function posicionarSeletor() {
+  (largo.matches ? document.getElementById('trilho') : document.getElementById('folhaCorpo')).append(seletor);
+  if (largo.matches && folha.open) folha.close();
+}
+largo.addEventListener('change', posicionarSeletor);
+document.getElementById('abrir').addEventListener('click', () => {
+  // A busca não ganha foco no celular: o teclado cobriria a lista. A folha abre no topo, com a rotação à vista.
+  folha.showModal();
+  document.getElementById('folhaCorpo').scrollTop = 0;
+});
+document.getElementById('fechar').addEventListener('click', () => folha.close());
+folha.addEventListener('click', (e) => { if (e.target === folha) folha.close(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== '/' || !largo.matches || e.target.closest('input, textarea')) return;
+  e.preventDefault();
+  busca.focus();
+  busca.select();
+});
+
+// ---------- Barra do mapa atual e faixa da rotação ----------
+function desenharNavegacao() {
+  const m = atual;
+  document.getElementById('partes').innerHTML = Object.keys(DADOS.partes).map((id) =>
+    `<button type="button" data-parte="${id}" aria-pressed="${id === m.parte}">${PARTES[id] ?? id}</button>`).join('');
+
+  document.getElementById('modoNome').innerHTML = `<i style="--c:${corModo(m.modo)}" aria-hidden="true"></i>${esc(nomeModo(m.modo))}`;
+  const selo = document.getElementById('seloRot');
+  selo.hidden = !m.rotacao;
+  selo.textContent = `na rotação às ${quandoDa(m.parte)}`;
+  // O mesmo mapa em outros modos da mesma parte (Solo, Duo e Trio Showdown).
+  const irmaos = DADOS.partes[m.parte].mapas.filter((x) => x.mapa === m.mapa && x !== m).sort((a, b) => posModo(a) - posModo(b));
+  const caixa = document.getElementById('irmaos');
+  caixa.hidden = !irmaos.length;
+  caixa.innerHTML = irmaos.length
+    ? `também em ${irmaos.map((x) => `<button type="button" data-chave="${chave(x)}">${esc(famDe(x.modo) === 'sd' ? curto(x.modo) : nomeModo(x.modo))}</button>`).join('')}`
+    : '';
+
+  const faixa = document.getElementById('faixa');
+  const rot = agrupar(DADOS.partes[m.parte].mapas.filter((x) => x.rotacao)).sort(ordemRot);
+  faixa.hidden = !rot.length;
+  faixa.innerHTML = rot.length
+    ? `<h3>Na rotação agora <span>atualizado às ${quandoDa(m.parte)}</span></h3>
+       <ul class="lista-mapas cartoes">${rot.map((g) => entrada(g, { comModo: true, semSelo: true })).join('')}</ul>`
+    : '';
+
+  desenharSeletor();
+}
+
+function desenharDetalhe() {
+  const m = atual;
+  const b = m.brawlers.find((x) => x.nome === selecionado);
+  const caixa = document.getElementById('detalhe');
+  if (!b) { caixa.innerHTML = '<p>Clique no nome de um brawler pra ver os counters dele neste mapa.</p>'; return; }
+  const topo = `
+    <div class="detalhe-topo"><h3>${esc(b.nome)}</h3><span class="sub num">${pct(b.adj)} · ${pp(b.adj - m.media)}</span></div>
+    <label class="alternar"><input type="checkbox" id="tenho" ${meus.has(b.nome) ? 'checked' : ''}> Tenho no máximo</label>`;
+  if (!m.confrontos) {
+    caixa.innerHTML = topo + '<p>Sem counters no Showdown: os inimigos são a sala inteira, então um confronto direto mede pouco.</p>';
+    return;
+  }
+  const { bom, ruim } = m.confrontos[b.nome] ?? { bom: [], ruim: [] };
+  const item = ([inimigo, efeito]) => `<li><b>${esc(inimigo)}</b><span class="${efeito >= 0 ? 'pos' : 'neg'}">${pp(efeito)}</span></li>`;
+  const vazio = '<li class="vazio">Nada claro</li>';
+  caixa.innerHTML = topo + `
+    <div class="colunas">
+      <div><h4>Bom contra</h4><ul class="picks num">${bom.map(item).join('') || vazio}</ul></div>
+      <div><h4>Perde para</h4><ul class="picks num">${ruim.map(item).join('') || vazio}</ul></div>
+    </div>
+    <p>Pontos de vitória a mais ou a menos que o normal dele, no confronto direto.</p>`;
+}
+
+function desenharMapa() {
+  const m = atual;
+  const ranqueado = m.parte === 'ranqueado';
+  document.body.classList.toggle('trofeu', !ranqueado);
+  const bloqueados = new Set(ranqueado ? guardar.ler('bloq:' + m.mapa, []) : []);
+  document.getElementById('nomeMapa').textContent = m.mapa;
+  document.getElementById('statsMapa').textContent =
+    `${m.total.toLocaleString('pt-BR')} partidas · média de vitória ${pct(m.media)}` +
+    // Mapa recém-chegado ao ranqueado: a lista fica toda perto da média até juntar partidas.
+    (m.total < 1000 ? ' · mapa novo, poucos dados: a lista ainda não diz nada' : '');
+
+  const escala = Math.max(0.08, ...m.brawlers.map((b) => Math.abs(b.adj - m.media)));
+  const porTier = { S: [], A: [], B: [], C: [] };
+  const esconder = temLista() && document.getElementById('soMeus').checked;
+  for (const b of m.brawlers) {
+    if (esconder && !meus.has(b.nome)) continue;
+    porTier[tierDe(b.adj - m.media, m.parte)].push(b);
+  }
+
+  const temPosicao = m.brawlers.some((b) => b.posicao != null);
+  const ultimaCabeca = ranqueado ? '<span></span>' : `<span class="val">Troféus${temPosicao ? '<small>posição</small>' : ''}</span>`;
+  const cabeca = `<div class="linha cabeca"><span>Brawler</span><span class="c-barra">vs. média</span><span class="val">Vitória</span><span class="val">Uso</span>${ultimaCabeca}</div>`;
+  let primeiro = true;
+  document.getElementById('lista').innerHTML = Object.entries(porTier).filter(([, l]) => l.length).map(([t, l]) => {
+    const linhas = l.map((b) => {
+      const d = b.adj - m.media;
+      const larg = Math.min(50, Math.abs(d) / escala * 50);
+      const bloq = bloqueados.has(b.nome);
+      const classes = ['linha', bloq && 'bloqueado', temLista() && !meus.has(b.nome) && 'nao-tenho', b.nome === selecionado && 'selecionado'].filter(Boolean).join(' ');
+      const ultima = ranqueado
+        ? `<button class="bloq" type="button" data-b="${esc(b.nome)}" aria-pressed="${bloq}" aria-label="${bloq ? 'Desmarcar bloqueio de' : 'Marcar como bloqueado:'} ${esc(b.nome)}">${CADEADO}</button>`
+        : `<span class="val num">${trof(b.trofeus)}${b.posicao != null ? `<small>${posicao(b.posicao)}</small>` : ''}</span>`;
+      return `<div class="${classes}">
+        <span class="nome"><button type="button" data-ver="${esc(b.nome)}" title="Ver counters de ${esc(b.nome)}">${esc(b.nome)}</button>${meus.has(b.nome) ? '<span class="max">MAX</span>' : ''}${nicho(b) ? `<span class="nicho" title="${TEXTO_NICHO}">nicho</span>` : ''}</span>
+        <span class="barra" title="${pp(d)} pontos vs. média do mapa"><i class="${d >= 0 ? 'pos' : 'neg'}" style="width:${larg}%"></i></span>
+        <span class="val num">${pct(b.adj)}<small>${pct(b.wr)} real</small></span>
+        <span class="val num">${pct(b.uso)}<small>${b.n.toLocaleString('pt-BR')}</small></span>
+        ${ultima}
+      </div>`;
+    }).join('');
+    const html = `<div class="tier" data-t="${t}"><div class="tier-letra">${t}</div><div class="linhas">${primeiro ? cabeca : ''}${linhas}</div></div>`;
+    primeiro = false;
+    return html;
+  }).join('');
+
+  const disponiveis = m.brawlers.filter((b) => !bloqueados.has(b.nome) && (!temLista() || meus.has(b.nome)));
+  document.getElementById('agora').innerHTML = disponiveis.slice(0, 5).map((b) =>
+    `<li><b>${esc(b.nome)}</b><span class="${b.adj >= m.media ? 'pos' : 'neg'}">${pp(b.adj - m.media)}</span></li>`).join('')
+    || '<li class="vazio">Nenhum brawler seu com partidas suficientes neste mapa.</li>';
+  const nota = temLista() ? 'Os 5 melhores entre os seus no máximo.' : 'Os 5 melhores deste mapa.';
+  document.getElementById('agoraNota').textContent = ranqueado
+    ? nota + ' Marque com o cadeado quem foi bloqueado e a lista se ajusta.'
+    : nota;
+  document.getElementById('limpar').hidden = !ranqueado;
+  const fortesFora = temLista() ? m.brawlers.filter((b) => !meus.has(b.nome) && forte(b, m)).slice(0, 4) : [];
+  document.getElementById('fora').innerHTML = fortesFora.length
+    ? `Fortes aqui que você não tem no máximo: ${fortesFora.map((b) => `<b>${esc(b.nome)}</b>`).join(', ')}.`
+    : '';
+
+  document.getElementById('especialistas').innerHTML = m.especialistas.map((e) =>
+    `<li><b>${esc(e.nome)}</b><span><span class="pos">${pp(e.delta)}</span> · ${pct(e.wr, 0)} aqui, ${pct(e.wrModo, 0)} no modo</span></li>`).join('')
+    || '<li class="vazio">Ninguém rende aqui muito acima do próprio modo.</li>';
+
+  const dupla = (d) => `<li><b>${esc(d.par[0])} + ${esc(d.par[1])}</b><span><span class="${d.wr >= m.media ? 'pos' : 'neg'}">${pct(d.wr)}</span> · ${d.n}</span></li>`;
+  document.getElementById('duplasBoas').innerHTML = m.melhoresDuplas.map(dupla).join('') || '<li class="vazio">Sem dupla com partidas suficientes.</li>';
+  document.getElementById('duplasRuins').innerHTML = m.pioresDuplas.map(dupla).join('') || '<li class="vazio">Sem dupla com partidas suficientes.</li>';
+  document.getElementById('pouca').innerHTML = m.poucaAmostra.map((b) =>
+    `<li><b>${esc(b.nome)}</b><span><span class="pos">${pct(b.wr, 0)}</span> · ${b.n} partidas</span></li>`).join('') || '<li class="vazio">Ninguém se destacou com pouca amostra.</li>';
+  document.getElementById('poucaNota').textContent = ranqueado
+    ? 'Ganham bem acima da média, mas com poucas partidas. Pode ser sorte, ou brawler forte que quase sempre é bloqueado.'
+    : 'Ganham bem acima da média, mas com poucas partidas. Pode ser sorte.';
+  document.getElementById('guiaBloqueio').hidden = !ranqueado;
+  document.getElementById('guiaNicho').hidden = ranqueado;
+
+  desenharDetalhe();
+}
+
+// Só no ranqueado: a pergunta é onde gastar recurso pensando no draft.
+function desenharInvestir() {
+  const secao = document.getElementById('investir');
+  const ranqueado = DADOS.partes.ranqueado;
+  secao.hidden = !temLista() || !ranqueado || atual.parte !== 'ranqueado';
+  if (secao.hidden) return;
+  const conta = {};
+  for (const m of ranqueado.mapas) {
+    for (const b of m.brawlers) {
+      if (meus.has(b.nome) || !forte(b, m)) continue;
+      (conta[b.nome] ??= []).push(m.mapa);
+    }
+  }
+  document.getElementById('investirLista').innerHTML = Object.entries(conta)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 8)
+    .map(([nome, mapas]) => `<li><b>${esc(nome)}</b><span>${mapas.length} ${mapas.length === 1 ? 'mapa' : 'mapas'}: ${mapas.map(esc).join(', ')}</span></li>`)
+    .join('');
+}
+
+function selecionar(m, mexerNoHash = true) {
+  if (!m) return;
+  if (!atual || atual.parte !== m.parte) busca.value = '';
+  atual = m;
+  if (!m.brawlers.some((b) => b.nome === selecionado)) selecionado = m.brawlers[0]?.nome ?? null;
+  guardar.gravar('mapa', chave(m));
+  if (mexerNoHash) history.replaceState(null, '', '#' + chave(m));
+  info();
+  desenharNavegacao();
+  desenharInvestir();
+  desenharMapa();
+  if (folha.open) folha.close();
+}
+
+// Depois de trocar de mapa lá embaixo na página, volta pra barra do mapa.
+function voltarPraBarra() {
+  const barra = document.getElementById('barraMapa');
+  const topo = barra.getBoundingClientRect().top + scrollY;
+  if (scrollY > topo) scrollTo({ top: topo, behavior: 'instant' });
+}
+
+document.addEventListener('click', (e) => {
+  const parte = e.target.closest('[data-parte]');
+  if (parte) {
+    if (parte.dataset.parte !== atual.parte) selecionar(primeiroDa(parte.dataset.parte));
+    return;
+  }
+  const mapa = e.target.closest('[data-chave]');
+  if (mapa) {
+    selecionar(TODOS.find((m) => chave(m) === mapa.dataset.chave));
+    return voltarPraBarra();
+  }
+  const ver = e.target.closest('[data-ver]');
+  if (ver) {
+    selecionado = ver.dataset.ver;
+    return desenharMapa();
+  }
+  const bloq = e.target.closest('.bloq');
+  if (bloq) {
+    const k = 'bloq:' + atual.mapa;
+    const s = new Set(guardar.ler(k, []));
+    s.has(bloq.dataset.b) ? s.delete(bloq.dataset.b) : s.add(bloq.dataset.b);
+    guardar.gravar(k, [...s]);
+    return desenharMapa();
+  }
+  if (e.target.id === 'limpar') {
+    guardar.gravar('bloq:' + atual.mapa, []);
+    desenharMapa();
+  }
+});
+
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'tenho') {
+    e.target.checked ? meus.add(selecionado) : meus.delete(selecionado);
+    salvarMeus();
+    mudouMeus();
+  }
+  if (e.target.id === 'perfil') {
+    perfil = MEMBROS.find((p) => p.tag === e.target.value) ?? null;
+    guardar.gravar('perfil', perfil?.tag ?? null);
+    carregarMeus();
+    mudouMeus();
+  }
+  if (e.target.id === 'soMeus') {
+    guardar.gravar('soMeus', e.target.checked);
+    desenharMapa();
+  }
+});
+
+// A borda da barra do mapa só aparece quando ela gruda no topo.
+const barraMapa = document.getElementById('barraMapa');
+new IntersectionObserver(([e]) => barraMapa.classList.toggle('grudada', e.intersectionRatio < 1),
+  { threshold: [1], rootMargin: '-1px 0px 0px 0px' }).observe(barraMapa);
+
+function mudouMeus() {
+  info();
+  desenharInvestir();
+  document.getElementById('ferramentas').hidden = !temLista();
+  desenharMapa();
+}
+
+// O seletor "Você" só existe quando a página foi gerada com um clube.
+if (MEMBROS.length) {
+  const opcoes = MEMBROS.map((p) => `<option value="${esc(p.tag)}">${esc(p.nome)}</option>`).join('');
+  const sel = document.getElementById('perfil');
+  sel.innerHTML = `<option value="">Ninguém (marco na mão)</option>${opcoes}`;
+  sel.value = perfil?.tag ?? '';
+  document.getElementById('voce').hidden = false;
+  document.getElementById('guiaVoce').hidden = false;
+}
+document.getElementById('ferramentas').hidden = !temLista();
+document.getElementById('soMeus').checked = guardar.ler('soMeus', false);
+// Links antigos (#hideout) e o mapa lembrado antes das partes apontam pro ranqueado pelo nome.
+const porChave = (k) => TODOS.find((m) => chave(m) === k)
+  ?? TODOS.find((m) => m.parte === 'ranqueado' && (slug(m.mapa) === k || m.mapa === k));
+// Link colado ou editado com a página aberta também troca o mapa.
+window.addEventListener('hashchange', () => {
+  const m = porChave(decodeURIComponent(location.hash.slice(1)));
+  if (m && m !== atual) selecionar(m);
+});
+posicionarSeletor();
+selecionar(porChave(location.hash.slice(1)) ?? porChave(guardar.ler('mapa', null)) ?? primeiroDa(Object.keys(DADOS.partes)[0]), false);
+</script>
+</body>
+</html>

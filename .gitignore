@@ -1,0 +1,7 @@
+# Saídas da geração: o site é publicado pela automação, não pelo git.
+site/
+dados.json
+brawl-meta*.html
+
+# Cópias de segurança locais
+backup-*/
