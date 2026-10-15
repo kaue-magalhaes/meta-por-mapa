@@ -61,7 +61,12 @@ async function token() {
     headers: { 'content-type': 'application/json' },
     body: '{}',
   });
-  return (await r.json()).result.data.json.token;
+  const texto = await r.text();
+  // Quando o site barra o acesso (proteção contra robôs), a resposta é uma página HTML.
+  if (!r.ok || texto.startsWith('<')) {
+    throw new Error(`o site recusou o pedido de token (HTTP ${r.status}, ${r.headers.get('server') ?? '?'}): ${texto.slice(0, 120).replace(/\s+/g, ' ')}`);
+  }
+  return JSON.parse(texto).result.data.json.token;
 }
 
 async function consulta(tok, query) {
