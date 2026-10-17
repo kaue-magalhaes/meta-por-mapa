@@ -12,7 +12,7 @@
 // Sem argumento, vale o que está em config.json e as duas partes são geradas.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -217,7 +217,8 @@ async function porModo(tok, parte, desde, modo) {
 const comVitorias = (m) => new Map([...m].map(([nome, { n, wr }]) => [nome, { n, v: n * wr }]));
 
 // extras: { medidas: medidas a mais na consulta de brawlers, semConfrontos, margem, geral: Map do porModo,
-//   cascata: { modo, fundo, parte } em Map nome -> { n, v } e mapas (quantos o modo tem) }
+//   cascata: { modo, fundo, parte } em Map nome -> { n, v } e mapas (quantos o modo tem),
+//   todosOsMapas: duplas e counters ficam pro final, com todos os mapas (devolve `bruto`) }
 async function processarMapa(tok, parte, desde, modo, mapa, extras) {
   const esteMapa = [filtro('battle.mode_dimension', 'equals', modo), filtro('battle.map_dimension', 'equals', mapa)];
   const filtros = [...filtrosBase(parte, desde), ...esteMapa];
@@ -279,6 +280,12 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
     .sort((a, b) => b.adj - a.adj);
   const principais = lista.filter((r) => r.n >= MIN_PARTIDAS || (estimada && doModo(r.nome)));
 
+  const doMapaTodo = extras.todosOsMapas && {
+    confrontos: confrontos.map((c) => [nomeBonito(c.brawler), nomeBonito(c.enemy), Number(c.picks), Number(c.winRate)]),
+    duplas: duplasDeTimes(times),
+    forca: new Map([...forca].map(([nome, { delta }]) => [nome, delta])),
+    media,
+  };
   const listaDuplas = Object.entries(duplasDeTimes(times))
     .filter(([, d]) => d.n >= MIN_PARTIDAS_DUPLA)
     .map(([k, d]) => ({ par: k.split('|'), n: d.n, wr: r4(d.v / d.n), adj: ajustada(d.v, d.n, media) }))
@@ -305,6 +312,7 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
       .sort((a, b) => b.wr - a.wr)
       .slice(0, 6)
       .map(enxuto),
+    ...(doMapaTodo && { bruto: doMapaTodo }),
     melhoresDuplas: listaDuplas.slice(0, 8).map(({ adj, ...d }) => d),
     pioresDuplas: listaDuplas.slice(-5).reverse().map(({ adj, ...d }) => d),
     // null quando o modo não tem confronto direto (Showdown).
@@ -382,6 +390,7 @@ async function gerarRanqueado(tok, desde, anterior) {
       medidas: [],
       semConfrontos: false,
       margem: true,
+      todosOsMapas: true,
       geral: geral.get(modo),
       cascata: {
         modo: comVitorias(geral.get(modo)),
@@ -393,7 +402,19 @@ async function gerarRanqueado(tok, desde, anterior) {
     console.log(`ranqueado · ${mapa}: ${m.total} partidas${m.estimada ? ' (lista estimada pelo modo)' : ''}`);
     return m;
   });
-  return { geradoEm: new Date().toISOString(), desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, rank: RANK, mapas: saida };
+  // Counters e duplas usam os outros mapas e a tier list, então só saem com tudo pronto.
+  const confrontos = confrontosEmCascata(saida.map((m) => ({ modo: m.modo, linhas: m.bruto.confrontos, forca: m.bruto.forca })));
+  const duplas = duplasPelaForca(saida.map((m) => m.bruto));
+  const mapas = saida.map(({ bruto, ...m }, i) => {
+    const lista = duplas[i].filter((d) => d.n >= MIN_PARTIDAS_DUPLA).map(({ nota, ...d }) => ({ ...d, wr: r4(d.wr), adj: r4(bruto.media + nota) }));
+    return {
+      ...m,
+      melhoresDuplas: lista.slice(0, 8),
+      pioresDuplas: lista.slice(-5).reverse(),
+      confrontos: Object.fromEntries(m.brawlers.map((b) => [b.nome, escolherConfrontos(confrontos[i].get(b.nome) ?? [])])),
+    };
+  });
+  return { geradoEm: new Date().toISOString(), desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, rank: RANK, mapas };
 }
 
 async function gerarTrofeu(tok, desde) {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, duplasPelaForca } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -186,4 +186,42 @@ test('forcaNaCascata dá margem menor a quem tem mais partidas no mapa', () => {
   // Quem só existe no modo herda a margem dele, alargada pela distância até o mapa.
   const so = forcaNaCascata(new Map(), modo, new Map(), 400);
   assert.ok(so.get('A').variancia > 0.25 / 400);
+});
+
+test('confrontosEmCascata separa a força do inimigo do confronto e puxa o confronto pro modo', () => {
+  // Colt contra Bea e Shelly, em dois mapas do mesmo modo. Bea é forte no mapa A (+5).
+  const mapaA = {
+    modo: 'gemGrab',
+    linhas: [['Colt', 'Bea', 100, 0.4], ['Colt', 'Shelly', 100, 0.6]],
+    forca: new Map([['Bea', 0.05], ['Shelly', 0]]),
+  };
+  const mapaB = { modo: 'gemGrab', linhas: [['Colt', 'Bea', 1000, 0.45], ['Colt', 'Shelly', 1000, 0.55]], forca: new Map() };
+  const [a] = confrontosEmCascata([mapaA, mapaB], 400);
+  // No B, o resto de Colt x Bea é 0,45 - 0,5 = -0,05. No ranqueado sem o A, também -0,05,
+  // puxado pra zero: -50 / 1400. O modo sem o A: (-50 + 400 × g) / 1400.
+  const g = -50 / 1400;
+  const doModo = (-50 + 400 * g) / 1400;
+  // No A, o resto é 0,4 - 0,5 + 0,05 = -0,05; o efeito é -0,05 (força) + o resto puxado pro modo.
+  const [, n, efeito] = a.get('Colt').find((c) => c[0] === 'Bea');
+  assert.equal(n, 100);
+  perto(efeito, -0.05 + (100 * -0.05 + 400 * doModo) / 500);
+});
+
+test('escolherConfrontos deixa de fora confronto com menos de 30 partidas', () => {
+  const r = escolherConfrontos([['Bea', 29, -0.2], ['Shelly', 100, -0.05], ['Colt', 100, 0.03]]);
+  assert.deepEqual(r, { bom: [['Colt', 0.03]], ruim: [['Shelly', -0.05]] });
+});
+
+test('duplasPelaForca ordena pela soma das forças e puxa a sinergia pra zero', () => {
+  // Duas duplas com a mesma vitória: a de brawlers fortes vale menos sinergia, mas a
+  // soma das forças é que manda.
+  const forca = new Map([['A', 0.04], ['B', 0.04], ['C', 0], ['D', 0]]);
+  const duplas = { 'A|B': { n: 1000, v: 580 }, 'C|D': { n: 1000, v: 510 } };
+  const [lista] = duplasPelaForca([{ duplas, forca, media: 0.5 }], 1000);
+  assert.deepEqual(lista.map((d) => d.par.join('|')), ['A|B', 'C|D']);
+  // Fator: (0,08 × 80) / (1000 × 0,08²) = 1. A|B: 0,08 + (80 - 80) / 2000 = 0,08.
+  perto(lista[0].nota, 0.08);
+  // C|D: 0 + 10 / 2000.
+  perto(lista[1].nota, 0.005);
+  perto(lista[1].wr, 0.51);
 });

@@ -10,6 +10,10 @@ export const LIMITE_NICHO = 0.005;
 export const PESO_CONFRONTO = 60;
 // Confronto com menos partidas que isso nem entra na conta.
 export const MIN_CONFRONTO = 30;
+// Peso, em partidas, da sinergia de uma dupla no ranqueado. Em 2026-10-17, prevendo o
+// bloco seguinte, a dupla rendeu quase só a soma das forças dos dois; a sinergia de um
+// bloco se repetiu pouco, e 1.000 errou menos que 100, 300 ou 3.000.
+export const PESO_SINERGIA = 1000;
 // Diferença mínima, em erros padrão, pra um especialista não ser sorte (p ≤ 0,05).
 const Z_95 = 1.96;
 // Peso, em partidas, de cada degrau da cascata. Em 2026-10-16, a tier
@@ -200,16 +204,96 @@ export function resumirConfrontos(linhas, quantos = 5) {
   const n = linhas.reduce((s, r) => s + r[1], 0);
   if (!n) return { bom: [], ruim: [] };
   const base = linhas.reduce((s, r) => s + r[1] * r[2], 0) / n;
-  const lista = linhas
-    .map(([inimigo, partidas, wr]) => [
-      inimigo,
-      Math.round(((wr * partidas + base * PESO_CONFRONTO) / (partidas + PESO_CONFRONTO) - base) * 1000) / 1000,
-    ])
-    .sort((a, b) => b[1] - a[1]);
+  return lados(linhas.map(([inimigo, partidas, wr]) => [inimigo, (wr * partidas + base * PESO_CONFRONTO) / (partidas + PESO_CONFRONTO) - base]), quantos);
+}
+
+function lados(efeitos, quantos) {
+  const lista = efeitos.map(([inimigo, e]) => [inimigo, Math.round(e * 1000) / 1000]).sort((a, b) => b[1] - a[1]);
   return {
     bom: lista.filter((c) => c[1] > 0.01).slice(0, quantos),
     ruim: lista.filter((c) => c[1] < -0.01).slice(-quantos).reverse(),
   };
+}
+
+const acumular = (alvo, chave, n, v) => {
+  const x = alvo.get(chave) ?? { n: 0, v: 0 };
+  alvo.set(chave, { n: x.n + n, v: x.v + v });
+};
+
+// Counters do ranqueado, com todos os mapas de uma vez. O efeito de um confronto
+// (vitória contra o inimigo menos a taxa normal do brawler) tem duas partes: a força
+// do inimigo no mapa, que vem da tier list, e o resto, que é o confronto em si. O
+// resto é puxado pro mesmo confronto nos outros mapas do modo, e esse pro ranqueado
+// inteiro, com o mesmo peso da tier list. Em 2026-10-17 isso acertou 41% do efeito no
+// bloco seguinte, contra 37% do resumirConfrontos.
+// mapas: [{ modo, linhas: [[brawler, inimigo, partidas, vitória]], forca: Map nome -> delta }].
+// Devolve, por mapa, Map brawler -> [[inimigo, partidas, efeito]].
+export function confrontosEmCascata(mapas, peso = PESO_CASCATA) {
+  const restos = mapas.map(({ linhas, forca }) => {
+    const base = new Map();
+    for (const [b, , n, wr] of linhas) acumular(base, b, n, n * wr);
+    return linhas.map(([b, e, n, wr]) => {
+      const x = base.get(b);
+      return { chave: `${b}|${e}`, b, e, n, resto: wr - x.v / x.n + (forca.get(e) ?? 0) };
+    });
+  });
+  const geral = new Map();
+  const porModo = new Map();
+  mapas.forEach(({ modo }, i) => {
+    if (!porModo.has(modo)) porModo.set(modo, new Map());
+    for (const r of restos[i]) {
+      acumular(geral, r.chave, r.n, r.n * r.resto);
+      acumular(porModo.get(modo), r.chave, r.n, r.n * r.resto);
+    }
+  });
+  return mapas.map(({ modo, forca }, i) => {
+    const saida = new Map();
+    for (const r of restos[i]) {
+      // Os degraus de cima vêm sem o próprio mapa.
+      const g = geral.get(r.chave);
+      const doGeral = (g.v - r.n * r.resto) / (g.n - r.n + peso);
+      const m = porModo.get(modo).get(r.chave);
+      const doModo = (m.v - r.n * r.resto + peso * doGeral) / (m.n - r.n + peso);
+      const efeito = -(forca.get(r.e) ?? 0) + (r.n * r.resto + peso * doModo) / (r.n + peso);
+      if (!saida.has(r.b)) saida.set(r.b, []);
+      saida.get(r.b).push([r.e, r.n, efeito]);
+    }
+    return saida;
+  });
+}
+
+// Os confrontos mais claros pros dois lados, como o resumirConfrontos devolve.
+// efeitos: [[inimigo, partidas, efeito]], do confrontosEmCascata.
+export const escolherConfrontos = (efeitos, quantos = 5) =>
+  lados(efeitos.filter((c) => c[1] >= MIN_CONFRONTO).map(([inimigo, , e]) => [inimigo, e]), quantos);
+
+// Duplas do ranqueado, com todos os mapas de uma vez. A nota é a soma das forças dos
+// dois (da tier list) vezes um fator, mais a sinergia (o que sobra) puxada pra zero
+// com PESO_SINERGIA. O fator sai dos próprios dados, porque a força de cada um já vem
+// puxada pra média; em 2026-10-17 ficou entre 1,2 e 1,4.
+// mapas: [{ duplas: { 'A|B': { n, v } }, forca: Map nome -> delta, media }].
+// Devolve, por mapa, [{ par, n, wr, nota }] da maior nota pra menor.
+export function duplasPelaForca(mapas, peso = PESO_SINERGIA) {
+  const soma = (forca, par) => (forca.get(par[0]) ?? 0) + (forca.get(par[1]) ?? 0);
+  let xy = 0;
+  let xx = 0;
+  for (const { duplas, forca, media } of mapas) {
+    for (const [k, { n, v }] of Object.entries(duplas)) {
+      const x = soma(forca, k.split('|'));
+      xy += x * (v - n * media);
+      xx += n * x * x;
+    }
+  }
+  const fator = xx ? xy / xx : 1;
+  return mapas.map(({ duplas, forca, media }) =>
+    Object.entries(duplas)
+      .map(([k, { n, v }]) => {
+        const par = k.split('|');
+        const s = fator * soma(forca, par);
+        return { par, n, wr: v / n, nota: s + (v - n * media - n * s) / (n + peso) };
+      })
+      .sort((a, b) => b.nota - a.nota),
+  );
 }
 
 // Quem rende mais neste mapa do que no modo inteiro. É a mesma conta da página de

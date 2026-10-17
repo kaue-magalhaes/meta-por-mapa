@@ -492,7 +492,11 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
       <section class="guia">
         <div>
           <h3>Counters</h3>
-          <p>Clique no nome de um brawler. "Perde para" lista quem mais ganha dele neste mapa: se o inimigo escolheu esse brawler, são boas respostas. A conta compara com a taxa normal dele, então mostra o efeito do confronto e não só a força do brawler.</p>
+          <p>Clique no nome de um brawler. "Perde para" lista quem mais ganha dele neste mapa: se o inimigo escolheu esse brawler, são boas respostas. A conta compara com a taxa normal dele, então mostra o efeito do confronto e não só a força do brawler. No ranqueado, confronto com poucas partidas aqui puxa pro mesmo confronto nos outros mapas do modo.</p>
+        </div>
+        <div>
+          <h3>Duplas</h3>
+          <p>No ranqueado, a ordem vem da força dos dois na tier list mais o que a dupla rende junta além disso. Essa parte a mais é pequena e só aparece com muitas partidas, então a lista mostra mais dois brawlers fortes juntos do que combinações escondidas. O primeiro número é a vitória estimada; o "real" é o que a dupla fez no período.</p>
         </div>
         <div>
           <h3>Como a lista é ordenada</h3>
@@ -984,7 +988,11 @@ function desenharMapa() {
     `<li><b>${esc(e.nome)}</b><span><span class="pos">${pp(e.delta)}</span> · ${pct(e.wr, 0)} aqui, ${pct(e.wrModo, 0)} no modo</span></li>`).join('')
     || '<li class="vazio">Ninguém rende aqui muito acima do próprio modo.</li>';
 
-  const dupla = (d) => `<li><b>${esc(d.par[0])} + ${esc(d.par[1])}</b><span><span class="${d.wr >= m.media ? 'pos' : 'neg'}">${pct(d.wr)}</span> · ${d.n}</span></li>`;
+  // No ranqueado a lista vem ordenada pela vitória estimada (adj); a real fica ao lado.
+  const dupla = (d) => {
+    const v = d.adj ?? d.wr;
+    return `<li><b>${esc(d.par[0])} + ${esc(d.par[1])}</b><span><span class="${v >= m.media ? 'pos' : 'neg'}">${pct(v)}</span>${d.adj != null ? ` · ${pct(d.wr)} real` : ''} · ${d.n}</span></li>`;
+  };
   document.getElementById('duplasBoas').innerHTML = m.melhoresDuplas.map(dupla).join('') || '<li class="vazio">Sem dupla com partidas suficientes.</li>';
   document.getElementById('duplasRuins').innerHTML = m.pioresDuplas.map(dupla).join('') || '<li class="vazio">Sem dupla com partidas suficientes.</li>';
   document.getElementById('pouca').innerHTML = m.poucaAmostra.map((b) =>
