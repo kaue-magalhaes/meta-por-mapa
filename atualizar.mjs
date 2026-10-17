@@ -12,7 +12,7 @@
 // Sem argumento, vale o que está em config.json e as duas partes são geradas.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -54,7 +54,8 @@ const FOLGA_ROTACAO = 20;
 const PARALELO = 2;
 
 // No ranqueado, a vitória de cada brawler pesa as partidas pela idade (pesarPorIdade).
-// Duplas e counters continuam com os blocos juntos.
+// Duplas e counters continuam com os blocos juntos. O gerarRanqueado acrescenta o
+// efeito dos patches da lista do config.json.
 const RANQUEADO = { id: 'ranqueado', powerplay: '1', faixa: RANK, porIdade: true };
 // A liga logo abaixo (Mítico, com o rank padrão), usada só como fundo da cascata.
 const FUNDO = { ...RANQUEADO, faixa: RANK - 3, ate: RANK };
@@ -191,21 +192,26 @@ async function brawlersDa(tok, parte, desde, filtros, medidas = []) {
     });
   }
   if (medidas.length) throw new Error('o peso por idade só junta partidas e vitória');
+  return pesarPorIdade(await diasDa(tok, parte, filtros), Date.now(), parte.patches);
+}
+
+// Partidas e vitória de cada brawler, dia a dia, sem peso.
+function diasDa(tok, parte, filtros) {
   const inicio = new Date(Date.now() - (DIAS_PERIODO + 14) * 864e5).toISOString().slice(0, 10);
-  const linhas = await consulta(tok, {
+  return consulta(tok, {
     measures: ['battle.picks_measure', 'battle.winRate_measure'],
     dimensions: ['battle.brawler_dimension', 'battle.day_dimension'],
     filters: [...filtrosBase(parte, inicio), ...filtros],
     limit: 50000,
   });
-  return pesarPorIdade(linhas, Date.now());
 }
+
+const porBrawler = (linhas) => new Map(linhas.map((r) => [nomeBonito(r.brawler), { n: Number(r.picks), wr: Number(r.winRate) }]));
 
 // Vitória de cada brawler no modo inteiro, com os filtros da parte. Base dos especialistas.
 // Sem modo, é a parte inteira.
 async function porModo(tok, parte, desde, modo) {
-  const linhas = await brawlersDa(tok, parte, desde, modo ? [filtro('battle.mode_dimension', 'equals', modo)] : []);
-  return new Map(linhas.map((r) => [nomeBonito(r.brawler), { n: Number(r.picks), wr: Number(r.winRate) }]));
+  return porBrawler(await brawlersDa(tok, parte, desde, modo ? [filtro('battle.mode_dimension', 'equals', modo)] : []));
 }
 
 const comVitorias = (m) => new Map([...m].map(([nome, { n, wr }]) => [nome, { n, v: n * wr }]));
@@ -359,12 +365,20 @@ async function gerarRanqueado(tok, desde, anterior) {
     if (entrou.length) console.log(`ranqueado: entrou ${entrou.join(', ')}`);
     if (saiu.length) console.log(`ranqueado: saiu ${saiu.join(', ')}`);
   }
+  // O efeito de cada patch sai do ranqueado inteiro e vale igual em todo mapa e no fundo.
+  const doRanqueado = await diasDa(tok, RANQUEADO, []);
+  const patches = efeitoDosPatches(doRanqueado, config.patches ?? [], Date.now());
+  if (patches.size) {
+    const efeitos = [...patches].map(([b, { efeito }]) => `${nomeBonito(b)} ${efeito > 0 ? '+' : ''}${(efeito * 100).toFixed(1)}`);
+    console.log(`ranqueado: efeito dos patches, em pontos: ${efeitos.join(', ')}`);
+  }
+  const parte = { ...RANQUEADO, patches };
   const modos = [...new Set(lista.map((m) => m.modo))];
-  const geral = new Map(await emLotes(modos, PARALELO, async (modo) => [modo, await porModo(tok, RANQUEADO, desde, modo)]));
-  const fundo = new Map(await emLotes(modos, PARALELO, async (modo) => [modo, comVitorias(await porModo(tok, FUNDO, desde, modo))]));
-  const ranqueado = comVitorias(await porModo(tok, RANQUEADO, desde));
+  const geral = new Map(await emLotes(modos, PARALELO, async (modo) => [modo, await porModo(tok, parte, desde, modo)]));
+  const fundo = new Map(await emLotes(modos, PARALELO, async (modo) => [modo, comVitorias(await porModo(tok, { ...FUNDO, patches }, desde, modo))]));
+  const ranqueado = comVitorias(porBrawler(pesarPorIdade(doRanqueado, Date.now(), patches)));
   const saida = await emLotes(lista, PARALELO, async ({ modo, mapa }) => {
-    const m = await processarMapa(tok, RANQUEADO, desde, modo, mapa, {
+    const m = await processarMapa(tok, parte, desde, modo, mapa, {
       medidas: [],
       semConfrontos: false,
       margem: true,

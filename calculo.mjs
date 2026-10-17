@@ -26,6 +26,20 @@ export const MEIA_VIDA = 14;
 // A margem da cascata saiu um pouco otimista nos brawlers do S em 2026-10-17 (75%
 // dentro do intervalo de 80%, prevendo a semana seguinte); alargar 15% corrige.
 export const FOLGA_MARGEM = 1.15;
+// Quanto um balanceamento muda a vitória do brawler no ranqueado, pela direção e pelo
+// tamanho lido nas notas. Média de 335 mudanças de jun/2025 a set/2026, com os 14 dias
+// depois do patch contra os 14 de antes. Buff grande teve só 5 casos e fica com a média
+// dos buffs. Misto (buff e nerf juntos) não tem sinal confiável e começa em zero.
+export const CHUTE_PATCH = {
+  nerf: { pequena: -0.015, media: -0.025, grande: -0.063 },
+  buff: { pequena: 0.008, media: 0.03, grande: 0.017 },
+  misto: { pequena: 0, media: 0, grande: 0 },
+};
+// Na conta do efeito do patch, cada dia de antes vale isso de um dia de depois. Com
+// peso fixo em partidas o chute some em horas no brawler muito jogado, e um dia só
+// engana, porque o nível oscila sozinho. Em 2026-10-17, prevendo os 14 dias depois de
+// 30 patches, 10% errou de 39% a 60% menos nos 3 primeiros dias que ignorar o patch.
+export const PESO_ANTES_DO_PATCH = 0.1;
 
 export const nomeBonito = (s) =>
   s.toLowerCase().replace(/(^|[\s&.-])(\p{L})/gu, (_, sep, l) => sep + l.toUpperCase());
@@ -90,19 +104,73 @@ export function somar(a, b, fator = 1) {
   return saida;
 }
 
+const pesoDaIdade = (dia, agora, meiaVida, dias) => {
+  const idade = Math.max(0, (agora - Date.parse(`${dia}T12:00:00Z`)) / 864e5);
+  return idade > dias ? 0 : 0.5 ** (idade / meiaVida);
+};
+
 // Junta linhas dia a dia { brawler, day, picks, winRate } numa por brawler, no formato
 // da consulta sem dia. Cada partida vale 0,5^(idade / meiaVida), com a idade contada
 // do meio do dia (o site grava o dia em UTC); dia mais velho que o período fica de fora.
-export function pesarPorIdade(linhas, agora, meiaVida = MEIA_VIDA, dias = DIAS_PERIODO) {
+// patches é o Map do efeitoDosPatches: os dias de antes do patch andam o efeito, e o
+// dia do patch, que mistura antes e depois, sai. O peso dos dias de antes não muda,
+// porque o patch mexe no nível do brawler, não em onde ele é bom.
+export function pesarPorIdade(linhas, agora, patches = new Map(), meiaVida = MEIA_VIDA, dias = DIAS_PERIODO) {
   const soma = new Map();
   for (const r of linhas) {
-    const idade = Math.max(0, (agora - Date.parse(`${r.day.slice(0, 10)}T12:00:00Z`)) / 864e5);
-    if (idade > dias) continue;
-    const n = Number(r.picks) * 0.5 ** (idade / meiaVida);
+    const dia = r.day.slice(0, 10);
+    const w = pesoDaIdade(dia, agora, meiaVida, dias);
+    const patch = patches.get(r.brawler);
+    if (!w || dia === patch?.dia) continue;
+    const n = Number(r.picks) * w;
+    const wr = Number(r.winRate) + (patch && dia < patch.dia ? patch.efeito : 0);
     const x = soma.get(r.brawler) ?? { n: 0, v: 0 };
-    soma.set(r.brawler, { n: x.n + n, v: x.v + n * Number(r.winRate) });
+    soma.set(r.brawler, { n: x.n + n, v: x.v + n * wr });
   }
   return [...soma].map(([brawler, { n, v }]) => ({ brawler, picks: n, winRate: n ? v / n : 0 }));
+}
+
+// Efeito do último patch de cada brawler alterado, medido no ranqueado inteiro (linhas
+// dia a dia de todos os brawlers, como no pesarPorIdade). Começa no chute da tabela e
+// vira o efeito medido conforme chegam os dias de depois: vitória acima da média do
+// dia depois do patch, menos antes. Devolve Map BRAWLER -> { dia, efeito }.
+// patches: [{ data: 'AAAA-MM-DD', mudancas: [{ brawler, direcao, tamanho }] }].
+export function efeitoDosPatches(linhas, patches, agora, tabela = CHUTE_PATCH, meiaVida = MEIA_VIDA, dias = DIAS_PERIODO) {
+  const hoje = new Date(agora).toISOString().slice(0, 10);
+  const ultimo = new Map();
+  for (const p of [...patches].sort((a, b) => a.data.localeCompare(b.data))) {
+    if (p.data > hoje) continue;
+    for (const m of p.mudancas) ultimo.set(m.brawler.toUpperCase(), { dia: p.data, chute: tabela[m.direcao]?.[m.tamanho] ?? 0 });
+  }
+  const mediaDoDia = new Map();
+  for (const r of linhas) {
+    const x = mediaDoDia.get(r.day.slice(0, 10)) ?? { n: 0, v: 0 };
+    mediaDoDia.set(r.day.slice(0, 10), { n: x.n + Number(r.picks), v: x.v + Number(r.picks) * Number(r.winRate) });
+  }
+  const lados = new Map([...ultimo.keys()].map((b) => [b, { antes: { n: 0, v: 0 }, depois: { n: 0, v: 0 } }]));
+  for (const r of linhas) {
+    const b = lados.get(r.brawler);
+    const dia = r.day.slice(0, 10);
+    const w = pesoDaIdade(dia, agora, meiaVida, dias);
+    if (!b || !w || dia === ultimo.get(r.brawler).dia) continue;
+    const m = mediaDoDia.get(dia);
+    const lado = dia < ultimo.get(r.brawler).dia ? b.antes : b.depois;
+    const n = Number(r.picks) * w;
+    lado.n += n;
+    lado.v += n * (Number(r.winRate) - m.v / m.n);
+  }
+  const saida = new Map();
+  for (const [brawler, { dia, chute }] of ultimo) {
+    const { antes, depois } = lados.get(brawler);
+    if (!antes.n) {
+      saida.set(brawler, { dia, efeito: chute });
+      continue;
+    }
+    const velho = PESO_ANTES_DO_PATCH * antes.n;
+    const medido = depois.n ? depois.v / depois.n - antes.v / antes.n : 0;
+    saida.set(brawler, { dia, efeito: (velho * chute + depois.n * medido) / (velho + depois.n) });
+  }
+  return saida;
 }
 
 // Times inteiros têm amostra pequena demais; quebrando em duplas a amostra sobe.

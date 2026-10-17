@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -114,6 +114,61 @@ test('pesarPorIdade deixa de fora o dia mais velho que o período', () => {
     { brawler: 'COLT', day: '2026-09-04T00:00:00.000', picks: '1000', winRate: '1' },
   ], agora);
   assert.deepEqual(r, [{ brawler: 'COLT', picks: 10, winRate: 0.5 }]);
+});
+
+test('pesarPorIdade desloca os dias de antes do patch e tira o dia do patch', () => {
+  const agora = Date.parse('2026-10-17T12:00:00Z');
+  const r = pesarPorIdade([
+    { brawler: 'COLT', day: '2026-10-17T00:00:00.000', picks: '100', winRate: '0.5' },
+    { brawler: 'COLT', day: '2026-10-16T00:00:00.000', picks: '100', winRate: '0.9' },
+    { brawler: 'COLT', day: '2026-10-15T00:00:00.000', picks: '100', winRate: '0.6' },
+    { brawler: 'BEA', day: '2026-10-15T00:00:00.000', picks: '100', winRate: '0.6' },
+  ], agora, new Map([['COLT', { dia: '2026-10-16', efeito: -0.1 }]]));
+  const colt = r.find((x) => x.brawler === 'COLT');
+  const w = (dias) => 0.5 ** (dias / 14);
+  // O dia 16 sai; o dia 15 vale 0,6 - 0,1.
+  perto(colt.picks, 100 * (w(0) + w(2)));
+  perto(colt.winRate, (0.5 * w(0) + 0.5 * w(2)) / (w(0) + w(2)));
+  perto(r.find((x) => x.brawler === 'BEA').winRate, 0.6);
+});
+
+const diaDe = (brawler, day, picks, winRate) => ({ brawler, day: `${day}T00:00:00.000`, picks: String(picks), winRate: String(winRate) });
+
+test('efeitoDosPatches usa só o chute quando ainda não há dia depois do patch', () => {
+  const agora = Date.parse('2026-10-17T12:00:00Z');
+  const linhas = [diaDe('COLT', '2026-10-10', 1000, 0.6), diaDe('BEA', '2026-10-10', 1000, 0.4)];
+  const patches = [{ data: '2026-10-17', mudancas: [{ brawler: 'Colt', direcao: 'nerf', tamanho: 'media' }] }];
+  const e = efeitoDosPatches(linhas, patches, agora, { nerf: { media: -0.025 } });
+  assert.deepEqual([...e.keys()], ['COLT']);
+  perto(e.get('COLT').efeito, -0.025);
+  assert.equal(e.get('COLT').dia, '2026-10-17');
+});
+
+test('efeitoDosPatches mistura chute e dado novo, com cada dia antigo valendo 10% de um novo', () => {
+  const agora = Date.parse('2026-10-17T12:00:00Z');
+  // Colt fica 10 pontos acima da média antes e 4 acima depois; a média do dia é 0,5.
+  const linhas = [
+    diaDe('COLT', '2026-10-15', 1000, 0.6), diaDe('BEA', '2026-10-15', 1000, 0.4),
+    diaDe('COLT', '2026-10-16', 500, 0.9), diaDe('BEA', '2026-10-16', 500, 0.1),
+    diaDe('COLT', '2026-10-17', 1000, 0.54), diaDe('BEA', '2026-10-17', 1000, 0.46),
+  ];
+  const patches = [{ data: '2026-10-16', mudancas: [{ brawler: 'COLT', direcao: 'nerf', tamanho: 'pequena' }] }];
+  const e = efeitoDosPatches(linhas, patches, agora, { nerf: { pequena: -0.02 } });
+  const velho = 0.1 * 1000 * 0.5 ** (2 / 14);
+  const novo = 1000;
+  perto(e.get('COLT').efeito, (velho * -0.02 + novo * (0.04 - 0.1)) / (velho + novo));
+});
+
+test('efeitoDosPatches fica com o último patch do brawler e ignora patch futuro', () => {
+  const agora = Date.parse('2026-10-17T12:00:00Z');
+  const patches = [
+    { data: '2026-10-01', mudancas: [{ brawler: 'COLT', direcao: 'buff', tamanho: 'media' }] },
+    { data: '2026-10-10', mudancas: [{ brawler: 'COLT', direcao: 'nerf', tamanho: 'media' }] },
+    { data: '2026-10-20', mudancas: [{ brawler: 'COLT', direcao: 'buff', tamanho: 'grande' }] },
+  ];
+  const e = efeitoDosPatches([], patches, agora, { nerf: { media: -0.025 }, buff: { media: 0.03, grande: 0.017 } });
+  assert.equal(e.get('COLT').dia, '2026-10-10');
+  perto(e.get('COLT').efeito, -0.025);
 });
 
 test('forcaNaCascata dá a variância da força: ruído do mapa mais o que sobra do degrau de cima', () => {

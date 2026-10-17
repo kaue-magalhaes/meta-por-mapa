@@ -1,5 +1,32 @@
 {
   "clube": "290J9JL8",
   "rank": 16,
-  "blocos": 2
+  "blocos": 2,
+  "patches": [
+    {
+      "data": "2026-09-16",
+      "nome": "Maintenance - September 16th",
+      "mudancas": [
+        { "brawler": "SHADE", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "GUS", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "EL PRIMO", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "AMBER", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "NORI", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "WENDY", "direcao": "misto", "tamanho": "grande" },
+        { "brawler": "MEG", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "COLETTE", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "BROCK", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "POCO", "direcao": "buff", "tamanho": "media" },
+        { "brawler": "CHUCK", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "OLLIE", "direcao": "buff", "tamanho": "media" },
+        { "brawler": "TRUNK", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "WILLOW", "direcao": "buff", "tamanho": "media" },
+        { "brawler": "JUJU", "direcao": "buff", "tamanho": "media" },
+        { "brawler": "PAM", "direcao": "buff", "tamanho": "media" },
+        { "brawler": "BELLE", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "R-T", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "GIGI", "direcao": "buff", "tamanho": "pequena" }
+      ]
+    }
+  ]
 }
