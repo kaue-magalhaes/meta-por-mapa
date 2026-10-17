@@ -291,13 +291,14 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
 @media (min-width: 1000px) { .faixa { display: none; } }
 
 /* ===== Conteúdo do mapa ===== */
-/* Duas colunas (tier list e painel) só quando sobra largura; no celular "Pra escolher agora" vem antes da lista */
-.grade { display: grid; gap: 20px; align-items: start; grid-template-areas: "agora" "lista" "painel"; grid-template-columns: minmax(0, 1fr); }
+/* Duas colunas (tier list e painel) só quando sobra largura; no celular "Pra escolher agora" e "Se o inimigo pegar" vêm antes da lista */
+.grade { display: grid; gap: 20px; align-items: start; grid-template-areas: "agora" "inimigo" "lista" "painel"; grid-template-columns: minmax(0, 1fr); }
 .grade > .lista { grid-area: lista; }
 .grade > .agora { grid-area: agora; }
+.grade > .inimigo { grid-area: inimigo; }
 .grade > .painel { grid-area: painel; }
 @media (min-width: 860px) and (max-width: 999px), (min-width: 1180px) {
-  .grade { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: "lista agora" "lista painel"; grid-template-rows: auto 1fr; }
+  .grade { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: "lista agora" "lista inimigo" "lista painel"; grid-template-rows: auto auto 1fr; }
 }
 
 .lista { display: grid; gap: 14px; min-width: 0; }
@@ -387,6 +388,10 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
 .colunas h4 { margin: 0 0 4px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
 .colunas .picks li { font-size: 0.86rem; }
 .fora { font-size: 0.84rem; color: var(--muted); }
+#inimigo li { display: grid; grid-template-columns: 5.5em minmax(0, 1fr); }
+#inimigo li > b { color: var(--muted); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+#inimigo li > span { color: var(--ink); font-weight: 600; }
+#inimigo .nao-tenho { color: var(--muted); font-weight: 400; }
 .fora b { color: var(--ink); font-weight: 500; }
 
 .investir { display: grid; gap: 10px; }
@@ -459,6 +464,11 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
           <p id="agoraNota">Os 5 melhores que sobraram. Marque com o cadeado quem foi bloqueado e a lista se ajusta.</p>
           <p class="fora" id="fora"></p>
           <button class="limpar" id="limpar" type="button">Desmarcar bloqueios deste mapa</button>
+        </div>
+        <div class="bloco inimigo" id="blocoInimigo" hidden>
+          <h3>Se o inimigo pegar</h3>
+          <ul class="picks" id="inimigo"></ul>
+          <p>Os 5 mais escolhidos neste mapa e quem mais ganha de cada um. O cadeado tira bloqueado dos dois lados.</p>
         </div>
         <div class="painel">
           <div class="bloco" id="detalhe"></div>
@@ -979,6 +989,18 @@ function desenharMapa() {
     ? nota + ' Marque com o cadeado quem foi bloqueado e a lista se ajusta.'
     : nota;
   document.getElementById('limpar').hidden = !ranqueado;
+
+  // Inimigo provável é quem mais se escolhe aqui; as respostas são o "Perde para" dele.
+  document.getElementById('blocoInimigo').hidden = !ranqueado || !m.confrontos;
+  if (ranqueado && m.confrontos) {
+    const livre = (nome) => !bloqueados.has(nome);
+    // Sem o selo MAX, que polui a linha: quem não está no máximo sai apagado, como na tier list.
+    const resposta = ([nome]) => temLista() && !meus.has(nome) ? `<span class="nao-tenho">${esc(nome)}</span>` : esc(nome);
+    document.getElementById('inimigo').innerHTML = m.brawlers.filter((b) => livre(b.nome)).sort((a, b) => b.uso - a.uso).slice(0, 5).map((b) => {
+      const r = (m.confrontos[b.nome]?.ruim ?? []).filter(([nome]) => livre(nome)).slice(0, 3);
+      return `<li><b>${esc(b.nome)}</b><span>${r.map(resposta).join(', ') || '<span class="vazio">nada claro</span>'}</span></li>`;
+    }).join('');
+  }
   const fortesFora = temLista() ? m.brawlers.filter((b) => !meus.has(b.nome) && forte(b, m)).slice(0, 4) : [];
   document.getElementById('fora').innerHTML = fortesFora.length
     ? `Fortes aqui que você não tem no máximo: ${fortesFora.map((b) => `<b>${esc(b.nome)}</b>`).join(', ')}.`
