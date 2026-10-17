@@ -12,7 +12,7 @@
 // Sem argumento, vale o que está em config.json e as duas partes são geradas.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -210,7 +210,7 @@ async function porModo(tok, parte, desde, modo) {
 
 const comVitorias = (m) => new Map([...m].map(([nome, { n, wr }]) => [nome, { n, v: n * wr }]));
 
-// extras: { medidas: medidas a mais na consulta de brawlers, semConfrontos, geral: Map do porModo,
+// extras: { medidas: medidas a mais na consulta de brawlers, semConfrontos, margem, geral: Map do porModo,
 //   cascata: { modo, fundo, parte } em Map nome -> { n, v } e mapas (quantos o modo tem) }
 async function processarMapa(tok, parte, desde, modo, mapa, extras) {
   const esteMapa = [filtro('battle.mode_dimension', 'equals', modo), filtro('battle.map_dimension', 'equals', mapa)];
@@ -256,7 +256,7 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
   // Com poucas partidas, a média do mapa é sorte; a do modo diz mais.
   if (estimada) media = mediaDe(semEste);
   const noModo = somar(semEste, fundo, PESO_FUNDO);
-  const delta = forcaNaCascata(doMapa, noModo, semOMapa(daParte, doMapa));
+  const forca = forcaNaCascata(doMapa, noModo, semOMapa(daParte, doMapa));
   // Mapa com pouco dado: entra quem passaria do corte num mapa típico do modo,
   // mesmo sem partida aqui.
   const corteModo = MIN_PARTIDAS * Math.max(1, mapas - 1);
@@ -265,7 +265,11 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
     ? [...semEste.keys()].filter((nome) => doModo(nome) && !doMapa.has(nome)).map((nome) => ({ nome, n: 0, wr: null, uso: 0 }))
     : [];
   const lista = [...linhas.map((r) => ({ ...r, uso: r.n / total })), ...conhecidos]
-    .map((r) => ({ ...r, adj: media + delta.get(r.nome) }))
+    .map((r) => {
+      const { delta, variancia } = forca.get(r.nome);
+      // A margem só foi validada no ranqueado; a página marca o S que pode ser B.
+      return { ...r, adj: media + delta, ...(extras.margem && { sd: r4(FOLGA_MARGEM * Math.sqrt(variancia)) }) };
+    })
     .sort((a, b) => b.adj - a.adj);
   const principais = lista.filter((r) => r.n >= MIN_PARTIDAS || (estimada && doModo(r.nome)));
 
@@ -363,6 +367,7 @@ async function gerarRanqueado(tok, desde, anterior) {
     const m = await processarMapa(tok, RANQUEADO, desde, modo, mapa, {
       medidas: [],
       semConfrontos: false,
+      margem: true,
       geral: geral.get(modo),
       cascata: {
         modo: comVitorias(geral.get(modo)),

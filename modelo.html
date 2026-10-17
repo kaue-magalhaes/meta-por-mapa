@@ -376,7 +376,8 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
 }
 .nome button:hover { text-decoration: underline; }
 .max { font: 400 0.66rem var(--font-display); letter-spacing: 0.04em; color: var(--on-accent); background: var(--accent); border-radius: 4px; padding: 1px 5px; flex: none; }
-.nicho { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
+.nicho, .incerto { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
+#agora .incerto { margin-left: 6px; }
 .linha.nao-tenho .nome button { color: var(--muted); font-weight: 400; }
 .linha.selecionado { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 
@@ -509,6 +510,10 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
           <h3>Selo "nicho"</h3>
           <p>Marca brawler com menos de 0,5% de uso no mapa. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, e a vitória alta mede a mão desses jogadores tanto quanto a força do brawler. O número está certo: quem joga com ele de fato ganha isso. Mas, se você não treina esse brawler, não conte com a mesma vitória. Na dúvida, prefira um brawler sem o selo no mesmo tier.</p>
         </div>
+        <div id="guiaIncerto" hidden>
+          <h3>Selo "incerto"</h3>
+          <p>Marca brawler do S que ainda pode ser B ou pior, com mais de 10% de chance. Acontece com quem tem poucas partidas no mapa, ou que ficou bem perto do corte do S. A conta já puxa esses brawlers pra força deles no modo, então o S costuma se confirmar; o selo avisa quando a dúvida é maior. Se for treinar um brawler novo, prefira um S sem o selo.</p>
+        </div>
         <div id="guiaVoce" hidden>
           <h3>Seu perfil</h3>
           <p>Escolha seu nome em "Você" e a página marca quem você tem no máximo: nível 11 com gadget, star power e hipercarga. A lista vem do seu perfil e se atualiza sozinha. Se marcar ou desmarcar algum brawler na mão, o ajuste fica guardado neste navegador.</p>
@@ -619,6 +624,20 @@ function tierDe(delta) {
 }
 
 const forte = (b, m) => b.adj - m.media >= FAIXAS.A;
+
+// Distribuição normal acumulada (aproximação de Abramowitz e Stegun, erro abaixo de 1e-7).
+function normal(z) {
+  const t = 1 / (1 + 0.3275911 * Math.abs(z) / Math.SQRT2);
+  const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z / 2);
+  return z >= 0 ? (1 + y) / 2 : (1 - y) / 2;
+}
+
+// Só no ranqueado: S com mais que essa chance de ser B ou pior, pela margem da conta.
+const CHANCE_INCERTO = 0.1;
+const TEXTO_INCERTO = 'Pode não ser S: com as partidas que tem, a chance de ser B ou pior passa de 10%.';
+const incerto = (b, m) => b.sd != null && tierDe(b.adj - m.media) === 'S'
+  && normal((FAIXAS.A - (b.adj - m.media)) / b.sd) > CHANCE_INCERTO;
+const seloIncerto = (b, m) => (incerto(b, m) ? `<span class="incerto" title="${TEXTO_INCERTO}">incerto</span>` : '');
 
 const guardar = {
   ler(k, padrao) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : padrao; } catch { return padrao; } },
@@ -935,7 +954,7 @@ function desenharMapa() {
         ? `<button class="bloq" type="button" data-b="${esc(b.nome)}" aria-pressed="${bloq}" aria-label="${bloq ? 'Desmarcar bloqueio de' : 'Marcar como bloqueado:'} ${esc(b.nome)}">${CADEADO}</button>`
         : `<span class="val num">${trof(b.trofeus)}${b.posicao != null ? `<small>${posicao(b.posicao)}</small>` : ''}</span>`;
       return `<div class="${classes}">
-        <span class="nome"><button type="button" data-ver="${esc(b.nome)}" title="Ver counters de ${esc(b.nome)}">${esc(b.nome)}</button>${meus.has(b.nome) ? '<span class="max">MAX</span>' : ''}${nicho(b) ? `<span class="nicho" title="${TEXTO_NICHO}">nicho</span>` : ''}</span>
+        <span class="nome"><button type="button" data-ver="${esc(b.nome)}" title="Ver counters de ${esc(b.nome)}">${esc(b.nome)}</button>${meus.has(b.nome) ? '<span class="max">MAX</span>' : ''}${nicho(b) ? `<span class="nicho" title="${TEXTO_NICHO}">nicho</span>` : ''}${seloIncerto(b, m)}</span>
         <span class="barra" title="${pp(d)} pontos vs. média do mapa"><i class="${d >= 0 ? 'pos' : 'neg'}" style="width:${larg}%"></i></span>
         <span class="val num">${pct(b.adj)}<small>${b.n ? `${pct(b.wr)} real` : 'sem partida'}</small></span>
         <span class="val num">${pct(b.uso)}<small>${b.n.toLocaleString('pt-BR')}</small></span>
@@ -949,7 +968,7 @@ function desenharMapa() {
 
   const disponiveis = m.brawlers.filter((b) => !bloqueados.has(b.nome) && (!temLista() || meus.has(b.nome)));
   document.getElementById('agora').innerHTML = disponiveis.slice(0, 5).map((b) =>
-    `<li><b>${esc(b.nome)}</b><span class="${b.adj >= m.media ? 'pos' : 'neg'}">${pp(b.adj - m.media)}</span></li>`).join('')
+    `<li><b>${esc(b.nome)}${seloIncerto(b, m)}</b><span class="${b.adj >= m.media ? 'pos' : 'neg'}">${pp(b.adj - m.media)}</span></li>`).join('')
     || '<li class="vazio">Nenhum brawler seu com partidas suficientes neste mapa.</li>';
   const nota = temLista() ? 'Os 5 melhores entre os seus no máximo.' : 'Os 5 melhores deste mapa.';
   document.getElementById('agoraNota').textContent = ranqueado
@@ -975,6 +994,7 @@ function desenharMapa() {
     : 'Ganham bem acima da média, mas com poucas partidas. Pode ser sorte.';
   document.getElementById('guiaBloqueio').hidden = !ranqueado;
   document.getElementById('guiaNicho').hidden = ranqueado;
+  document.getElementById('guiaIncerto').hidden = !ranqueado;
 
   desenharDetalhe();
 }

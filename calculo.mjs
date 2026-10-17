@@ -23,6 +23,9 @@ export const PESO_FUNDO = 0.5;
 // seguinte do que os 2 a 4 semanas sem peso usados antes.
 export const DIAS_PERIODO = 42;
 export const MEIA_VIDA = 14;
+// A margem da cascata saiu um pouco otimista nos brawlers do S em 2026-10-17 (75%
+// dentro do intervalo de 80%, prevendo a semana seguinte); alargar 15% corrige.
+export const FOLGA_MARGEM = 1.15;
 
 export const nomeBonito = (s) =>
   s.toLowerCase().replace(/(^|[\s&.-])(\p{L})/gu, (_, sep, l) => sep + l.toUpperCase());
@@ -42,18 +45,29 @@ export const mediaDe = (linhas) => {
   return n ? v / n : 0;
 };
 
+// Variância do resultado de uma partida, com vitória perto de 50%.
+const VAR_PARTIDA = 0.25;
+
 // Delta é a vitória do brawler menos a média do contexto. Cada brawler é puxado
 // pro delta que o degrau de cima prevê; quem não jogou neste degrau fica com ele.
+// A variância soma o ruído das partidas deste degrau com o que sobra da de cima.
 function encolher(linhas, prior, peso) {
   const media = mediaDe(linhas);
-  const saida = new Map(prior);
-  for (const [nome, { n, v }] of linhas) saida.set(nome, (v - n * media + peso * (prior.get(nome) ?? 0)) / (n + peso));
+  const saida = new Map();
+  for (const nome of new Set([...prior.keys(), ...linhas.keys()])) {
+    const { n, v } = linhas.get(nome) ?? { n: 0, v: 0 };
+    const p = prior.get(nome) ?? { delta: 0, variancia: VAR_PARTIDA / peso };
+    saida.set(nome, {
+      delta: (v - n * media + peso * p.delta) / (n + peso),
+      variancia: VAR_PARTIDA / (n + peso) + (peso / (n + peso)) ** 2 * p.variancia,
+    });
+  }
   return saida;
 }
 
 // O ranqueado inteiro puxa o modo, e o modo puxa o mapa. Com muito dado no mapa
-// vale o mapa; com pouco, vale a força do brawler no modo. Devolve o delta de cada
-// brawler no mapa. modo e geral devem vir sem as partidas do próprio mapa.
+// vale o mapa; com pouco, vale a força do brawler no modo. Devolve { delta, variancia }
+// de cada brawler no mapa. modo e geral devem vir sem as partidas do próprio mapa.
 export function forcaNaCascata(mapa, modo, geral, peso = PESO_CASCATA) {
   return encolher(mapa, encolher(modo, encolher(geral, new Map(), peso), peso), peso);
 }
