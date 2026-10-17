@@ -271,16 +271,21 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
 }
 
 // Mapas do ranqueado de agora. Todo mapa da lista tem partida a cada poucos minutos;
-// o que saiu na troca de temporada para de ter. Por isso vale o mapa com partida
-// nas últimas HORAS_RANQUEADO, sem filtro de faixa (com filtro, mapa novo some).
-const HORAS_RANQUEADO = 3;
+// o que saiu na troca de temporada para de ter. Vale o mapa cuja última partida
+// fica a até FOLGA_RANQUEADO horas da partida mais recente do ranqueado inteiro,
+// sem filtro de faixa (com filtro, mapa novo some). A comparação é com a última
+// partida, e não com o relógio, porque o site às vezes passa horas sem gravar nada:
+// em 16/10 ficou de 15h a 18h UTC sem nenhuma partida, e uma janela de 3 horas
+// derrubou metade dos mapas. Numa pausa assim, todo mapa para junto e nenhum sai.
+const HORAS_RANQUEADO = 48;
+const FOLGA_RANQUEADO = 6;
 const ORDEM_RANQUEADO = ['gemGrab', 'brawlBall', 'heist', 'bounty', 'knockout', 'hotZone'];
 
 async function mapasDoRanqueado(tok) {
   const desde = new Date(Date.now() - HORAS_RANQUEADO * 36e5).toISOString().slice(0, 19);
   const linhas = (
     await consulta(tok, {
-      measures: ['battle.picks_measure', 'battle.eventId_measure'],
+      measures: ['battle.picks_measure', 'battle.eventId_measure', 'battle.timestamp_measure'],
       dimensions: ['battle.mode_dimension', 'battle.map_dimension'],
       filters: [
         filtro('battle.powerplay_dimension', 'equals', '1'),
@@ -289,16 +294,27 @@ async function mapasDoRanqueado(tok) {
       limit: 5000,
     })
   ).filter((r) => Number(r.eventId) !== 0);
-  if (linhas.length < 10) throw new Error(`só ${linhas.length} mapas no ranqueado: o site mudou o formato?`);
+  const ultima = Math.max(...linhas.map((r) => Date.parse(r.timestamp)));
+  const ativos = linhas.filter((r) => Date.parse(r.timestamp) >= ultima - FOLGA_RANQUEADO * 36e5);
+  if (ativos.length < 10) throw new Error(`só ${ativos.length} mapas no ranqueado: o site mudou o formato?`);
   const pos = (modo) => (ORDEM_RANQUEADO.includes(modo) ? ORDEM_RANQUEADO.indexOf(modo) : ORDEM_RANQUEADO.length);
-  return linhas
+  return ativos
     .map((r) => ({ modo: r.mode, mapa: r.map }))
     .sort((a, b) => pos(a.modo) - pos(b.modo) || a.modo.localeCompare(b.modo) || a.mapa.localeCompare(b.mapa));
 }
 
-async function gerarRanqueado(tok, desde) {
+async function gerarRanqueado(tok, desde, anterior) {
   const lista = (await mapasDoRanqueado(tok)).slice(0, LIMITE);
   console.log(`ranqueado: ${lista.length} mapas`);
+  // Troca na lista fica no log, pra dar pra conferir depois se foi temporada nova ou erro.
+  if (anterior?.mapas && LIMITE === Infinity) {
+    const antes = new Set(anterior.mapas.map((m) => m.mapa));
+    const agora = new Set(lista.map((m) => m.mapa));
+    const entrou = [...agora].filter((m) => !antes.has(m));
+    const saiu = [...antes].filter((m) => !agora.has(m));
+    if (entrou.length) console.log(`ranqueado: entrou ${entrou.join(', ')}`);
+    if (saiu.length) console.log(`ranqueado: saiu ${saiu.join(', ')}`);
+  }
   const modos = [...new Set(lista.map((m) => m.modo))];
   const geral = new Map(await emLotes(modos, PARALELO, async (modo) => [modo, await porModo(tok, RANQUEADO, desde, modo)]));
   const saida = await emLotes(lista, PARALELO, async ({ modo, mapa }) => {
@@ -419,7 +435,7 @@ async function main() {
   // A parte que não foi pedida continua como estava. Arquivo do formato antigo não tem partes.
   const anterior = await readFile(new URL('dados.json', dir), 'utf8').then(JSON.parse).catch(() => null);
   const partes = { ...anterior?.partes };
-  if (PARTE !== 'trofeu') partes.ranqueado = await gerarRanqueado(tok, desde);
+  if (PARTE !== 'trofeu') partes.ranqueado = await gerarRanqueado(tok, desde, anterior?.partes?.ranqueado);
   if (PARTE !== 'ranqueado') partes.trofeu = await gerarTrofeu(tok, desde);
 
   // Clube que falha não derruba a geração: vale o da última vez.
