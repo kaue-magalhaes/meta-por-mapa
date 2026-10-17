@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -61,4 +61,39 @@ test('especialistas pega só diferença positiva e significativa', () => {
 test('especialistas ignora mapa que é o modo inteiro', () => {
   const modo = new Map([['A', { n: 500, wr: 0.5 }]]);
   assert.deepEqual(especialistas([{ nome: 'A', n: 500, wr: 0.6 }], modo), []);
+});
+
+const linhas = (obj) => new Map(Object.entries(obj).map(([k, [n, v]]) => [k, { n, v }]));
+const perto = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
+
+test('forcaNaCascata sem partida no mapa fica com a força do brawler no modo', () => {
+  // Modo: média 50%, Forte com 60% e Fraco com 40%, 10.000 partidas cada.
+  const modo = linhas({ Forte: [10000, 6000], Fraco: [10000, 4000] });
+  const d = forcaNaCascata(new Map(), modo, new Map(), 400);
+  // (6.000 − 5.000 + 400 × 0) / (10.000 + 400)
+  perto(d.get('Forte'), 1000 / 10400);
+  perto(d.get('Fraco'), -1000 / 10400);
+});
+
+test('forcaNaCascata com muito dado no mapa fica perto do mapa', () => {
+  const modo = linhas({ A: [10000, 6000], B: [10000, 4000] });
+  // No mapa, A fica na média e B também: o mapa desmente o modo.
+  const mapa = linhas({ A: [100000, 50000], B: [100000, 50000] });
+  const d = forcaNaCascata(mapa, modo, new Map(), 400);
+  assert.ok(Math.abs(d.get('A')) < 0.001);
+});
+
+test('forcaNaCascata com pouco dado no mapa fica perto do modo', () => {
+  const modo = linhas({ A: [10000, 6000], B: [10000, 4000] });
+  const mapa = linhas({ A: [10, 3], B: [10, 7] });
+  const d = forcaNaCascata(mapa, modo, new Map(), 400);
+  assert.ok(d.get('A') > 0.08);
+  assert.ok(d.get('B') < -0.08);
+});
+
+test('semOMapa tira as partidas do mapa e somar junta com peso', () => {
+  const modo = linhas({ A: [100, 60], B: [50, 20] });
+  const mapa = linhas({ A: [30, 20] });
+  assert.deepEqual(semOMapa(modo, mapa), linhas({ A: [70, 40], B: [50, 20] }));
+  assert.deepEqual(somar(linhas({ A: [10, 5] }), linhas({ A: [10, 8], C: [4, 2] }), 0.5), linhas({ A: [15, 9], C: [2, 1] }));
 });

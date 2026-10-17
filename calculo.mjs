@@ -16,12 +16,63 @@ export const PESO_CONFRONTO = 60;
 export const MIN_CONFRONTO = 30;
 // Diferença mínima, em erros padrão, pra um especialista não ser sorte (p ≤ 0,05).
 const Z_95 = 1.96;
+// Peso, em partidas, de cada degrau da cascata do ranqueado. Em 2026-10-16, a tier
+// list montada com uma semana de partidas acertou melhor a semana seguinte com 400
+// do que com 100 ou 1.000, e o peso tirado dos próprios dados deu perto disso.
+export const PESO_CASCATA = 400;
+// A liga logo abaixo entra no modo como informação de fundo, valendo metade.
+export const PESO_FUNDO = 0.5;
 
 export const nomeBonito = (s) =>
   s.toLowerCase().replace(/(^|[\s&.-])(\p{L})/gu, (_, sep, l) => sep + l.toUpperCase());
 
 export function ajustada(vitorias, partidas, media, peso = PESO_MEDIA) {
   return (vitorias + media * peso) / (partidas + peso);
+}
+
+// As contas da cascata recebem Map nome -> { n, v }, com v = vitórias.
+export const mediaDe = (linhas) => {
+  let n = 0;
+  let v = 0;
+  for (const x of linhas.values()) {
+    n += x.n;
+    v += x.v;
+  }
+  return n ? v / n : 0;
+};
+
+// Delta é a vitória do brawler menos a média do contexto. Cada brawler é puxado
+// pro delta que o degrau de cima prevê; quem não jogou neste degrau fica com ele.
+function encolher(linhas, prior, peso) {
+  const media = mediaDe(linhas);
+  const saida = new Map(prior);
+  for (const [nome, { n, v }] of linhas) saida.set(nome, (v - n * media + peso * (prior.get(nome) ?? 0)) / (n + peso));
+  return saida;
+}
+
+// O ranqueado inteiro puxa o modo, e o modo puxa o mapa. Com muito dado no mapa
+// vale o mapa; com pouco, vale a força do brawler no modo. Devolve o delta de cada
+// brawler no mapa. modo e geral devem vir sem as partidas do próprio mapa.
+export function forcaNaCascata(mapa, modo, geral, peso = PESO_CASCATA) {
+  return encolher(mapa, encolher(modo, encolher(geral, new Map(), peso), peso), peso);
+}
+
+export function semOMapa(total, mapa) {
+  const saida = new Map();
+  for (const [nome, { n, v }] of total) {
+    const m = mapa.get(nome);
+    saida.set(nome, m ? { n: n - m.n, v: v - m.v } : { n, v });
+  }
+  return saida;
+}
+
+export function somar(a, b, fator = 1) {
+  const saida = new Map(a);
+  for (const [nome, { n, v }] of b) {
+    const x = saida.get(nome) ?? { n: 0, v: 0 };
+    saida.set(nome, { n: x.n + n * fator, v: x.v + v * fator });
+  }
+  return saida;
 }
 
 // Times inteiros têm amostra pequena demais; quebrando em duplas a amostra sobe.

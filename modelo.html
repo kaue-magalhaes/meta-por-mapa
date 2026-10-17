@@ -495,7 +495,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div>
           <h3>Como a lista é ordenada</h3>
-          <p>Pela vitória ajustada: a taxa de vitória do brawler puxada um pouco pra média do mapa. Quem tem muitas partidas fica perto da taxa real; quem tem poucas fica perto da média. Isso impede que um brawler com 9 partidas e 8 vitórias apareça no topo.</p>
+          <p>Pela vitória ajustada. No ranqueado, ela parte da força do brawler no modo inteiro e vai virando a do mapa conforme ele junta partidas: com 400 partidas aqui, metade vem do mapa e metade do modo. Assim um brawler com 9 partidas e 8 vitórias não vai pro topo, e mapa novo já tem lista. No troféu, a taxa é puxada pra média do mapa.</p>
         </div>
         <div>
           <h3>Por que a média passa de 50%</h3>
@@ -507,7 +507,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div id="guiaNicho" hidden>
           <h3>Selo "nicho"</h3>
-          <p>Marca brawler com menos de 0,5% de uso no mapa. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, e a vitória alta mede a mão desses jogadores tanto quanto a força do brawler. Por isso, no troféu, a vitória ajustada puxa mais forte pra média do mapa: vale como 1.000 partidas na média, contra 100 no ranqueado. Como as diferenças ficam menores, os tiers do troféu também começam mais perto da média.</p>
+          <p>Marca brawler com menos de 0,5% de uso no mapa. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, e a vitória alta mede a mão desses jogadores tanto quanto a força do brawler. Por isso, no troféu, a vitória ajustada puxa forte pra média do mapa: vale como 1.000 partidas na média. Como as diferenças ficam menores, os tiers do troféu também começam mais perto da média.</p>
         </div>
         <div id="guiaVoce" hidden>
           <h3>Seu perfil</h3>
@@ -909,8 +909,9 @@ function desenharMapa() {
   document.getElementById('nomeMapa').textContent = m.mapa;
   document.getElementById('statsMapa').textContent =
     `${m.total.toLocaleString('pt-BR')} partidas · média de vitória ${pct(m.media)}` +
-    // Mapa recém-chegado ao ranqueado: a lista fica toda perto da média até juntar partidas.
-    (m.total < 1000 ? ' · mapa novo, poucos dados: a lista ainda não diz nada' : '');
+    // Mapa recém-chegado: no ranqueado a lista vem do modo; no troféu fica perto da média.
+    (m.estimada ? ' · mapa novo: lista estimada pela força de cada brawler no modo'
+      : m.total < 1000 ? ' · mapa novo, poucos dados: a lista ainda não diz nada' : '');
 
   const escala = Math.max(0.08, ...m.brawlers.map((b) => Math.abs(b.adj - m.media)));
   const porTier = { S: [], A: [], B: [], C: [] };
@@ -936,7 +937,7 @@ function desenharMapa() {
       return `<div class="${classes}">
         <span class="nome"><button type="button" data-ver="${esc(b.nome)}" title="Ver counters de ${esc(b.nome)}">${esc(b.nome)}</button>${meus.has(b.nome) ? '<span class="max">MAX</span>' : ''}${nicho(b) ? `<span class="nicho" title="${TEXTO_NICHO}">nicho</span>` : ''}</span>
         <span class="barra" title="${pp(d)} pontos vs. média do mapa"><i class="${d >= 0 ? 'pos' : 'neg'}" style="width:${larg}%"></i></span>
-        <span class="val num">${pct(b.adj)}<small>${pct(b.wr)} real</small></span>
+        <span class="val num">${pct(b.adj)}<small>${b.n ? `${pct(b.wr)} real` : 'sem partida'}</small></span>
         <span class="val num">${pct(b.uso)}<small>${b.n.toLocaleString('pt-BR')}</small></span>
         ${ultima}
       </div>`;

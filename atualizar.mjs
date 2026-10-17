@@ -12,7 +12,7 @@
 // Sem argumento, vale o que está em config.json e as duas partes são geradas.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, MIN_CONFRONTO, PESO_MEDIA, PESO_MEDIA_TROFEU, LIMITE_NICHO } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, MIN_CONFRONTO, PESO_MEDIA, PESO_MEDIA_TROFEU, LIMITE_NICHO, PESO_FUNDO } from './calculo.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -33,6 +33,9 @@ if (PARTE && !['ranqueado', 'trofeu'].includes(PARTE)) {
 // Abaixo disso o brawler sai da lista principal e só aparece em "pouca amostra".
 const MIN_PARTIDAS = 150;
 const MIN_PARTIDAS_DUPLA = 200;
+// Mapa do ranqueado com menos partidas que isso mostra a lista estimada pelo modo,
+// com todo brawler que o modo conhece, e a página avisa.
+const MIN_PARTIDAS_ESTIMADA = 1000;
 // Faixa de troféus do brawler, em centenas: 10 = 1.000 troféus ou mais.
 const FAIXA_TROFEU = 10;
 // Mapa de troféu entra com pelo menos isso de partidas nos últimos DIAS_MAPA dias,
@@ -51,6 +54,8 @@ const FOLGA_ROTACAO = 20;
 const PARALELO = 2;
 
 const RANQUEADO = { id: 'ranqueado', powerplay: '1', faixa: RANK, peso: PESO_MEDIA };
+// A liga logo abaixo (Mítico, com o rank padrão), usada só como fundo da cascata.
+const FUNDO = { ...RANQUEADO, faixa: RANK - 3, ate: RANK };
 const TROFEU = { id: 'trofeu', powerplay: '0', faixa: FAIXA_TROFEU, peso: PESO_MEDIA_TROFEU };
 
 const CUBE = 'https://cube.brawltime.ninja/cubejs-api/v1/load';
@@ -167,20 +172,25 @@ const filtrosBase = (parte, desde) => [
   filtro('battle.season_dimension', 'gte', desde),
   filtro('battle.powerplay_dimension', 'equals', parte.powerplay),
   filtro('battle.trophyRange_dimension', 'gte', parte.faixa),
+  ...(parte.ate ? [filtro('battle.trophyRange_dimension', 'lt', parte.ate)] : []),
 ];
 
 // Vitória de cada brawler no modo inteiro, com os filtros da parte. Base dos especialistas.
+// Sem modo, é a parte inteira.
 async function porModo(tok, parte, desde, modo) {
   const linhas = await consulta(tok, {
     measures: ['battle.picks_measure', 'battle.winRate_measure'],
     dimensions: ['battle.brawler_dimension'],
-    filters: [...filtrosBase(parte, desde), filtro('battle.mode_dimension', 'equals', modo)],
+    filters: [...filtrosBase(parte, desde), ...(modo ? [filtro('battle.mode_dimension', 'equals', modo)] : [])],
     limit: 50000,
   });
   return new Map(linhas.map((r) => [nomeBonito(r.brawler), { n: Number(r.picks), wr: Number(r.winRate) }]));
 }
 
-// extras: { medidas: medidas a mais na consulta de brawlers, semConfrontos, geral: Map do porModo }
+const comVitorias = (m) => new Map([...m].map(([nome, { n, wr }]) => [nome, { n, v: n * wr }]));
+
+// extras: { medidas: medidas a mais na consulta de brawlers, semConfrontos, geral: Map do porModo,
+//   cascata: { modo, fundo, ranqueado } em Map nome -> { n, v } e mapas (quantos o modo tem), só no ranqueado }
 async function processarMapa(tok, parte, desde, modo, mapa, extras) {
   const filtros = [
     ...filtrosBase(parte, desde),
@@ -225,11 +235,32 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
     ...(r.rank != null && { posicao: Math.round(Number(r.rank) * 100) / 100 }),
   }));
   const total = linhas.reduce((s, r) => s + r.n, 0);
-  const media = linhas.reduce((s, r) => s + r.wr * r.n, 0) / total;
-  const lista = linhas
-    .map((r) => ({ ...r, uso: r.n / total, adj: ajustada(r.wr * r.n, r.n, media, parte.peso) }))
-    .sort((a, b) => b.adj - a.adj);
-  const principais = lista.filter((r) => r.n >= MIN_PARTIDAS);
+  let media = total ? linhas.reduce((s, r) => s + r.wr * r.n, 0) / total : 0;
+  let lista = linhas.map((r) => ({ ...r, uso: r.n / total, adj: ajustada(r.wr * r.n, r.n, media, parte.peso) }));
+  let principais;
+  const estimada = Boolean(extras.cascata) && total < MIN_PARTIDAS_ESTIMADA;
+  if (extras.cascata) {
+    const { modo, fundo, ranqueado } = extras.cascata;
+    const doMapa = new Map(linhas.map((r) => [r.nome, { n: r.n, v: r.n * r.wr }]));
+    const semEste = semOMapa(modo, doMapa);
+    // Com poucas partidas, a média do mapa é sorte; a do modo diz mais.
+    if (estimada) media = mediaDe(semEste);
+    const noModo = somar(semEste, fundo, PESO_FUNDO);
+    const delta = forcaNaCascata(doMapa, noModo, semOMapa(ranqueado, doMapa));
+    // Mapa com pouco dado: entra quem passaria do corte num mapa típico do modo,
+    // mesmo sem partida aqui.
+    const corteModo = MIN_PARTIDAS * Math.max(1, extras.cascata.mapas - 1);
+    const doModo = (nome) => (semEste.get(nome)?.n ?? 0) >= corteModo;
+    const conhecidos = estimada
+      ? [...semEste.keys()].filter((nome) => doModo(nome) && !doMapa.has(nome)).map((nome) => ({ nome, n: 0, wr: null, uso: 0 }))
+      : [];
+    lista = [...lista, ...conhecidos].map((r) => ({ ...r, adj: media + delta.get(r.nome) }));
+    principais = lista.filter((r) => r.n >= MIN_PARTIDAS || (estimada && doModo(r.nome)));
+  } else {
+    principais = lista.filter((r) => r.n >= MIN_PARTIDAS);
+  }
+  lista.sort((a, b) => b.adj - a.adj);
+  principais.sort((a, b) => b.adj - a.adj);
 
   const listaDuplas = Object.entries(duplasDeTimes(times))
     .filter(([, d]) => d.n >= MIN_PARTIDAS_DUPLA)
@@ -243,12 +274,13 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
     (porBrawler[nomeBonito(c.brawler)] ??= []).push([nomeBonito(c.enemy), n, Number(c.winRate)]);
   }
 
-  const enxuto = (r) => ({ ...r, wr: r4(r.wr), uso: r4(r.uso), adj: r4(r.adj) });
+  const enxuto = (r) => ({ ...r, wr: r.wr == null ? null : r4(r.wr), uso: r4(r.uso), adj: r4(r.adj) });
   return {
     modo,
     mapa,
     total,
     media: r4(media),
+    ...(estimada && { estimada }),
     brawlers: principais.map(enxuto),
     poucaAmostra: lista
       .filter((r) => r.n >= 20 && r.n < MIN_PARTIDAS && r.wr >= media + 0.06)
@@ -261,7 +293,7 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
     confrontos: extras.semConfrontos
       ? null
       : Object.fromEntries(principais.map((b) => [b.nome, resumirConfrontos(porBrawler[b.nome] ?? [])])),
-    especialistas: especialistas(principais, extras.geral).map((e) => ({
+    especialistas: especialistas(principais.filter((b) => b.n > 0), extras.geral).map((e) => ({
       ...e,
       wr: r4(e.wr),
       wrModo: r4(e.wrModo),
@@ -317,13 +349,21 @@ async function gerarRanqueado(tok, desde, anterior) {
   }
   const modos = [...new Set(lista.map((m) => m.modo))];
   const geral = new Map(await emLotes(modos, PARALELO, async (modo) => [modo, await porModo(tok, RANQUEADO, desde, modo)]));
+  const fundo = new Map(await emLotes(modos, PARALELO, async (modo) => [modo, comVitorias(await porModo(tok, FUNDO, desde, modo))]));
+  const ranqueado = comVitorias(await porModo(tok, RANQUEADO, desde));
   const saida = await emLotes(lista, PARALELO, async ({ modo, mapa }) => {
     const m = await processarMapa(tok, RANQUEADO, desde, modo, mapa, {
       medidas: [],
       semConfrontos: false,
       geral: geral.get(modo),
+      cascata: {
+        modo: comVitorias(geral.get(modo)),
+        fundo: fundo.get(modo),
+        ranqueado,
+        mapas: lista.filter((m) => m.modo === modo).length,
+      },
     });
-    console.log(`ranqueado · ${mapa}: ${m.total} partidas`);
+    console.log(`ranqueado · ${mapa}: ${m.total} partidas${m.estimada ? ' (lista estimada pelo modo)' : ''}`);
     return m;
   });
   return { geradoEm: new Date().toISOString(), desde, rank: RANK, mapas: saida };
