@@ -12,11 +12,6 @@ test('ajustada puxa a taxa pra média do mapa com peso de 100 partidas', () => {
   assert.equal(ajustada(60, 100, 0.5), 0.55);
 });
 
-test('ajustada aceita outro peso, usado no troféu', () => {
-  // 60 vitórias em 100 partidas, média 50%, peso 1.000: (60 + 500) / 1.100
-  assert.equal(ajustada(60, 100, 0.5, 1000), 560 / 1100);
-});
-
 test('duplasDeTimes quebra cada time em pares ordenados', () => {
   const d = duplasDeTimes([{ team: ['COLT', 'BEA', 'EL PRIMO'], picks: '10', winRate: '0.6' }]);
   assert.deepEqual(Object.keys(d).sort(), ['Bea|Colt', 'Bea|El Primo', 'Colt|El Primo']);

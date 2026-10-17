@@ -1,12 +1,8 @@
 // Contas puras do atualizar.mjs. Ficam separadas pra dar pra testar sem rede.
 
-// Peso da média do mapa na taxa ajustada, em partidas. Brawler com poucas
-// partidas fica perto da média; com muitas, fica perto da taxa real dele.
+// Peso da média do mapa na taxa ajustada das duplas, em partidas. Dupla com poucas
+// partidas fica perto da média; com muitas, fica perto da taxa real dela.
 export const PESO_MEDIA = 100;
-// No troféu, quem leva brawler pouco usado a 1.000 troféus costuma ser especialista
-// nele, e a vitória alta mede o jogador e não o brawler. Peso maior segura esses
-// brawlers perto da média até terem partida de sobra.
-export const PESO_MEDIA_TROFEU = 1000;
 // Uso abaixo disso ganha selo de nicho na página do troféu.
 export const LIMITE_NICHO = 0.005;
 // Peso, em partidas, da taxa normal do brawler na conta do confronto. Evita que
@@ -16,7 +12,7 @@ export const PESO_CONFRONTO = 60;
 export const MIN_CONFRONTO = 30;
 // Diferença mínima, em erros padrão, pra um especialista não ser sorte (p ≤ 0,05).
 const Z_95 = 1.96;
-// Peso, em partidas, de cada degrau da cascata do ranqueado. Em 2026-10-16, a tier
+// Peso, em partidas, de cada degrau da cascata. Em 2026-10-16, a tier
 // list montada com uma semana de partidas acertou melhor a semana seguinte com 400
 // do que com 100 ou 1.000, e o peso tirado dos próprios dados deu perto disso.
 export const PESO_CASCATA = 400;

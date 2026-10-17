@@ -495,7 +495,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div>
           <h3>Como a lista é ordenada</h3>
-          <p>Pela vitória ajustada. No ranqueado, ela parte da força do brawler no modo inteiro e vai virando a do mapa conforme ele junta partidas: com 400 partidas aqui, metade vem do mapa e metade do modo. Assim um brawler com 9 partidas e 8 vitórias não vai pro topo, e mapa novo já tem lista. No troféu, a taxa é puxada pra média do mapa.</p>
+          <p>Pela vitória ajustada. Ela parte da força do brawler no modo inteiro e vai virando a do mapa conforme ele junta partidas: com 400 partidas aqui, metade vem do mapa e metade do modo. Assim um brawler com 9 partidas e 8 vitórias não vai pro topo, e mapa novo já tem lista.</p>
         </div>
         <div>
           <h3>Por que a média passa de 50%</h3>
@@ -507,7 +507,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div id="guiaNicho" hidden>
           <h3>Selo "nicho"</h3>
-          <p>Marca brawler com menos de 0,5% de uso no mapa. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, e a vitória alta mede a mão desses jogadores tanto quanto a força do brawler. Por isso, no troféu, a vitória ajustada puxa forte pra média do mapa: vale como 1.000 partidas na média. Como as diferenças ficam menores, os tiers do troféu também começam mais perto da média.</p>
+          <p>Marca brawler com menos de 0,5% de uso no mapa. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, e a vitória alta mede a mão desses jogadores tanto quanto a força do brawler. O número está certo: quem joga com ele de fato ganha isso. Mas, se você não treina esse brawler, não conte com a mesma vitória. Na dúvida, prefira um brawler sem o selo no mesmo tier.</p>
         </div>
         <div id="guiaVoce" hidden>
           <h3>Seu perfil</h3>
@@ -607,22 +607,18 @@ const posModo = (m) => { const i = ORDEM.indexOf(m.modo); return i < 0 ? ORDEM.l
 const TEXTO_NICHO = 'Menos de 0,5% de uso. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, então a vitória mede também a mão desses jogadores.';
 const nicho = (b) => atual.parte === 'trofeu' && b.uso < (DADOS.partes.trofeu.nicho ?? 0.005);
 
-// Onde cada tier começa, em diferença pra média do mapa. No troféu a vitória
-// ajustada puxa mais forte pra média, então as diferenças são menores e as faixas também.
-const FAIXAS = {
-  ranqueado: { S: 0.04, A: 0.02, B: -0.01 },
-  trofeu: { S: 0.015, A: 0.0075, B: -0.005 },
-};
+// Onde cada tier começa, em diferença pra média do mapa. Com a cascata, as duas
+// partes dão a mesma quantidade de S e A por mapa com as mesmas faixas.
+const FAIXAS = { S: 0.04, A: 0.02, B: -0.01 };
 
-function tierDe(delta, parte) {
-  const f = FAIXAS[parte];
-  if (delta >= f.S) return 'S';
-  if (delta >= f.A) return 'A';
-  if (delta >= f.B) return 'B';
+function tierDe(delta) {
+  if (delta >= FAIXAS.S) return 'S';
+  if (delta >= FAIXAS.A) return 'A';
+  if (delta >= FAIXAS.B) return 'B';
   return 'C';
 }
 
-const forte = (b, m) => b.adj - m.media >= FAIXAS[m.parte].A;
+const forte = (b, m) => b.adj - m.media >= FAIXAS.A;
 
 const guardar = {
   ler(k, padrao) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : padrao; } catch { return padrao; } },
@@ -909,16 +905,15 @@ function desenharMapa() {
   document.getElementById('nomeMapa').textContent = m.mapa;
   document.getElementById('statsMapa').textContent =
     `${m.total.toLocaleString('pt-BR')} partidas · média de vitória ${pct(m.media)}` +
-    // Mapa recém-chegado: no ranqueado a lista vem do modo; no troféu fica perto da média.
-    (m.estimada ? ' · mapa novo: lista estimada pela força de cada brawler no modo'
-      : m.total < 1000 ? ' · mapa novo, poucos dados: a lista ainda não diz nada' : '');
+    // Mapa com poucas partidas: a lista vem quase toda da força de cada brawler no modo.
+    (m.estimada ? ' · poucos dados: lista estimada pela força de cada brawler no modo' : '');
 
   const escala = Math.max(0.08, ...m.brawlers.map((b) => Math.abs(b.adj - m.media)));
   const porTier = { S: [], A: [], B: [], C: [] };
   const esconder = temLista() && document.getElementById('soMeus').checked;
   for (const b of m.brawlers) {
     if (esconder && !meus.has(b.nome)) continue;
-    porTier[tierDe(b.adj - m.media, m.parte)].push(b);
+    porTier[tierDe(b.adj - m.media)].push(b);
   }
 
   const temPosicao = m.brawlers.some((b) => b.posicao != null);
