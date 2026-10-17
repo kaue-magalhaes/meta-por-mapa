@@ -411,7 +411,9 @@ async function gerarRanqueado(tok, desde, anterior) {
       ...m,
       melhoresDuplas: lista.slice(0, 8),
       pioresDuplas: lista.slice(-5).reverse(),
-      confrontos: Object.fromEntries(m.brawlers.map((b) => [b.nome, escolherConfrontos(confrontos[i].get(b.nome) ?? [])])),
+      // A tabela de confrontos do BTN mistura o troféu, onde dá pra pegar o mesmo brawler
+      // dos dois lados. No ranqueado não dá, então o espelho sai.
+      confrontos: Object.fromEntries(m.brawlers.map((b) => [b.nome, escolherConfrontos((confrontos[i].get(b.nome) ?? []).filter(([e]) => e !== b.nome))])),
     };
   });
   return { geradoEm: new Date().toISOString(), desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, rank: RANK, mapas };
