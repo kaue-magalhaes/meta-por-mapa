@@ -12,7 +12,7 @@ site oficial da Supercell.
 
 `atualizar.mjs` puxa os dados e gera `site/index.html` a partir de `modelo.html`.
 `deploy/publicar.sh` gera e publica na branch `gh-pages`, que o GitHub Pages serve.
-Um timer do systemd (`deploy/meta-por-mapa.timer`) roda isso a cada 3 horas.
+Um timer do systemd (`deploy/meta-por-mapa.timer`) roda isso a cada hora.
 
 A publicação roda numa máquina de casa, e não no GitHub Actions: o Brawl Time Ninja
 fica atrás do Cloudflare, que barra os servidores do GitHub.

@@ -1,8 +1,8 @@
 [Unit]
-Description=Atualiza o site Meta por Mapa a cada 3 horas
+Description=Atualiza o site Meta por Mapa a cada hora
 
 [Timer]
-OnCalendar=*-*-* 00/3:17:00
+OnCalendar=*-*-* *:17:00
 # PC desligado na hora marcada: roda assim que ligar.
 Persistent=true
 RandomizedDelaySec=5min
