@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -91,4 +91,27 @@ test('semOMapa tira as partidas do mapa e somar junta com peso', () => {
   const mapa = linhas({ A: [30, 20] });
   assert.deepEqual(semOMapa(modo, mapa), linhas({ A: [70, 40], B: [50, 20] }));
   assert.deepEqual(somar(linhas({ A: [10, 5] }), linhas({ A: [10, 8], C: [4, 2] }), 0.5), linhas({ A: [15, 9], C: [2, 1] }));
+});
+
+test('pesarPorIdade junta os dias e a partida de 14 dias atrás vale metade', () => {
+  const agora = Date.parse('2026-10-17T12:00:00Z');
+  const r = pesarPorIdade([
+    { brawler: 'COLT', day: '2026-10-17T00:00:00.000', picks: '100', winRate: '0.6' },
+    { brawler: 'COLT', day: '2026-10-03T00:00:00.000', picks: '100', winRate: '0.4' },
+    { brawler: 'BEA', day: '2026-10-17T00:00:00.000', picks: '10', winRate: '0.5' },
+  ], agora);
+  const colt = r.find((x) => x.brawler === 'COLT');
+  // Hoje vale 1 e 14 dias atrás vale 0,5: 150 partidas e (60 + 20) / 150 de vitória.
+  perto(colt.picks, 150);
+  perto(colt.winRate, 80 / 150);
+  perto(r.find((x) => x.brawler === 'BEA').picks, 10);
+});
+
+test('pesarPorIdade deixa de fora o dia mais velho que o período', () => {
+  const agora = Date.parse('2026-10-17T12:00:00Z');
+  const r = pesarPorIdade([
+    { brawler: 'COLT', day: '2026-10-17T00:00:00.000', picks: '10', winRate: '0.5' },
+    { brawler: 'COLT', day: '2026-09-04T00:00:00.000', picks: '1000', winRate: '1' },
+  ], agora);
+  assert.deepEqual(r, [{ brawler: 'COLT', picks: 10, winRate: 0.5 }]);
 });

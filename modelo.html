@@ -519,7 +519,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div>
           <h3>De onde vêm os dados</h3>
-          <p>Das partidas registradas pelo <a href="https://brawltime.ninja" target="_blank" rel="noopener">Brawl Time Ninja</a>, desde a data que aparece no topo. As contas (vitória ajustada, tiers, duplas, counters) são desta página. Não é um site oficial da Supercell.</p>
+          <p>Das partidas registradas pelo <a href="https://brawltime.ninja" target="_blank" rel="noopener">Brawl Time Ninja</a>, no período que aparece no topo. No ranqueado, a tier list usa as últimas 6 semanas, e uma partida de duas semanas atrás vale metade de uma de hoje; o número de partidas mostrado já vem com esse peso. As contas (vitória ajustada, tiers, duplas, counters) são desta página. Não é um site oficial da Supercell.</p>
         </div>
       </section>
     </main>
@@ -688,9 +688,14 @@ function info() {
   const filtro = atual.parte === 'ranqueado'
     ? `Ranqueado, ${RANKS[p.rank] ?? 'faixa ' + p.rank} ou acima`
     : `Partidas normais, brawler com ${(p.faixa * 100).toLocaleString('pt-BR')} troféus ou mais`;
+  const desdeTxt = fmt(desde, { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+  // No ranqueado a tier list pesa as partidas pela idade; duplas e counters usam os blocos.
+  const periodo = p.dias
+    ? [`tier list das últimas ${p.dias / 7} semanas, as recentes valem mais`, `duplas e counters desde ${desdeTxt}`]
+    : [`partidas desde ${desdeTxt}`];
   const partes = [
     filtro,
-    `partidas desde ${fmt(desde, { day: '2-digit', month: '2-digit', timeZone: 'UTC' })}`,
+    ...periodo,
     `atualizado em ${fmt(gerado, { day: '2-digit', month: '2-digit' })} às ${hora(p.geradoEm)}`,
   ];
   if (perfil) partes.push(`perfil ${esc(perfil.nome)}, ${meus.size} no máximo`);

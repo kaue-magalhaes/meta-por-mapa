@@ -12,7 +12,7 @@
 // Sem argumento, vale o que está em config.json e as duas partes são geradas.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA } from './calculo.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -53,7 +53,9 @@ const FOLGA_ROTACAO = 20;
 // cache do site estourou a memória no meio da geração completa.
 const PARALELO = 2;
 
-const RANQUEADO = { id: 'ranqueado', powerplay: '1', faixa: RANK };
+// No ranqueado, a vitória de cada brawler pesa as partidas pela idade (pesarPorIdade).
+// Duplas e counters continuam com os blocos juntos.
+const RANQUEADO = { id: 'ranqueado', powerplay: '1', faixa: RANK, porIdade: true };
 // A liga logo abaixo (Mítico, com o rank padrão), usada só como fundo da cascata.
 const FUNDO = { ...RANQUEADO, faixa: RANK - 3, ate: RANK };
 const TROFEU = { id: 'trofeu', powerplay: '0', faixa: FAIXA_TROFEU };
@@ -175,15 +177,34 @@ const filtrosBase = (parte, desde) => [
   ...(parte.ate ? [filtro('battle.trophyRange_dimension', 'lt', parte.ate)] : []),
 ];
 
+// Partidas e vitória de cada brawler, com os filtros da parte e os de `filtros`.
+// Com peso por idade, a consulta vem dia a dia dos últimos DIAS_PERIODO dias. O site
+// rotula o bloco pela data do fim, e a folga de um bloco a mais garante que o bloco
+// do dia mais velho venha inteiro; o corte exato fica com pesarPorIdade.
+async function brawlersDa(tok, parte, desde, filtros, medidas = []) {
+  if (!parte.porIdade) {
+    return consulta(tok, {
+      measures: ['battle.picks_measure', 'battle.winRate_measure', ...medidas],
+      dimensions: ['battle.brawler_dimension'],
+      filters: [...filtrosBase(parte, desde), ...filtros],
+      limit: 50000,
+    });
+  }
+  if (medidas.length) throw new Error('o peso por idade só junta partidas e vitória');
+  const inicio = new Date(Date.now() - (DIAS_PERIODO + 14) * 864e5).toISOString().slice(0, 10);
+  const linhas = await consulta(tok, {
+    measures: ['battle.picks_measure', 'battle.winRate_measure'],
+    dimensions: ['battle.brawler_dimension', 'battle.day_dimension'],
+    filters: [...filtrosBase(parte, inicio), ...filtros],
+    limit: 50000,
+  });
+  return pesarPorIdade(linhas, Date.now());
+}
+
 // Vitória de cada brawler no modo inteiro, com os filtros da parte. Base dos especialistas.
 // Sem modo, é a parte inteira.
 async function porModo(tok, parte, desde, modo) {
-  const linhas = await consulta(tok, {
-    measures: ['battle.picks_measure', 'battle.winRate_measure'],
-    dimensions: ['battle.brawler_dimension'],
-    filters: [...filtrosBase(parte, desde), ...(modo ? [filtro('battle.mode_dimension', 'equals', modo)] : [])],
-    limit: 50000,
-  });
+  const linhas = await brawlersDa(tok, parte, desde, modo ? [filtro('battle.mode_dimension', 'equals', modo)] : []);
   return new Map(linhas.map((r) => [nomeBonito(r.brawler), { n: Number(r.picks), wr: Number(r.winRate) }]));
 }
 
@@ -192,18 +213,10 @@ const comVitorias = (m) => new Map([...m].map(([nome, { n, wr }]) => [nome, { n,
 // extras: { medidas: medidas a mais na consulta de brawlers, semConfrontos, geral: Map do porModo,
 //   cascata: { modo, fundo, parte } em Map nome -> { n, v } e mapas (quantos o modo tem) }
 async function processarMapa(tok, parte, desde, modo, mapa, extras) {
-  const filtros = [
-    ...filtrosBase(parte, desde),
-    filtro('battle.mode_dimension', 'equals', modo),
-    filtro('battle.map_dimension', 'equals', mapa),
-  ];
+  const esteMapa = [filtro('battle.mode_dimension', 'equals', modo), filtro('battle.map_dimension', 'equals', mapa)];
+  const filtros = [...filtrosBase(parte, desde), ...esteMapa];
   const [brawlers, times, confrontos] = await Promise.all([
-    consulta(tok, {
-      measures: ['battle.picks_measure', 'battle.winRate_measure', ...extras.medidas],
-      dimensions: ['battle.brawler_dimension'],
-      filters: filtros,
-      limit: 50000,
-    }),
+    brawlersDa(tok, parte, desde, esteMapa, extras.medidas),
     consulta(tok, {
       measures: ['battle.picks_measure', 'battle.winRate_measure'],
       dimensions: ['battle.team_dimension'],
@@ -268,11 +281,12 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
     (porBrawler[nomeBonito(c.brawler)] ??= []).push([nomeBonito(c.enemy), n, Number(c.winRate)]);
   }
 
-  const enxuto = (r) => ({ ...r, wr: r.wr == null ? null : r4(r.wr), uso: r4(r.uso), adj: r4(r.adj) });
+  const enxuto = (r) => ({ ...r, n: Math.round(r.n), wr: r.wr == null ? null : r4(r.wr), uso: r4(r.uso), adj: r4(r.adj) });
   return {
     modo,
     mapa,
-    total,
+    // Com peso por idade, partidas vêm fracionadas.
+    total: Math.round(total),
     media: r4(media),
     ...(estimada && { estimada }),
     brawlers: principais.map(enxuto),
@@ -360,7 +374,7 @@ async function gerarRanqueado(tok, desde, anterior) {
     console.log(`ranqueado · ${mapa}: ${m.total} partidas${m.estimada ? ' (lista estimada pelo modo)' : ''}`);
     return m;
   });
-  return { geradoEm: new Date().toISOString(), desde, rank: RANK, mapas: saida };
+  return { geradoEm: new Date().toISOString(), desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, rank: RANK, mapas: saida };
 }
 
 async function gerarTrofeu(tok, desde) {

@@ -18,6 +18,11 @@ const Z_95 = 1.96;
 export const PESO_CASCATA = 400;
 // A liga logo abaixo entra no modo como informação de fundo, valendo metade.
 export const PESO_FUNDO = 0.5;
+// Período do ranqueado, em dias, e a meia-vida do peso de cada partida. Em
+// 2026-10-17, seis semanas com meia-vida de duas erraram de 3% a 9% menos a semana
+// seguinte do que os 2 a 4 semanas sem peso usados antes.
+export const DIAS_PERIODO = 42;
+export const MEIA_VIDA = 14;
 
 export const nomeBonito = (s) =>
   s.toLowerCase().replace(/(^|[\s&.-])(\p{L})/gu, (_, sep, l) => sep + l.toUpperCase());
@@ -69,6 +74,21 @@ export function somar(a, b, fator = 1) {
     saida.set(nome, { n: x.n + n * fator, v: x.v + v * fator });
   }
   return saida;
+}
+
+// Junta linhas dia a dia { brawler, day, picks, winRate } numa por brawler, no formato
+// da consulta sem dia. Cada partida vale 0,5^(idade / meiaVida), com a idade contada
+// do meio do dia (o site grava o dia em UTC); dia mais velho que o período fica de fora.
+export function pesarPorIdade(linhas, agora, meiaVida = MEIA_VIDA, dias = DIAS_PERIODO) {
+  const soma = new Map();
+  for (const r of linhas) {
+    const idade = Math.max(0, (agora - Date.parse(`${r.day.slice(0, 10)}T12:00:00Z`)) / 864e5);
+    if (idade > dias) continue;
+    const n = Number(r.picks) * 0.5 ** (idade / meiaVida);
+    const x = soma.get(r.brawler) ?? { n: 0, v: 0 };
+    soma.set(r.brawler, { n: x.n + n, v: x.v + n * Number(r.winRate) });
+  }
+  return [...soma].map(([brawler, { n, v }]) => ({ brawler, picks: n, winRate: n ? v / n : 0 }));
 }
 
 // Times inteiros têm amostra pequena demais; quebrando em duplas a amostra sobe.
