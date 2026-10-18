@@ -12,7 +12,7 @@
 // Sem argumento, vale o que está em config.json e as duas partes são geradas.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -411,13 +411,16 @@ async function gerarRanqueado(tok, desde, anterior) {
   const duplas = duplasPelaForca(saida.map((m) => m.bruto));
   const mapas = saida.map(({ bruto, ...m }, i) => {
     const lista = duplas[i].filter((d) => d.n >= MIN_PARTIDAS_DUPLA).map(({ nota, ...d }) => ({ ...d, wr: r4(d.wr), adj: r4(bruto.media + nota) }));
+    // A tabela de confrontos do BTN mistura o troféu, onde dá pra pegar o mesmo brawler
+    // dos dois lados. No ranqueado não dá, então o espelho sai.
+    const efeitos = (nome) => (confrontos[i].get(nome) ?? []).filter(([e]) => e !== nome);
     return {
       ...m,
       melhoresDuplas: lista.slice(0, 8),
       pioresDuplas: lista.slice(-5).reverse(),
-      // A tabela de confrontos do BTN mistura o troféu, onde dá pra pegar o mesmo brawler
-      // dos dois lados. No ranqueado não dá, então o espelho sai.
-      confrontos: Object.fromEntries(m.brawlers.map((b) => [b.nome, escolherConfrontos((confrontos[i].get(b.nome) ?? []).filter(([e]) => e !== b.nome))])),
+      confrontos: Object.fromEntries(m.brawlers.map((b) => [b.nome, escolherConfrontos(efeitos(b.nome))])),
+      // Os confrontos com amostra de cada brawler da lista: o modo Draft soma contra os inimigos escolhidos.
+      tabela: Object.fromEntries(m.brawlers.map((b) => [b.nome, tabelaDeConfrontos(efeitos(b.nome))])),
     };
   });
   return { geradoEm: new Date().toISOString(), desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, rank: RANK, mapas };
