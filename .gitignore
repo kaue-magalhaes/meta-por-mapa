@@ -5,3 +5,6 @@ brawl-meta*.html
 
 # Cópias de segurança locais
 backup-*/
+
+# Rascunhos do brainstorming visual
+.superpowers/
