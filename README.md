@@ -1,8 +1,10 @@
 # Meta por Mapa
 
 Quais brawlers escolher em cada mapa de Brawl Stars, no ranqueado e no troféu,
-com counters, duplas e especialistas por mapa. Os membros do clube escolhem o
-próprio nome na página e veem só os brawlers que têm no máximo.
+com counters, duplas e especialistas por mapa, e um modo Draft para o ranqueado
+do Mítico pra cima, que recomenda o brawler conforme os bloqueios e as escolhas
+digitados. Os membros do clube escolhem o próprio nome na página e veem só os
+brawlers que têm no máximo.
 
 Os dados vêm das partidas registradas pelo [Brawl Time Ninja](https://brawltime.ninja).
 As contas (vitória ajustada, tiers, duplas, counters) são deste projeto. Não é um
