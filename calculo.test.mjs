@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, duplasPelaForca } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -210,6 +210,22 @@ test('confrontosEmCascata separa a força do inimigo do confronto e puxa o confr
 test('escolherConfrontos deixa de fora confronto com menos de 30 partidas', () => {
   const r = escolherConfrontos([['Bea', 29, -0.2], ['Shelly', 100, -0.05], ['Colt', 100, 0.03]]);
   assert.deepEqual(r, { bom: [['Colt', 0.03]], ruim: [['Shelly', -0.05]] });
+});
+
+test('tabelaDeConfrontos guarda todo confronto com amostra e contém os 5 do escolherConfrontos', () => {
+  // B0 tem 29 partidas e fica de fora; os outros vão de -7 a +7 pontos.
+  const efeitos = Array.from({ length: 30 }, (_, i) => [`B${i}`, i === 0 ? 29 : 100, (i - 15) / 200]);
+  const tabela = tabelaDeConfrontos(efeitos);
+  assert.equal(Object.keys(tabela).length, 29);
+  assert.equal(tabela.B0, undefined);
+  const { bom, ruim } = escolherConfrontos(efeitos);
+  assert.equal(bom.length, 5);
+  assert.equal(ruim.length, 5);
+  for (const [inimigo, efeito] of [...bom, ...ruim]) assert.equal(tabela[inimigo], efeito);
+});
+
+test('tabelaDeConfrontos arredonda o efeito em milésimos', () => {
+  assert.deepEqual(tabelaDeConfrontos([['Bea', 100, 0.05649], ['Colt', 100, -0.0126]]), { Bea: 0.056, Colt: -0.013 });
 });
 
 test('duplasPelaForca ordena pela soma das forças e puxa a sinergia pra zero', () => {

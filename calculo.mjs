@@ -207,8 +207,11 @@ export function resumirConfrontos(linhas, quantos = 5) {
   return lados(linhas.map(([inimigo, partidas, wr]) => [inimigo, (wr * partidas + base * PESO_CONFRONTO) / (partidas + PESO_CONFRONTO) - base]), quantos);
 }
 
+// Efeito de confronto vai pra página em milésimos.
+const r3 = (x) => Math.round(x * 1000) / 1000;
+
 function lados(efeitos, quantos) {
-  const lista = efeitos.map(([inimigo, e]) => [inimigo, Math.round(e * 1000) / 1000]).sort((a, b) => b[1] - a[1]);
+  const lista = efeitos.map(([inimigo, e]) => [inimigo, r3(e)]).sort((a, b) => b[1] - a[1]);
   return {
     bom: lista.filter((c) => c[1] > 0.01).slice(0, quantos),
     ruim: lista.filter((c) => c[1] < -0.01).slice(-quantos).reverse(),
@@ -262,10 +265,13 @@ export function confrontosEmCascata(mapas, peso = PESO_CASCATA) {
   });
 }
 
-// Os confrontos mais claros pros dois lados, como o resumirConfrontos devolve.
+// Todos os confrontos de um brawler com amostra suficiente, como { inimigo: efeito }.
 // efeitos: [[inimigo, partidas, efeito]], do confrontosEmCascata.
-export const escolherConfrontos = (efeitos, quantos = 5) =>
-  lados(efeitos.filter((c) => c[1] >= MIN_CONFRONTO).map(([inimigo, , e]) => [inimigo, e]), quantos);
+export const tabelaDeConfrontos = (efeitos) =>
+  Object.fromEntries(efeitos.filter((c) => c[1] >= MIN_CONFRONTO).map(([inimigo, , e]) => [inimigo, r3(e)]));
+
+// Os confrontos mais claros pros dois lados, como o resumirConfrontos devolve.
+export const escolherConfrontos = (efeitos, quantos = 5) => lados(Object.entries(tabelaDeConfrontos(efeitos)), quantos);
 
 // Duplas do ranqueado, com todos os mapas de uma vez. A nota é a soma das forças dos
 // dois (da tier list) vezes um fator, mais a sinergia (o que sobra) puxada pra zero
