@@ -105,6 +105,9 @@ async function consulta(tok, query) {
 }
 
 const filtro = (member, operator, ...values) => ({ member, operator, values: values.map(String) });
+// Desde 20/10 o site recusa consulta de partidas sem temporada. Nas consultas das
+// últimas horas, a temporada só precisa cobrir o bloco atual de duas semanas.
+const temporadaRecente = () => filtro('battle.season_dimension', 'gte', new Date(Date.now() - 28 * 864e5).toISOString().slice(0, 10));
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
 
 // "No máximo" = nível 11 com pelo menos um gadget, uma star power e a hipercarga.
@@ -346,6 +349,7 @@ async function mapasDoRanqueado(tok) {
       measures: ['battle.picks_measure', 'battle.eventId_measure', 'battle.timestamp_measure'],
       dimensions: ['battle.mode_dimension', 'battle.map_dimension'],
       filters: [
+        temporadaRecente(),
         filtro('battle.powerplay_dimension', 'equals', '1'),
         filtro('battle.timestamp_dimension', 'afterDate', desde),
       ],
@@ -468,6 +472,7 @@ async function gerarTrofeu(tok, desde) {
       measures: ['battle.eventId_measure', 'battle.trophyChange_measure', 'battle.timestamp_measure'],
       dimensions: ['battle.mode_dimension', 'battle.map_dimension'],
       filters: [
+        temporadaRecente(),
         filtro('battle.powerplay_dimension', 'equals', '0'),
         filtro('battle.timestamp_dimension', 'afterDate', ultimaHora),
         filtro('battle.mode_dimension', 'equals', ...modos.map((m) => m.modo)),
