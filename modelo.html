@@ -415,7 +415,6 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
   .linha { transition: opacity .15s; }
 }
 /* Modo Draft: só a função por enquanto; o visual espera o teste no Mítico. */
-.abrir-draft { font: 600 0.82rem var(--font-body); background: var(--accent); color: var(--on-accent); border: 0; border-radius: 8px; padding: 4px 12px; cursor: pointer; }
 .draft { margin-bottom: 20px; }
 .draft h4 { margin: 0; }
 .draft-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
@@ -463,7 +462,6 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
           <span class="selo-rot" id="seloRot" hidden></span>
           <span class="sub num" id="statsMapa"></span>
           <span class="irmaos" id="irmaos" hidden></span>
-          <button class="abrir-draft" type="button" id="abrirDraft" hidden>Draft</button>
         </div>
       </div>
 
@@ -481,7 +479,6 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
             <button type="button" data-comeca="eles" aria-pressed="false">Eles começam</button>
           </div>
           <button class="limpar" type="button" id="draftNova">Nova partida</button>
-          <button class="limpar" type="button" id="draftFechar">Fechar o draft</button>
         </div>
         <ol class="vezes" id="draftVezes"></ol>
         <p id="draftBloqueados"></p>
@@ -502,7 +499,6 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
           <ol class="picks ordenada num" id="agora"></ol>
           <p id="agoraNota">Os 5 melhores que sobraram. Marque com o cadeado quem foi bloqueado e a lista se ajusta.</p>
           <p class="fora" id="fora"></p>
-          <button class="limpar" id="limpar" type="button">Desmarcar bloqueios deste mapa</button>
         </div>
         <div class="bloco inimigo" id="blocoInimigo" hidden>
           <h3>Se o inimigo pegar</h3>
@@ -577,7 +573,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div id="guiaDraft" hidden>
           <h3>Draft</h3>
-          <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. Aperte "Draft", diga quem começa e digite cada bloqueio e cada escolha com 2 ou 3 letras e Enter. A lista mostra os 3 melhores que sobraram: a força no mapa somada a quanto cada um ganha ou perde dos inimigos já escolhidos. Os brawlers do seu time não entram na conta, porque a dupla quase não rende além da força dos dois.</p>
+          <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado: diga quem começa e digite cada bloqueio e cada escolha com 2 ou 3 letras e Enter. A lista mostra os 3 melhores que sobraram: a força no mapa somada a quanto cada um ganha ou perde dos inimigos já escolhidos. Os brawlers do seu time não entram na conta, porque a dupla quase não rende além da força dos dois.</p>
         </div>
         <div>
           <h3>De onde vêm os dados</h3>
@@ -701,9 +697,23 @@ const guardar = {
   gravar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 
-// Bloqueios marcados no ranqueado, por mapa. O cadeado e o modo Draft leem e gravam aqui.
-const bloqueiosDe = (mapa) => guardar.ler('bloq:' + mapa, []);
-const gravarBloqueios = (mapa, lista) => guardar.gravar('bloq:' + mapa, lista);
+// A partida do ranqueado em andamento, uma por vez: bloqueios, quem começa e as escolhas.
+// O cadeado da tier list e o modo Draft leem e gravam só aqui. Fica guardada pra
+// sobreviver a um F5 no meio do draft, e abrir outro mapa começa outra partida.
+// feitos guarda as marcações do draft na ordem, pro Backspace desfazer.
+const partidaVazia = (mapa) => ({ mapa, comeca: null, fase: 'bloqueio', bloqueios: [], escolhas: [], feitos: [] });
+let partida = guardar.ler('partida', null) ?? partidaVazia(null);
+const salvarPartida = () => guardar.gravar('partida', partida);
+// Até 20/10 cada mapa guardava os próprios bloqueios para sempre, e eles voltavam na partida seguinte.
+try { for (const k of Object.keys(localStorage)) if (k.startsWith('bloq:')) localStorage.removeItem(k); } catch {}
+
+// Marcar ou desmarcar no cadeado tira o nome do Backspace do draft: o cadeado assume.
+function mudarBloqueio(nome, bloqueado) {
+  const s = new Set(partida.bloqueios);
+  bloqueado ? s.add(nome) : s.delete(nome);
+  partida.bloqueios = [...s];
+  partida.feitos = partida.feitos.filter((f) => f.fase !== 'bloqueio' || f.nome !== nome);
+}
 
 // Quem a pessoa tem no máximo. Com um perfil do clube escolhido, vem do perfil
 // (renovado a cada geração da página) mais os ajustes feitos na mão. Sem perfil,
@@ -986,31 +996,30 @@ function desenharDetalhe() {
 
 // Quem começa escolhe 1, o outro 2, o primeiro 2 e o outro 1. 0 é o time que começa.
 const ORDEM_DRAFT = [0, 1, 1, 0, 0, 1];
-// Estado do draft do mapa aberto, só nesta aba. Os bloqueios ficam no mesmo lugar do
-// cadeado, então marcar num lado marca no outro. feitos guarda as marcações pra desfazer.
-const draftVazio = () => ({ aberto: false, comeca: null, fase: 'bloqueio', escolhas: [], feitos: [] });
-let draft = draftVazio();
-const timeDaVez = (i) => ((ORDEM_DRAFT[i] === 0) === (draft.comeca === 'nos') ? 'nos' : 'eles');
+const timeDaVez = (i) => ((ORDEM_DRAFT[i] === 0) === (partida.comeca === 'nos') ? 'nos' : 'eles');
 // Escolha desmarcada vira null e a vez fica vaga: o próximo Enter preenche a primeira vaga.
 const proximaVez = () => {
-  const i = draft.escolhas.findIndex((n) => !n);
-  return i < 0 ? draft.escolhas.length : i;
+  const i = partida.escolhas.findIndex((n) => !n);
+  return i < 0 ? partida.escolhas.length : i;
 };
-const foraDoDraft = (m) => new Set([...bloqueiosDe(m.mapa), ...draft.escolhas.filter(Boolean)]);
+const foraDoDraft = () => new Set([...partida.bloqueios, ...partida.escolhas.filter(Boolean)]);
 // Todo brawler que aparece em alguma parte do site. Só o ranqueado não basta: brawler com
 // pouca partida no Lendário+ some de todos os mapas de lá, e a Bonnie não dava pra marcar.
 const NOMES_TODOS = [...new Set(TODOS.flatMap((m) => m.brawlers.map((b) => b.nome)))];
 const chaveNome = (s) => norm(s).replace(/[^a-z0-9]/g, '');
 
-// Nomes livres que começam com o que foi digitado, do mais usado no mapa pro menos:
-// com 2 letras ambíguas, o Enter fica com quem mais se escolhe aqui.
+// Nomes livres com o que foi digitado, do mais usado no mapa pro menos: com 2 letras
+// ambíguas, o Enter fica com quem mais se escolhe aqui. Quem começa com o texto vem
+// antes de quem só o contém, que salva o nome lembrado pela metade ("per" acha Piper).
 function acharNomes(texto, m, fora) {
   const q = chaveNome(texto);
   if (!q) return [];
   const uso = new Map(m.brawlers.map((b) => [b.nome, b.uso]));
-  return NOMES_TODOS
-    .filter((n) => !fora.has(n) && chaveNome(n).startsWith(q))
+  const livres = NOMES_TODOS
+    .filter((n) => !fora.has(n) && chaveNome(n).includes(q))
     .sort((a, b) => (uso.get(b) ?? 0) - (uso.get(a) ?? 0) || a.localeCompare(b));
+  const comeca = (n) => chaveNome(n).startsWith(q);
+  return [...livres.filter(comeca), ...livres.filter((n) => !comeca(n))];
 }
 
 // Nota de cada brawler livre: a força dele no mapa mais o efeito dele contra cada inimigo
@@ -1033,108 +1042,114 @@ function desenharDica(m) {
   const texto = caixaDraft.value;
   const semOrdem = 'Marque quem escolhe primeiro antes das escolhas.';
   // Nas escolhas, o Enter só marca com a ordem definida e enquanto sobra vez.
-  const travado = draft.fase === 'escolha' && (!draft.comeca || proximaVez() >= ORDEM_DRAFT.length);
-  const achados = acharNomes(texto, m, foraDoDraft(m));
+  const travado = partida.fase === 'escolha' && (!partida.comeca || proximaVez() >= ORDEM_DRAFT.length);
+  const achados = acharNomes(texto, m, foraDoDraft());
   document.getElementById('draftDica').textContent = !texto || travado
-    ? (draft.comeca ? '' : semOrdem)
+    ? (partida.comeca ? '' : semOrdem)
     : !achados.length
       ? 'Nenhum brawler livre com esse nome.'
       : `Enter marca ${achados[0]}${achados.length > 1 ? ` (também: ${achados.slice(1, 4).join(', ')})` : ''}.`;
 }
 
 function desenharDraft(m) {
-  const pode = m.parte === 'ranqueado' && !!m.tabela;
-  document.getElementById('abrirDraft').hidden = !pode || draft.aberto;
+  // Sempre aberto no ranqueado: no draft não sobra tempo pra um clique a mais.
   const secao = document.getElementById('draft');
-  secao.hidden = !pode || !draft.aberto;
+  secao.hidden = m.parte !== 'ranqueado' || !m.tabela;
   if (secao.hidden) return;
-  for (const b of document.querySelectorAll('[data-comeca]')) b.setAttribute('aria-pressed', String(b.dataset.comeca === draft.comeca));
+  for (const b of document.querySelectorAll('[data-comeca]')) b.setAttribute('aria-pressed', String(b.dataset.comeca === partida.comeca));
   const vez = proximaVez();
-  const rotulo = (i) => (!draft.comeca ? '?' : timeDaVez(i) === 'nos' ? 'Nós' : 'Eles');
+  const rotulo = (i) => (!partida.comeca ? '?' : timeDaVez(i) === 'nos' ? 'Nós' : 'Eles');
   document.getElementById('draftVezes').innerHTML = ORDEM_DRAFT.map((_, i) => {
-    const classes = [draft.comeca && timeDaVez(i), draft.fase === 'escolha' && i === vez && 'atual'].filter(Boolean).join(' ');
-    const nome = draft.escolhas[i];
+    const classes = [partida.comeca && timeDaVez(i), partida.fase === 'escolha' && i === vez && 'atual'].filter(Boolean).join(' ');
+    const nome = partida.escolhas[i];
     // Escolha marcada é botão: um clique desmarca, pra corrigir sem refazer o draft.
     const valor = nome
       ? `<button class="desbloq" type="button" data-vez="${i}" aria-label="Desmarcar a escolha ${esc(nome)}">${esc(nome)}</button>`
       : '–';
     return `<li class="${classes}"><small>${rotulo(i)}</small><b>${valor}</b></li>`;
   }).join('');
-  const bloqueados = bloqueiosDe(m.mapa);
+  const bloqueados = partida.bloqueios;
   // Clicável porque nem todo bloqueado tem linha (e cadeado) na tier list deste mapa.
   document.getElementById('draftBloqueados').innerHTML = bloqueados.length
     ? `Bloqueados: ${bloqueados.map((n) => `<button class="desbloq" type="button" data-desbloq="${esc(n)}" aria-label="Desmarcar bloqueio de ${esc(n)}">${esc(n)}</button>`).join(', ')}.`
     : 'Nenhum bloqueio marcado.';
-  document.getElementById('draftFase').textContent = draft.fase === 'bloqueio'
+  document.getElementById('draftFase').textContent = partida.fase === 'bloqueio'
     ? 'Bloqueio'
     : vez < ORDEM_DRAFT.length ? `Escolha ${vez + 1} · ${rotulo(vez)}` : 'Draft completo';
-  const inimigos = draft.comeca ? draft.escolhas.filter((n, i) => n && timeDaVez(i) === 'eles') : [];
+  const inimigos = partida.comeca ? partida.escolhas.filter((n, i) => n && timeDaVez(i) === 'eles') : [];
   const motivo = ({ pos, pesou }) => `${pos}º no mapa${pesou && pesou[1] ? ` · contra ${esc(pesou[0])} ${pp(pesou[1])}` : ''}`;
   // A recomendação pode ir pra um colega, então quem a pessoa não tem no máximo só sai apagado.
   const nome = (b) => (temLista() && !meus.has(b.nome) ? `<span class="nao-tenho">${esc(b.nome)}</span>` : esc(b.nome));
-  document.getElementById('draftRecomenda').innerHTML = recomendar(m, foraDoDraft(m), inimigos)
+  document.getElementById('draftRecomenda').innerHTML = recomendar(m, foraDoDraft(), inimigos)
     .map((r) => `<li><b>${nome(r.b)}</b><span>${motivo(r)}</span></li>`).join('')
     || '<li class="vazio">Ninguém livre com partidas suficientes.</li>';
   desenharDica(m);
 }
 
-// Na fase de bloqueio, o nome vai pro cadeado do mapa. Na de escolhas, cai na próxima vez.
+// Na fase de bloqueio, o nome vai pro cadeado. Na de escolhas, cai na próxima vez.
 function marcar(nome) {
-  if (draft.fase === 'bloqueio') {
-    gravarBloqueios(atual.mapa, [...new Set([...bloqueiosDe(atual.mapa), nome])]);
-    draft.feitos.push({ fase: 'bloqueio', nome });
+  if (partida.fase === 'bloqueio') {
+    mudarBloqueio(nome, true);
+    partida.feitos.push({ fase: 'bloqueio', nome });
     return true;
   }
   const i = proximaVez();
-  if (!draft.comeca || i >= ORDEM_DRAFT.length) return false;
-  draft.escolhas[i] = nome;
-  draft.feitos.push({ fase: 'escolha', nome, i });
+  if (!partida.comeca || i >= ORDEM_DRAFT.length) return false;
+  partida.escolhas[i] = nome;
+  partida.feitos.push({ fase: 'escolha', nome, i });
   return true;
 }
 
 function desmarcarEscolha(i) {
-  draft.escolhas[i] = null;
-  draft.feitos = draft.feitos.filter((f) => f.fase !== 'escolha' || f.i !== i);
+  partida.escolhas[i] = null;
+  partida.feitos = partida.feitos.filter((f) => f.fase !== 'escolha' || f.i !== i);
 }
 
 function desfazer() {
-  const ultimo = draft.feitos.pop();
+  const ultimo = partida.feitos.pop();
   if (!ultimo) return;
-  if (ultimo.fase === 'escolha') return void (draft.escolhas[ultimo.i] = null);
-  gravarBloqueios(atual.mapa, bloqueiosDe(atual.mapa).filter((n) => n !== ultimo.nome));
+  if (ultimo.fase === 'escolha') return void (partida.escolhas[ultimo.i] = null);
+  mudarBloqueio(ultimo.nome, false);
 }
 
 const caixaDraft = document.getElementById('draftNome');
 
-// Fechar o draft ou trocar de mapa começa do zero, com a caixa vazia.
-function reiniciarDraft() {
-  draft = draftVazio();
+// Outra partida, no mesmo mapa ou em outro: tudo do zero, com a caixa vazia.
+function novaPartida(mapa) {
+  partida = partidaVazia(mapa);
+  salvarPartida();
   caixaDraft.value = '';
+}
+
+// Toda mudança na partida passa por aqui: grava e redesenha o mapa inteiro, porque
+// bloqueio mexe na tier list, no "Pra escolher agora" e no draft.
+function mudouPartida() {
+  salvarPartida();
+  desenharMapa();
 }
 
 caixaDraft.addEventListener('input', () => desenharDica(atual));
 caixaDraft.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    const [nome] = acharNomes(caixaDraft.value, atual, foraDoDraft(atual));
+    const [nome] = acharNomes(caixaDraft.value, atual, foraDoDraft());
     if (nome && marcar(nome)) caixaDraft.value = '';
-  } else if (e.key === 'Tab' && !e.shiftKey && draft.fase === 'bloqueio') {
+  } else if (e.key === 'Tab' && !e.shiftKey && partida.fase === 'bloqueio') {
     // Nem sempre dá pra ver todos os bloqueios a tempo, então Tab pula pras escolhas.
     e.preventDefault();
-    draft.fase = 'escolha';
+    partida.fase = 'escolha';
   } else if (e.key === 'Backspace' && !caixaDraft.value) {
     e.preventDefault();
     desfazer();
   } else return;
-  // Bloqueio mexe na tier list e no "Pra escolher agora", então redesenha o mapa inteiro.
-  desenharMapa();
+  mudouPartida();
 });
 
 function desenharMapa() {
   const m = atual;
   const ranqueado = m.parte === 'ranqueado';
   document.body.classList.toggle('trofeu', !ranqueado);
-  const bloqueados = new Set(ranqueado ? bloqueiosDe(m.mapa) : []);
+  const bloqueados = new Set(ranqueado ? partida.bloqueios : []);
   document.getElementById('nomeMapa').textContent = m.mapa;
   document.getElementById('statsMapa').textContent =
     `${m.total.toLocaleString('pt-BR')} partidas · média de vitória ${pct(m.media)}` +
@@ -1183,8 +1198,6 @@ function desenharMapa() {
   document.getElementById('agoraNota').textContent = ranqueado
     ? nota + ' Marque com o cadeado quem foi bloqueado e a lista se ajusta.'
     : nota;
-  document.getElementById('limpar').hidden = !ranqueado;
-
   // Inimigo provável é quem mais se escolhe aqui; as respostas são o "Perde para" dele.
   document.getElementById('blocoInimigo').hidden = !ranqueado || !m.confrontos;
   if (ranqueado && m.confrontos) {
@@ -1249,8 +1262,8 @@ function desenharInvestir() {
 function selecionar(m, mexerNoHash = true) {
   if (!m) return;
   if (!atual || atual.parte !== m.parte) busca.value = '';
-  // O draft é de uma partida: outro mapa começa do zero. Os bloqueios guardados ficam.
-  if (m !== atual) reiniciarDraft();
+  // Abrir outro mapa do ranqueado começa outra partida. Mapa do troféu não tem partida e não mexe nela.
+  if (m.parte === 'ranqueado' && m.mapa !== partida.mapa) novaPartida(m.mapa);
   atual = m;
   if (!m.brawlers.some((b) => b.nome === selecionado)) selecionado = m.brawlers[0]?.nome ?? null;
   guardar.gravar('mapa', chave(m));
@@ -1285,59 +1298,37 @@ document.addEventListener('click', (e) => {
     selecionado = ver.dataset.ver;
     return desenharMapa();
   }
-  if (e.target.closest('#abrirDraft')) {
-    draft.aberto = true;
-    desenharMapa();
-    return caixaDraft.focus();
-  }
-  if (e.target.id === 'draftFechar') {
-    reiniciarDraft();
-    return desenharMapa();
-  }
-  // Outra partida no mesmo mapa: bloqueios e escolhas são outros, o draft continua aberto.
+  // Outra partida no mesmo mapa: bloqueios e escolhas são outros.
   if (e.target.id === 'draftNova') {
-    reiniciarDraft();
-    draft.aberto = true;
-    gravarBloqueios(atual.mapa, []);
-    desenharMapa();
+    novaPartida(atual.mapa);
+    mudouPartida();
     return caixaDraft.focus();
   }
   // A vez desmarcada é a próxima a ser preenchida, então volta pra fase de escolhas.
   const vez = e.target.closest('[data-vez]');
   if (vez) {
     desmarcarEscolha(Number(vez.dataset.vez));
-    draft.fase = 'escolha';
-    desenharMapa();
+    partida.fase = 'escolha';
+    mudouPartida();
     return caixaDraft.focus();
   }
   const desbloq = e.target.closest('[data-desbloq]');
   if (desbloq) {
-    const nome = desbloq.dataset.desbloq;
-    gravarBloqueios(atual.mapa, bloqueiosDe(atual.mapa).filter((n) => n !== nome));
-    draft.feitos = draft.feitos.filter((f) => f.fase !== 'bloqueio' || f.nome !== nome);
-    desenharMapa();
+    mudarBloqueio(desbloq.dataset.desbloq, false);
+    mudouPartida();
     return caixaDraft.focus();
   }
   // Dá pra trocar quem começa a qualquer momento: as escolhas já feitas mudam de time.
   const comeca = e.target.closest('[data-comeca]');
   if (comeca) {
-    draft.comeca = comeca.dataset.comeca;
-    desenharMapa();
+    partida.comeca = comeca.dataset.comeca;
+    mudouPartida();
     return caixaDraft.focus();
   }
   const bloq = e.target.closest('.bloq');
   if (bloq) {
-    const s = new Set(bloqueiosDe(atual.mapa));
-    s.has(bloq.dataset.b) ? s.delete(bloq.dataset.b) : s.add(bloq.dataset.b);
-    gravarBloqueios(atual.mapa, [...s]);
-    // O cadeado assume esse bloqueio: o Backspace do draft não mexe mais nele.
-    draft.feitos = draft.feitos.filter((f) => f.fase !== 'bloqueio' || f.nome !== bloq.dataset.b);
-    return desenharMapa();
-  }
-  if (e.target.id === 'limpar') {
-    gravarBloqueios(atual.mapa, []);
-    draft.feitos = draft.feitos.filter((f) => f.fase !== 'bloqueio');
-    desenharMapa();
+    mudarBloqueio(bloq.dataset.b, !partida.bloqueios.includes(bloq.dataset.b));
+    return mudouPartida();
   }
 });
 
