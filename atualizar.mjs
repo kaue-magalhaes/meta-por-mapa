@@ -419,8 +419,13 @@ async function gerarRanqueado(tok, desde, anterior) {
       melhoresDuplas: lista.slice(0, 8),
       pioresDuplas: lista.slice(-5).reverse(),
       confrontos: Object.fromEntries(m.brawlers.map((b) => [b.nome, escolherConfrontos(efeitos(b.nome))])),
-      // Os confrontos com amostra de cada brawler da lista: o modo Draft soma contra os inimigos escolhidos.
-      tabela: Object.fromEntries(m.brawlers.map((b) => [b.nome, tabelaDeConfrontos(efeitos(b.nome))])),
+      // Os confrontos com amostra de todo brawler, não só dos da tier list: o modo Draft
+      // soma contra os inimigos escolhidos, e qualquer um pode ser escolhido. Sem o corte
+      // de amostra o arquivo dobrava pra quase nenhum ganho na chance (2026-10-20).
+      tabela: Object.fromEntries([...confrontos[i].keys()].map((nome) => [nome, tabelaDeConfrontos(efeitos(nome))])),
+      // A força de todo brawler, não só de quem tem partidas pra tier list. Sem ela, no
+      // Draft quem ficava de fora contava como mediano, e esses ganham 47%.
+      forca: Object.fromEntries([...bruto.forca].map(([nome, delta]) => [nome, r4(delta)])),
     };
   });
   return { geradoEm: new Date().toISOString(), desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, rank: RANK, mapas };

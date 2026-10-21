@@ -1040,8 +1040,7 @@ const PESO_CONFRONTO = 1.04;
 // confronto entra com a força do inimigo de volta, porque a tabela já a desconta.
 // Brawler fora do mapa e confronto sem número contam zero.
 function pesoNoDraft(m) {
-  const forca = new Map([...m.brawlers, ...(m.poucaAmostra ?? [])].map((b) => [b.nome, b.adj - m.media]));
-  const f = (n) => forca.get(n) ?? 0;
+  const f = (n) => m.forca[n] ?? 0;
   const contra = (x, e) => (m.tabela?.[x]?.[e] == null ? 0 : m.tabela[x][e] + f(e));
   return (x, inimigos) => PESO_FORCA * f(x) + PESO_CONFRONTO * inimigos.reduce((s, e) => s + contra(x, e) - contra(e, x), 0);
 }
@@ -1050,16 +1049,18 @@ function pesoNoDraft(m) {
 // de 2026-10-20 a força e o confronto somavam com o mesmo peso, e o 1º da lista podia
 // baixar a chance. O próprio time não entra: em 2026-10-17 a dupla quase não rendeu além
 // da força dos dois. pesou é o confronto de maior efeito, pro motivo ao lado do nome.
-// São 5 porque nem todo colega tem cada um.
+// São 5 porque nem todo colega tem cada um. Entra todo brawler com força, não só os da
+// tier list: em mapa novo ela tem dois ou três nomes.
 function recomendar(m, fora, inimigos, quantos = 5) {
   const peso = pesoNoDraft(m);
-  return m.brawlers
-    .map((b, i) => {
-      const contra = inimigos.map((e) => [e, m.tabela?.[b.nome]?.[e] ?? 0]);
+  const posicao = new Map(m.brawlers.map((b, i) => [b.nome, i + 1]));
+  return Object.keys(m.forca)
+    .filter((nome) => !fora.has(nome))
+    .map((nome) => {
+      const contra = inimigos.map((e) => [e, m.tabela?.[nome]?.[e] ?? 0]);
       const pesou = contra.reduce((a, c) => (Math.abs(c[1]) > Math.abs(a?.[1] ?? 0) ? c : a), null);
-      return { b, pos: i + 1, nota: peso(b.nome, inimigos), pesou };
+      return { nome, pos: posicao.get(nome), nota: peso(nome, inimigos), pesou };
     })
-    .filter((r) => !fora.has(r.b.nome))
     .sort((a, b) => b.nota - a.nota)
     .slice(0, quantos);
 }
@@ -1102,7 +1103,8 @@ function desenharDica(m) {
 function desenharDraft(m) {
   // Sempre aberto no ranqueado: no draft não sobra tempo pra um clique a mais.
   const secao = document.getElementById('draft');
-  secao.hidden = m.parte !== 'ranqueado' || !m.tabela;
+  // Dado gerado antes da força de todos (geração parcial, só do troféu) não tem como dar a conta.
+  secao.hidden = m.parte !== 'ranqueado' || !m.forca;
   if (secao.hidden) return;
   for (const b of document.querySelectorAll('[data-marcando]')) b.setAttribute('aria-pressed', String(b.dataset.marcando === partida.marcando));
   const fora = foraDoDraft();
@@ -1118,18 +1120,18 @@ function desenharDraft(m) {
     .map(([g, { titulo }]) => `<span class="${g}">${titulo}: ${partida[g].map((n) =>
       `<button class="desbloq" type="button" data-desmarcar="${g}" data-nome="${esc(n)}" aria-label="Desmarcar ${esc(n)}">${esc(n)}</button>`).join(', ')}</span>`)
     .join('') || 'Nada marcado ainda. Sem inimigo marcado, a lista é a dos mais fortes do mapa.';
-  const motivo = ({ pos, pesou }) => `${pos}º no mapa${pesou && pesou[1] ? ` · contra ${esc(pesou[0])} ${pp(pesou[1])}` : ''}`;
+  const motivo = ({ pos, pesou }) => `${pos ? `${pos}º no mapa` : 'poucas partidas no mapa'}${pesou && pesou[1] ? ` · contra ${esc(pesou[0])} ${pp(pesou[1])}` : ''}`;
   // A recomendação pode ir pra um colega, então quem a pessoa não tem no máximo só sai apagado.
   // O nome é botão, como os da grade: o recomendado nem sempre está lá em cima, e às
   // vezes a pessoa quer bloquear justo ele.
-  const nome = (b) => {
-    const apagado = temLista() && !meus.has(b.nome) ? ' nao-tenho' : '';
+  const nome = (n) => {
+    const apagado = temLista() && !meus.has(n) ? ' nao-tenho' : '';
     return cheio()
-      ? `<span class="${apagado}">${esc(b.nome)}</span>`
-      : `<button class="desbloq${apagado}" type="button" data-marcar="${esc(b.nome)}">${esc(b.nome)}</button>`;
+      ? `<span class="${apagado}">${esc(n)}</span>`
+      : `<button class="desbloq${apagado}" type="button" data-marcar="${esc(n)}">${esc(n)}</button>`;
   };
   document.getElementById('draftRecomenda').innerHTML = recomendar(m, fora, partida.eles)
-    .map((r) => `<li><b>${nome(r.b)}</b><span>${motivo(r)}</span></li>`).join('')
+    .map((r) => `<li><b>${nome(r.nome)}</b><span>${motivo(r)}</span></li>`).join('')
     || '<li class="vazio">Ninguém livre com partidas suficientes.</li>';
   desenharChance(m);
   desenharDica(m);
