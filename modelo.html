@@ -77,8 +77,10 @@ h3 { font-size: 1.05rem; }
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 [hidden] { display: none !important; }
 
-/* Cabeçalho: título, linha de informação e a troca Ranqueado / Troféu */
-.topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+/* Cabeçalho: título, linha de informação e a troca Ranqueado / Troféu.
+   Os controles ficam sempre na linha de baixo: lado a lado, eles pulavam de lugar
+   ao trocar de parte, porque a linha de informação muda de tamanho. */
+.topo { display: grid; gap: 12px; }
 .marca { display: grid; gap: 6px; min-width: 0; }
 .marca .sub span + span::before { content: "·"; margin: 0 8px; }
 .segmento { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 2px; }
