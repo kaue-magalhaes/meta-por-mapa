@@ -575,7 +575,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div id="guiaDraft" hidden>
           <h3>Draft</h3>
-          <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 melhores que sobraram: a força no mapa somada a quanto cada um ganha ou perde dos inimigos já escolhidos. Os brawlers do seu time não entram nessa conta, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela força no mapa e pelos confrontos dos dois lados. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto.</p>
+          <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto.</p>
         </div>
         <div>
           <h3>De onde vêm os dados</h3>
@@ -1029,35 +1029,47 @@ function acharNomes(texto, m, fora) {
   return [...livres.filter(comeca), ...livres.filter((n) => !comeca(n))];
 }
 
-// Nota de cada brawler livre: a força dele no mapa mais o efeito dele contra cada inimigo
-// já escolhido. Confronto fora da tabela conta zero. O próprio time não entra: em
-// 2026-10-17 a dupla quase não rendeu além da força dos dois. pesou é o confronto de
-// maior efeito, pro motivo ao lado do nome. São 5 porque nem todo colega tem cada um.
+// Pesos da regressão logística ajustada em 2026-10-20 com 33.221 partidas do Ranqueado
+// (Mítico a Mestre), que acertou 56,5% delas. A força pesa quase 4 vezes o confronto
+// porque o número de confronto tem mais ruído.
+const PESO_FORCA = 3.88;
+const PESO_CONFRONTO = 1.04;
+
+// Quanto um brawler soma na nota do time dele contra esses inimigos: a força no mapa e,
+// pra cada inimigo, a linha dele contra o inimigo menos a do inimigo contra ele. O
+// confronto entra com a força do inimigo de volta, porque a tabela já a desconta.
+// Brawler fora do mapa e confronto sem número contam zero.
+function pesoNoDraft(m) {
+  const forca = new Map([...m.brawlers, ...(m.poucaAmostra ?? [])].map((b) => [b.nome, b.adj - m.media]));
+  const f = (n) => forca.get(n) ?? 0;
+  const contra = (x, e) => (m.tabela?.[x]?.[e] == null ? 0 : m.tabela[x][e] + f(e));
+  return (x, inimigos) => PESO_FORCA * f(x) + PESO_CONFRONTO * inimigos.reduce((s, e) => s + contra(x, e) - contra(e, x), 0);
+}
+
+// Os brawlers livres que mais sobem a chance do nosso time, pela mesma conta dela. Antes
+// de 2026-10-20 a força e o confronto somavam com o mesmo peso, e o 1º da lista podia
+// baixar a chance. O próprio time não entra: em 2026-10-17 a dupla quase não rendeu além
+// da força dos dois. pesou é o confronto de maior efeito, pro motivo ao lado do nome.
+// São 5 porque nem todo colega tem cada um.
 function recomendar(m, fora, inimigos, quantos = 5) {
+  const peso = pesoNoDraft(m);
   return m.brawlers
     .map((b, i) => {
       const contra = inimigos.map((e) => [e, m.tabela?.[b.nome]?.[e] ?? 0]);
       const pesou = contra.reduce((a, c) => (Math.abs(c[1]) > Math.abs(a?.[1] ?? 0) ? c : a), null);
-      return { b, pos: i + 1, nota: b.adj - m.media + contra.reduce((s, c) => s + c[1], 0), pesou };
+      return { b, pos: i + 1, nota: peso(b.nome, inimigos), pesou };
     })
     .filter((r) => !fora.has(r.b.nome))
     .sort((a, b) => b.nota - a.nota)
     .slice(0, quantos);
 }
 
-// Chance de vitória do nosso time: regressão logística ajustada em 2026-10-20 com 33.221
-// partidas do Ranqueado (Mítico a Mestre), que acertou 56,5% delas. Os dois termos são a
-// diferença entre os times: a força no mapa somada e os confrontos de cada um contra cada
-// inimigo, pela linha de quem joga. O confronto entra com a força do inimigo de volta,
-// porque a tabela já a desconta. Brawler fora do mapa e confronto sem número contam zero.
+// Chance de vitória do nosso time, com o que estiver marcado. Os confrontos dos dois
+// lados já entram pelo peso dos nossos, então do lado deles fica só a força.
 function chanceDoTime(m, nos, eles) {
-  const forca = new Map([...m.brawlers, ...(m.poucaAmostra ?? [])].map((b) => [b.nome, b.adj - m.media]));
-  const f = (n) => forca.get(n) ?? 0;
-  const contra = (x, e) => (m.tabela?.[x]?.[e] == null ? 0 : m.tabela[x][e] + f(e));
-  const soma = (xs, conta) => xs.reduce((s, x) => s + conta(x), 0);
-  const dForca = soma(nos, f) - soma(eles, f);
-  const dConfrontos = soma(nos, (a) => soma(eles, (e) => contra(a, e))) - soma(eles, (e) => soma(nos, (a) => contra(e, a)));
-  return 1 / (1 + Math.exp(-(3.88 * dForca + 1.04 * dConfrontos)));
+  const peso = pesoNoDraft(m);
+  const nota = nos.reduce((s, a) => s + peso(a, eles), 0) - eles.reduce((s, e) => s + peso(e, []), 0);
+  return 1 / (1 + Math.exp(-nota));
 }
 
 // Porcentagem crua, sem selo de favorito: em 90% das partidas a chance ficou entre 37% e
