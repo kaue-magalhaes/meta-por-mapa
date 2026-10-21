@@ -1224,7 +1224,9 @@ function desenharMapa() {
     return html;
   }).join('');
 
-  const disponiveis = m.brawlers.filter((b) => !bloqueados.has(b.nome) && (!temLista() || meus.has(b.nome)));
+  // No ranqueado ninguém repete brawler: quem já foi marcado na partida não serve mais.
+  const marcados = ranqueado ? foraDoDraft() : new Set();
+  const disponiveis = m.brawlers.filter((b) => !marcados.has(b.nome) && (!temLista() || meus.has(b.nome)));
   document.getElementById('agora').innerHTML = disponiveis.slice(0, 5).map((b) =>
     `<li><b>${esc(b.nome)}${seloIncerto(b, m)}</b><span class="${b.adj >= m.media ? 'pos' : 'neg'}">${pp(b.adj - m.media)}</span></li>`).join('')
     || '<li class="vazio">Nenhum brawler seu com partidas suficientes neste mapa.</li>';
@@ -1235,10 +1237,11 @@ function desenharMapa() {
   // Inimigo provável é quem mais se escolhe aqui; as respostas são o "Perde para" dele.
   document.getElementById('blocoInimigo').hidden = !ranqueado || !m.confrontos;
   if (ranqueado && m.confrontos) {
-    const livre = (nome) => !bloqueados.has(nome);
+    const livre = (nome) => !marcados.has(nome);
     // Sem o selo MAX, que polui a linha: quem não está no máximo sai apagado, como na tier list.
     const resposta = ([nome]) => temLista() && !meus.has(nome) ? `<span class="nao-tenho">${esc(nome)}</span>` : esc(nome);
-    document.getElementById('inimigo').innerHTML = m.brawlers.filter((b) => livre(b.nome)).sort((a, b) => b.uso - a.uso).slice(0, 5).map((b) => {
+    // O inimigo que já foi escolhido continua: as respostas a ele são a dica.
+    document.getElementById('inimigo').innerHTML = m.brawlers.filter((b) => livre(b.nome) || partida.eles.includes(b.nome)).sort((a, b) => b.uso - a.uso).slice(0, 5).map((b) => {
       const r = (m.confrontos[b.nome]?.ruim ?? []).filter(([nome]) => livre(nome)).slice(0, 3);
       return `<li><b>${esc(b.nome)}</b><span>${r.map(resposta).join(', ') || '<span class="vazio">nada claro</span>'}</span></li>`;
     }).join('');
