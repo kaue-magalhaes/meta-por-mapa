@@ -428,6 +428,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
 .draft-marcados .nos { color: var(--good); }
 .draft-caixa { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 .draft-caixa input { flex: 1; min-width: 0; font: 1rem var(--font-body); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); }
+.draft-chance b { font-size: 1.15rem; }
 </style>
 
 </head>
@@ -487,6 +488,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </label>
         <p id="draftDica"></p>
         <p class="draft-marcados" id="draftMarcados"></p>
+        <p class="draft-chance" id="draftChance"></p>
         <h4>Pra nossa próxima escolha</h4>
         <ol class="picks ordenada" id="draftRecomenda"></ol>
         <p>Clique no brawler ou digite o nome e aperte Enter. Ele vai pro que estiver selecionado lá em cima. Backspace com a caixa vazia desfaz a última marcação, e clicar num nome marcado desmarca.</p>
@@ -573,7 +575,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div id="guiaDraft" hidden>
           <h3>Draft</h3>
-          <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e só tiram nomes da lista. A lista mostra os 5 melhores que sobraram: a força no mapa somada a quanto cada um ganha ou perde dos inimigos já escolhidos. Os brawlers do seu time não entram na conta, porque a dupla quase não rende além da força dos dois.</p>
+          <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 melhores que sobraram: a força no mapa somada a quanto cada um ganha ou perde dos inimigos já escolhidos. Os brawlers do seu time não entram nessa conta, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela força no mapa e pelos confrontos dos dois lados. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto.</p>
         </div>
         <div>
           <h3>De onde vêm os dados</h3>
@@ -996,8 +998,9 @@ function desenharDetalhe() {
 
 // ---------- Modo Draft (Mítico pra cima, escolha por turnos) ----------
 
-// A recomendação só precisa de quem o inimigo pegou. Bloqueios e o nosso time são
-// opcionais: só tiram nomes da lista. Cada time escolhe 3, e são até 6 bloqueios.
+// A recomendação só precisa de quem o inimigo pegou. Bloqueios só tiram nomes da lista,
+// e o nosso time tira nomes e dá a chance de vitória. Cada time escolhe 3, e são até 6
+// bloqueios.
 const GRUPOS = {
   eles: { titulo: 'Inimigos', max: 3 },
   nos: { titulo: 'Nosso time', max: 3 },
@@ -1042,6 +1045,34 @@ function recomendar(m, fora, inimigos, quantos = 5) {
     .slice(0, quantos);
 }
 
+// Chance de vitória do nosso time: regressão logística ajustada em 2026-10-20 com 33.221
+// partidas do Ranqueado (Mítico a Mestre), que acertou 56,5% delas. Os dois termos são a
+// diferença entre os times: a força no mapa somada e os confrontos de cada um contra cada
+// inimigo, pela linha de quem joga. O confronto entra com a força do inimigo de volta,
+// porque a tabela já a desconta. Brawler fora do mapa e confronto sem número contam zero.
+function chanceDoTime(m, nos, eles) {
+  const forca = new Map([...m.brawlers, ...(m.poucaAmostra ?? [])].map((b) => [b.nome, b.adj - m.media]));
+  const f = (n) => forca.get(n) ?? 0;
+  const contra = (x, e) => (m.tabela?.[x]?.[e] == null ? 0 : m.tabela[x][e] + f(e));
+  const soma = (xs, conta) => xs.reduce((s, x) => s + conta(x), 0);
+  const dForca = soma(nos, f) - soma(eles, f);
+  const dConfrontos = soma(nos, (a) => soma(eles, (e) => contra(a, e))) - soma(eles, (e) => soma(nos, (a) => contra(e, a)));
+  return 1 / (1 + Math.exp(-(3.88 * dForca + 1.04 * dConfrontos)));
+}
+
+// Porcentagem crua, sem selo de favorito: em 90% das partidas a chance ficou entre 37% e
+// 64%, e quem joga pesa tanto quanto o draft.
+function desenharChance(m) {
+  const { nos, eles } = partida;
+  const caixa = document.getElementById('draftChance');
+  if (!nos.length) {
+    caixa.textContent = 'Marque o nosso time pra ver a chance de vitória.';
+    return;
+  }
+  const com = nos.length === 3 && eles.length === 3 ? 'com os dois times completos' : `com ${nos.length} de 3 nossos e ${eles.length} de 3 deles`;
+  caixa.innerHTML = `Chance do nosso time: <b>${Math.round(100 * chanceDoTime(m, nos, eles))}%</b> (${com}). O draft muda poucos pontos, quem joga decide o resto.`;
+}
+
 const cheio = () => partida[partida.marcando].length >= GRUPOS[partida.marcando].max;
 
 function desenharDica(m) {
@@ -1081,6 +1112,7 @@ function desenharDraft(m) {
   document.getElementById('draftRecomenda').innerHTML = recomendar(m, fora, partida.eles)
     .map((r) => `<li><b>${nome(r.b)}</b><span>${motivo(r)}</span></li>`).join('')
     || '<li class="vazio">Ninguém livre com partidas suficientes.</li>';
+  desenharChance(m);
   desenharDica(m);
 }
 
