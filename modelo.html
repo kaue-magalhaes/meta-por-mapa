@@ -491,7 +491,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         <p class="draft-chance" id="draftChance"></p>
         <h4>Pra nossa próxima escolha</h4>
         <ol class="picks ordenada" id="draftRecomenda"></ol>
-        <p>Clique no brawler ou digite o nome e aperte Enter. Ele vai pro que estiver selecionado lá em cima. Backspace com a caixa vazia desfaz a última marcação, e clicar num nome marcado desmarca.</p>
+        <p>Clique no brawler ou digite o nome e aperte Enter. Ele vai pro que estiver selecionado lá em cima, inclusive o clique num recomendado. Backspace com a caixa vazia desfaz a última marcação, e clicar num nome marcado desmarca.</p>
       </section>
 
       <div class="grade">
@@ -1108,7 +1108,14 @@ function desenharDraft(m) {
     .join('') || 'Nada marcado ainda. Sem inimigo marcado, a lista é a dos mais fortes do mapa.';
   const motivo = ({ pos, pesou }) => `${pos}º no mapa${pesou && pesou[1] ? ` · contra ${esc(pesou[0])} ${pp(pesou[1])}` : ''}`;
   // A recomendação pode ir pra um colega, então quem a pessoa não tem no máximo só sai apagado.
-  const nome = (b) => (temLista() && !meus.has(b.nome) ? `<span class="nao-tenho">${esc(b.nome)}</span>` : esc(b.nome));
+  // O nome é botão, como os da grade: o recomendado nem sempre está lá em cima, e às
+  // vezes a pessoa quer bloquear justo ele.
+  const nome = (b) => {
+    const apagado = temLista() && !meus.has(b.nome) ? ' nao-tenho' : '';
+    return cheio()
+      ? `<span class="${apagado}">${esc(b.nome)}</span>`
+      : `<button class="desbloq${apagado}" type="button" data-marcar="${esc(b.nome)}">${esc(b.nome)}</button>`;
+  };
   document.getElementById('draftRecomenda').innerHTML = recomendar(m, fora, partida.eles)
     .map((r) => `<li><b>${nome(r.b)}</b><span>${motivo(r)}</span></li>`).join('')
     || '<li class="vazio">Ninguém livre com partidas suficientes.</li>';
