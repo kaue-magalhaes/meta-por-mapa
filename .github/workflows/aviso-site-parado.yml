@@ -1,0 +1,67 @@
+# Avisa quando o site para de se atualizar.
+#
+# O site é gerado no PC do Kauê, de hora em hora (deploy/publicar.sh). Este robô só
+# olha a data da última publicação na gh-pages: passou de 4 horas, abre uma issue;
+# voltou a publicar, fecha. Assim o aviso sai mesmo com o PC desligado.
+#
+# Quem abre a issue tem que ser o robô do GitHub, e não a conta do Kauê: o GitHub
+# não manda notificação para a pessoa sobre o que ela mesma fez.
+name: Aviso de site parado
+
+on:
+  schedule:
+    # A geração começa às :17 (com até 5 min de atraso) e leva poucos minutos.
+    - cron: '45 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency: aviso-site-parado
+
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      LIMITE_HORAS: 4
+    steps:
+      - name: Confere a idade da última publicação
+        run: |
+          ultima=$(gh api "repos/$GH_REPO/commits/gh-pages" --jq .commit.committer.date)
+          horas=$(( ($(date +%s) - $(date -d "$ultima" +%s)) / 3600 ))
+          quando=$(TZ=America/Sao_Paulo date -d "$ultima" '+%d/%m às %Hh%M')
+          aberta=$(gh issue list --label site-parado --state open --json number --jq '.[0].number // empty')
+          echo "última publicação: $quando (há $horas h); issue aberta: ${aberta:-nenhuma}"
+
+          if [ "$horas" -lt "$LIMITE_HORAS" ]; then
+            if [ -n "$aberta" ]; then
+              gh issue close "$aberta" --comment "Voltou: o site publicou de novo em $quando."
+            fi
+            exit 0
+          fi
+
+          cat > corpo.md <<EOF
+          O site não se atualiza desde **$quando**, há $horas horas. Ele continua no ar, mas com os dados desse dia, inclusive a lista de quem cada um tem no máximo.
+
+          O erro fica no log do PC:
+
+          \`\`\`
+          journalctl --user -u meta-por-mapa -n 50
+          \`\`\`
+
+          Se o PC estiver desligado, é só isso: o timer roda assim que ele ligar.
+
+          Esta issue se fecha sozinha quando o site publicar de novo.
+          EOF
+
+          if [ -n "$aberta" ]; then
+            # Atualizar o texto não gera notificação nova: o aviso chega uma vez só.
+            gh issue edit "$aberta" --body-file corpo.md
+          else
+            gh label create site-parado --color B60205 --description "O site parou de se atualizar" --force
+            gh issue create --title "Site parado desde $quando" --body-file corpo.md \
+              --label site-parado --assignee "${{ github.repository_owner }}"
+          fi
