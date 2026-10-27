@@ -19,6 +19,14 @@ Um timer do systemd (`deploy/meta-por-mapa.timer`) roda isso a cada hora.
 A publicação roda numa máquina de casa, e não no GitHub Actions: o Brawl Time Ninja
 fica atrás do Cloudflare, que barra os servidores do GitHub.
 
+Os membros do clube e o que cada um tem no máximo vêm da API oficial da Supercell.
+A chave, criada em developer.brawlstars.com e presa ao IP de casa, fica em
+`~/.config/brawlstars-api/token`. Se o Brawl Time Ninja falhar, o site sai mesmo
+assim, com as estatísticas da última vez e o clube atualizado.
+
+Um robô do GitHub Actions (`.github/workflows/aviso-site-parado.yml`) confere a
+cada hora a data das estatísticas e abre uma issue quando ela passa de 4 horas.
+
 Para ligar o timer:
 
 ```bash

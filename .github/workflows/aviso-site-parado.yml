@@ -1,8 +1,10 @@
-# Avisa quando o site para de se atualizar.
+# Avisa quando as estatísticas do site param de se atualizar.
 #
-# O site é gerado no PC do Kauê, de hora em hora (deploy/publicar.sh). Este robô só
-# olha a data da última publicação na gh-pages: passou de 4 horas, abre uma issue;
-# voltou a publicar, fecha. Assim o aviso sai mesmo com o PC desligado.
+# O site é gerado no PC do Kauê, de hora em hora (deploy/publicar.sh). Com o BTN
+# fora, ele continua publicando, com as estatísticas da última vez e o clube novo.
+# Por isso este robô olha a data das estatísticas, no estado.json da gh-pages, e não
+# só a da publicação: passou de 4 horas, abre uma issue; voltou, fecha. Assim o aviso
+# sai também com o PC desligado.
 #
 # Quem abre a issue tem que ser o robô do GitHub, e não a conta do Kauê: o GitHub
 # não manda notificação para a pessoa sobre o que ela mesma fez.
@@ -28,23 +30,36 @@ jobs:
       GH_REPO: ${{ github.repository }}
       LIMITE_HORAS: 4
     steps:
-      - name: Confere a idade da última publicação
+      - name: Confere a idade das estatísticas
         run: |
-          ultima=$(gh api "repos/$GH_REPO/commits/gh-pages" --jq .commit.committer.date)
-          horas=$(( ($(date +%s) - $(date -d "$ultima" +%s)) / 3600 ))
-          quando=$(TZ=America/Sao_Paulo date -d "$ultima" '+%d/%m às %Hh%M')
+          quando() { TZ=America/Sao_Paulo date -d "$1" '+%d/%m às %Hh%M'; }
+          publicado=$(gh api "repos/$GH_REPO/commits/gh-pages" --jq .commit.committer.date)
+          # Publicação antiga, sem estado.json: vale a data do commit.
+          estatisticas=$(gh api "repos/$GH_REPO/contents/estado.json?ref=gh-pages" --jq .content 2>/dev/null \
+            | base64 -d 2>/dev/null | jq -r '.estatisticasEm // empty' || true)
+          estatisticas=${estatisticas:-$publicado}
+          horas=$(( ($(date +%s) - $(date -d "$estatisticas" +%s)) / 3600 ))
           aberta=$(gh issue list --label site-parado --state open --json number --jq '.[0].number // empty')
-          echo "última publicação: $quando (há $horas h); issue aberta: ${aberta:-nenhuma}"
+          echo "estatísticas: $(quando "$estatisticas") (há $horas h); publicado: $(quando "$publicado"); issue aberta: ${aberta:-nenhuma}"
 
           if [ "$horas" -lt "$LIMITE_HORAS" ]; then
             if [ -n "$aberta" ]; then
-              gh issue close "$aberta" --comment "Voltou: o site publicou de novo em $quando."
+              gh issue close "$aberta" --comment "Voltou: estatísticas atualizadas em $(quando "$estatisticas")."
             fi
             exit 0
           fi
 
+          # Publicação recente com estatística velha: o PC está bem, a coleta no BTN é que falha.
+          if [ $(( ($(date +%s) - $(date -d "$publicado" +%s)) / 3600 )) -lt "$LIMITE_HORAS" ]; then
+            causa="O PC continua publicando (última vez em $(quando "$publicado")), então o problema é a coleta no Brawl Time Ninja. O site segue no ar com as estatísticas antigas, e a lista de quem cada um tem no máximo continua atualizando."
+          else
+            causa="O PC também não publica desde $(quando "$publicado"). Se ele estiver desligado, é só isso: o timer roda assim que ele ligar. A lista de quem cada um tem no máximo também está parada."
+          fi
+
           cat > corpo.md <<EOF
-          O site não se atualiza desde **$quando**, há $horas horas. Ele continua no ar, mas com os dados desse dia, inclusive a lista de quem cada um tem no máximo.
+          As estatísticas do site não se atualizam desde **$(quando "$estatisticas")**, há $horas horas.
+
+          $causa
 
           O erro fica no log do PC:
 
@@ -52,16 +67,15 @@ jobs:
           journalctl --user -u meta-por-mapa -n 50
           \`\`\`
 
-          Se o PC estiver desligado, é só isso: o timer roda assim que ele ligar.
-
-          Esta issue se fecha sozinha quando o site publicar de novo.
+          Esta issue se fecha sozinha quando as estatísticas voltarem a atualizar.
           EOF
 
+          titulo="Estatísticas paradas desde $(quando "$estatisticas")"
           if [ -n "$aberta" ]; then
             # Atualizar o texto não gera notificação nova: o aviso chega uma vez só.
-            gh issue edit "$aberta" --body-file corpo.md
+            gh issue edit "$aberta" --title "$titulo" --body-file corpo.md
           else
             gh label create site-parado --color B60205 --description "O site parou de se atualizar" --force
-            gh issue create --title "Site parado desde $quando" --body-file corpo.md \
+            gh issue create --title "$titulo" --body-file corpo.md \
               --label site-parado --assignee "${{ github.repository_owner }}"
           fi

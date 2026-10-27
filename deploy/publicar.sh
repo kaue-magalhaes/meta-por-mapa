@@ -19,7 +19,7 @@ timeout 45m node atualizar.mjs
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-cp site/index.html "$tmp/"
+cp site/index.html site/estado.json "$tmp/"
 touch "$tmp/.nojekyll"
 git -C "$tmp" init -q -b gh-pages
 git -C "$tmp" add -A

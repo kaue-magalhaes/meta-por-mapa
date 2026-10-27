@@ -12,6 +12,8 @@
 // Sem argumento, vale o que está em config.json e as duas partes são geradas.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
 
 const dir = new URL('.', import.meta.url);
@@ -110,18 +112,31 @@ const filtro = (member, operator, ...values) => ({ member, operator, values: val
 const temporadaRecente = () => filtro('battle.season_dimension', 'gte', new Date(Date.now() - 28 * 864e5).toISOString().slice(0, 10));
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
 
+// Perfis e clube vêm da API oficial da Supercell, e não do BTN: assim o seletor
+// "Você" continua atualizando mesmo quando o BTN barra a coleta. A chave é criada em
+// developer.brawlstars.com e fica presa ao IP de casa; se o IP mudar, a API responde
+// 403 e é preciso criar outra.
+const CHAVE_OFICIAL = join(homedir(), '.config/brawlstars-api/token');
+
+async function oficial(caminho) {
+  const chave = (await readFile(CHAVE_OFICIAL, 'utf8')).trim();
+  const r = await fetch(`https://api.brawlstars.com/v1${caminho}`, { headers: { authorization: `Bearer ${chave}` } });
+  const d = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(`API oficial recusou ${caminho} (HTTP ${r.status}): ${d?.reason ?? ''} ${d?.message ?? ''}`.trim());
+  return d;
+}
+
+const comTag = (tag) => encodeURIComponent(`#${tag}`);
+
 // "No máximo" = nível 11 com pelo menos um gadget, uma star power e a hipercarga.
 // Engrenagem fica de fora porque é barata de comprar.
 async function perfil(tag) {
-  const url = `https://brawltime.ninja/api/player.byTag?input=${encodeURIComponent(JSON.stringify({ json: tag }))}`;
-  const p = (await (await fetch(url)).json()).result?.data?.json;
-  if (!p) throw new Error(`perfil #${tag} não encontrado`);
-  const brawlers = Array.isArray(p.brawlers) ? p.brawlers : Object.values(p.brawlers);
+  const p = await oficial(`/players/${comTag(tag)}`);
   const tem = (b, k) => (b[k] ?? []).length > 0;
   return {
     tag,
     nome: p.name,
-    maximizados: brawlers
+    maximizados: p.brawlers
       .filter((b) => b.power === 11 && tem(b, 'gadgets') && tem(b, 'starPowers') && tem(b, 'hyperCharges'))
       .map((b) => nomeBonito(b.name))
       .sort(),
@@ -129,11 +144,9 @@ async function perfil(tag) {
 }
 
 // Membros do clube com o que cada um tem no máximo. Um perfil por vez: são poucos,
-// e cada consulta faz o site buscar o perfil na API oficial.
+// e a API oficial limita a taxa de cada chave.
 async function clube(tag) {
-  const url = `https://brawltime.ninja/api/club.byTag?input=${encodeURIComponent(JSON.stringify({ json: tag }))}`;
-  const c = (await (await fetch(url)).json()).result?.data?.json;
-  if (!c) throw new Error(`clube #${tag} não encontrado`);
+  const c = await oficial(`/clubs/${comTag(tag)}`);
   const membros = [];
   for (const m of c.members) {
     const t = m.tag.replace(/^#/, '');
@@ -536,13 +549,21 @@ async function gerarTrofeu(tok, desde) {
 }
 
 async function main() {
-  const tok = await token();
-  const desde = await inicioDosBlocos(tok);
   // A parte que não foi pedida continua como estava. Arquivo do formato antigo não tem partes.
   const anterior = await readFile(new URL('dados.json', dir), 'utf8').then(JSON.parse).catch(() => null);
   const partes = { ...anterior?.partes };
-  if (PARTE !== 'trofeu') partes.ranqueado = await gerarRanqueado(tok, desde, anterior?.partes?.ranqueado);
-  if (PARTE !== 'ranqueado') partes.trofeu = await gerarTrofeu(tok, desde);
+  // Com o BTN fora, o site sai com as estatísticas da última vez e o clube atualizado.
+  // Cada parte guarda a data em que foi gerada; é ela que a página mostra e que o
+  // aviso de site parado confere (estado.json).
+  try {
+    const tok = await token();
+    const desde = await inicioDosBlocos(tok);
+    if (PARTE !== 'trofeu') partes.ranqueado = await gerarRanqueado(tok, desde, anterior?.partes?.ranqueado);
+    if (PARTE !== 'ranqueado') partes.trofeu = await gerarTrofeu(tok, desde);
+  } catch (e) {
+    if (!partes.ranqueado || !partes.trofeu) throw e;
+    console.warn(`estatísticas falharam, ficam as da última vez: ${e.message}`);
+  }
 
   // Clube que falha não derruba a geração: vale o da última vez.
   const doClube = CLUBE
@@ -564,6 +585,8 @@ async function main() {
   const modelo = await readFile(new URL('modelo.html', dir), 'utf8');
   await mkdir(new URL('site/', dir), { recursive: true });
   await writeFile(new URL('site/index.html', dir), modelo.replace('/*__DADOS__*/null', json));
+  const estatisticasEm = Object.values(partes).map((p) => p.geradoEm).sort()[0];
+  await writeFile(new URL('site/estado.json', dir), JSON.stringify({ publicadoEm: dados.geradoEm, estatisticasEm }));
   console.log(`ok: site/index.html gerado (${(json.length / 1e6).toFixed(2)} MB de dados, ${doClube?.membros.length ?? 0} perfis do clube)`);
 }
 
