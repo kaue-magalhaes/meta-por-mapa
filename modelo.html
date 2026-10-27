@@ -422,6 +422,10 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
 .draft-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .draft-topo #draftNova { margin-left: auto; }
 .desbloq { font: inherit; background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; }
+/* Tecla de atalho de cada grupo, como o "/" da busca; some no celular, que não tem teclado. */
+.draft-topo .segmento kbd { font: 500 0.72rem var(--font-body); opacity: 0.6; border: 1px solid currentColor; border-radius: 5px; padding: 0 5px; margin-left: 6px; }
+@media (hover: none) { .draft-topo .segmento kbd { display: none; } }
+.draft-legenda { margin: 0; color: var(--muted); font-size: 0.85rem; }
 .draft-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5em, 1fr)); gap: 6px; }
 .draft-grade button { font: 600 0.9rem var(--font-body); min-height: 40px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .draft-grade button:hover { border-color: var(--accent); }
@@ -477,12 +481,13 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         <div class="draft-topo">
           <h3>Draft</h3>
           <div class="segmento" role="group" aria-label="O que marcar">
-            <button type="button" data-marcando="eles" aria-pressed="true">Inimigo</button>
-            <button type="button" data-marcando="nos" aria-pressed="false">Nosso time</button>
-            <button type="button" data-marcando="bloqueios" aria-pressed="false">Bloqueio</button>
+            <button type="button" data-marcando="eles" aria-pressed="true" aria-keyshortcuts="1">Inimigo<kbd>1</kbd></button>
+            <button type="button" data-marcando="nos" aria-pressed="false" aria-keyshortcuts="2">Nosso time<kbd>2</kbd></button>
+            <button type="button" data-marcando="bloqueios" aria-pressed="false" aria-keyshortcuts="3">Bloqueio<kbd>3</kbd></button>
           </div>
           <button class="limpar" type="button" id="draftNova">Nova partida</button>
         </div>
+        <p class="draft-legenda">Os mais escolhidos neste mapa. Quem não estiver aqui, digite em "Outro".</p>
         <div class="draft-grade" id="draftGrade"></div>
         <label class="draft-caixa">
           <span>Outro</span>
@@ -493,7 +498,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         <p class="draft-chance" id="draftChance"></p>
         <h4>Pra nossa próxima escolha</h4>
         <ol class="picks ordenada" id="draftRecomenda"></ol>
-        <p>Clique no brawler ou digite o nome e aperte Enter. Ele vai pro que estiver selecionado lá em cima, inclusive o clique num recomendado. Backspace com a caixa vazia desfaz a última marcação, e clicar num nome marcado desmarca.</p>
+        <p>Clique no brawler ou digite o nome e aperte Enter. Ele vai pro que estiver selecionado lá em cima, inclusive o clique num recomendado. As teclas 1, 2 e 3 trocam entre Inimigo, Nosso time e Bloqueio, até com o cursor na caixa. Backspace com a caixa vazia desfaz a última marcação, e clicar num nome marcado desmarca.</p>
       </section>
 
       <div class="grade">
@@ -577,7 +582,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div id="guiaDraft" hidden>
           <h3>Draft</h3>
-          <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto.</p>
+          <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto.</p>
         </div>
         <div>
           <h3>De onde vêm os dados</h3>
@@ -1122,7 +1127,10 @@ function desenharDraft(m) {
     .map(([g, { titulo }]) => `<span class="${g}">${titulo}: ${partida[g].map((n) =>
       `<button class="desbloq" type="button" data-desmarcar="${g}" data-nome="${esc(n)}" aria-label="Desmarcar ${esc(n)}">${esc(n)}</button>`).join(', ')}</span>`)
     .join('') || 'Nada marcado ainda. Sem inimigo marcado, a lista é a dos mais fortes do mapa.';
-  const motivo = ({ pos, pesou }) => `${pos ? `${pos}º no mapa` : 'poucas partidas no mapa'}${pesou && pesou[1] ? ` · contra ${esc(pesou[0])} ${pp(pesou[1])}` : ''}`;
+  // Sem posição, o brawler tem partidas de menos pra entrar na tier list do mapa, e a
+  // força dele vem quase toda do modo. Até 27/10 o texto era "poucas partidas no mapa",
+  // que parecia o motivo da recomendação.
+  const motivo = ({ pos, pesou }) => `${pos ? `${pos}º no mapa` : 'pouco jogado aqui, vale a força no modo'}${pesou && pesou[1] ? ` · contra ${esc(pesou[0])} ${pp(pesou[1])}` : ''}`;
   // A recomendação pode ir pra um colega, então quem a pessoa não tem no máximo só sai apagado.
   // O nome é botão, como os da grade: o recomendado nem sempre está lá em cima, e às
   // vezes a pessoa quer bloquear justo ele.
@@ -1179,6 +1187,23 @@ caixaDraft.addEventListener('keydown', (e) => {
     desfazer();
   } else return;
   mudouPartida();
+});
+
+// O que marcar: pelo botão ou pelas teclas 1, 2 e 3, na ordem dos botões. Ficam lado a
+// lado no teclado (B, I e N ficavam longe), e funcionam com o cursor na caixa porque
+// nenhum nome de brawler tem esses números.
+function trocarGrupo(grupo) {
+  partida.marcando = grupo;
+  mudouPartida();
+  caixaDraft.focus();
+}
+const GRUPO_DA_TECLA = { 1: 'eles', 2: 'nos', 3: 'bloqueios' };
+document.addEventListener('keydown', (e) => {
+  const grupo = GRUPO_DA_TECLA[e.key];
+  if (!grupo || e.ctrlKey || e.altKey || e.metaKey || document.getElementById('draft').hidden) return;
+  if (e.target.closest('input, textarea') && e.target !== caixaDraft) return;
+  e.preventDefault();
+  trocarGrupo(grupo);
 });
 
 function desenharMapa() {
@@ -1354,11 +1379,7 @@ document.addEventListener('click', (e) => {
     return mudouPartida();
   }
   const marcando = e.target.closest('[data-marcando]');
-  if (marcando) {
-    partida.marcando = marcando.dataset.marcando;
-    mudouPartida();
-    return caixaDraft.focus();
-  }
+  if (marcando) return trocarGrupo(marcando.dataset.marcando);
   const bloq = e.target.closest('.bloq');
   if (bloq) {
     mudar('bloqueios', bloq.dataset.b, !partida.bloqueios.includes(bloq.dataset.b));
