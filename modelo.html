@@ -645,6 +645,8 @@ const MODOS = {
   airHockey: 'Brawl Hockey', brawlBall5V5: 'Brawl Ball 5v5', knockout5V5: 'Knockout 5v5',
   gemGrab5V5: 'Gem Grab 5v5', deathmatch: 'Wipeout', deathmatch5v5: 'Wipeout 5v5',
   basketBrawl: 'Basket Brawl', brawlArena: 'Brawl Arena', hunterSurvivor: 'Hide & Seek',
+  // Um contra um, cada jogador com três brawlers em sequência (Kauê, 02/11/2026).
+  tagTeam: 'Duels',
 };
 // Ordem fixa dos modos no seletor: o mesmo modo fica sempre no mesmo lugar.
 // Cada modo tem cor (aproximada da do jogo) e família.
@@ -652,13 +654,13 @@ const ORDEM = [
   'gemGrab', 'brawlBall', 'bounty', 'heist', 'knockout', 'hotZone', 'basketBrawl',
   'soloShowdown', 'duoShowdown', 'trioShowdown',
   'gemGrab5V5', 'brawlBall5V5', 'knockout5V5', 'deathmatch5v5',
-  'airHockey', 'brawlArena', 'hunterSurvivor', 'deathmatch',
+  'airHockey', 'brawlArena', 'hunterSurvivor', 'deathmatch', 'tagTeam',
 ];
 const COR = {
   gemGrab: '#a24bf2', brawlBall: '#4f78e6', bounty: '#14a9d9', heist: '#d14bc2', knockout: '#ef7d16', hotZone: '#e0364b',
   basketBrawl: '#e5672b', soloShowdown: '#54b72a', duoShowdown: '#3fa33a', trioShowdown: '#2f8f45',
   gemGrab5V5: '#a24bf2', brawlBall5V5: '#4f78e6', knockout5V5: '#ef7d16', deathmatch5v5: '#cf4545',
-  airHockey: '#22a99a', brawlArena: '#c39a1f', hunterSurvivor: '#7a5cd6', deathmatch: '#cf4545',
+  airHockey: '#22a99a', brawlArena: '#c39a1f', hunterSurvivor: '#7a5cd6', deathmatch: '#cf4545', tagTeam: '#d9468a',
 };
 const FAMILIA = {
   gemGrab: 'tres', brawlBall: 'tres', bounty: 'tres', heist: 'tres', knockout: 'tres', hotZone: 'tres', basketBrawl: 'tres',
