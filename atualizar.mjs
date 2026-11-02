@@ -19,6 +19,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
+import { atributosDaSemana } from './wiki.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -548,11 +549,18 @@ async function main() {
       })
     : null;
 
+  // Alcance, vida e recarga de todo brawler que aparece nos dados, pra leitura da
+  // partida no Draft. Vêm do wiki uma vez por semana; sem eles a tabela sai com traços.
+  const nomes = [...new Set(Object.values(partes).flatMap((p) =>
+    p.mapas.flatMap((m) => [...m.brawlers.map((b) => b.nome), ...Object.keys(m.forca ?? {})])))].sort();
+  const atributos = await atributosDaSemana(new URL('atributos.json', dir), nomes);
+
   const dados = {
     geradoEm: new Date().toISOString(),
     blocos: BLOCOS,
     minPartidas: MIN_PARTIDAS,
     clube: doClube,
+    atributos: atributos && { geradoEm: atributos.geradoEm, brawlers: atributos.brawlers },
     partes,
   };
   const json = JSON.stringify(dados);

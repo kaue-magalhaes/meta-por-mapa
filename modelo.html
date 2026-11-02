@@ -435,6 +435,16 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
 .draft-caixa { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 .draft-caixa input { flex: 1; min-width: 0; font: 1rem var(--font-body); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); }
 .draft-chance b { font-size: 1.15rem; }
+#draftLeitura { margin: 12px 0; }
+.leitura-rolagem { overflow-x: auto; }
+.leitura { width: 100%; border-collapse: collapse; font-size: 0.86rem; margin-top: 8px; }
+/* Nome e recarga quebram linha, pra tabela caber em 375 px; os números não. */
+.leitura th, .leitura td { padding: 3px 4px; text-align: right; }
+.leitura td:nth-child(2), .leitura td:nth-child(3), .leitura td:nth-child(4) { white-space: nowrap; }
+.leitura th:first-child, .leitura td:first-child { text-align: left; }
+.leitura th { color: var(--muted); font-weight: 500; }
+.leitura tr.eles td:first-child { color: var(--bad); }
+.leitura .perigo { display: block; font-size: 0.75rem; color: var(--bad); }
 </style>
 
 </head>
@@ -496,6 +506,12 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         <p id="draftDica"></p>
         <p class="draft-marcados" id="draftMarcados"></p>
         <p class="draft-chance" id="draftChance"></p>
+        <div id="draftLeitura" hidden>
+          <h4>Leitura da partida</h4>
+          <ul class="picks" id="leituraLinhas"></ul>
+          <div class="leitura-rolagem"><table class="leitura" id="leituraTabela"></table></div>
+          <p class="draft-legenda" id="leituraNota"></p>
+        </div>
         <h4>Pra nossa próxima escolha</h4>
         <ol class="picks ordenada" id="draftRecomenda"></ol>
         <p>Clique no brawler ou digite o nome e aperte Enter. Ele vai pro que estiver selecionado lá em cima, inclusive o clique num recomendado. As teclas 1, 2 e 3 trocam entre Inimigo, Nosso time e Bloqueio, até com o cursor na caixa. Backspace com a caixa vazia desfaz a última marcação, e clicar num nome marcado desmarca.</p>
@@ -582,7 +598,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div id="guiaDraft" hidden>
           <h3>Draft</h3>
-          <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto.</p>
+          <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. Com pelo menos um brawler de cada lado, a leitura da partida diz quem cada um do nosso time caça e evita, pelos mesmos confrontos, e compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.</p>
         </div>
         <div>
           <h3>De onde vêm os dados</h3>
@@ -1102,6 +1118,62 @@ function desenharChance(m) {
   caixa.innerHTML = `Chance do nosso time: <b>${Math.round(100 * chanceDoTime(m, nos, eles))}%</b> (${com}). O draft muda poucos pontos, quem joga decide o resto.`;
 }
 
+// Corte de 1,5 ponto pra caçar ou evitar: perto dos 10% de confrontos mais fortes
+// (1,9 ponto, medido em 2026-11-01). Abaixo disso a linha diz "nada claro".
+const CORTE_LEITURA = 0.015;
+
+// Confronto de x contra e na leitura da partida: a média das linhas que existem no
+// mapa, a de x contra e e a de e contra x com o sinal trocado, cada uma com a força do
+// adversário de volta, como no pesoNoDraft. A chance conta a linha que falta como zero;
+// aqui isso esconderia par forte que só tem número de um lado, como o Griff contra o
+// Mortis no Layer Cake. null quando nenhuma das duas existe.
+function confrontoLido(m, x, e) {
+  const f = (n) => m.forca[n] ?? 0;
+  const linha = (a, b) => (m.tabela?.[a]?.[b] == null ? null : m.tabela[a][b] + f(b));
+  const ida = linha(x, e);
+  const volta = linha(e, x);
+  const lados = [ida, volta == null ? null : -volta].filter((v) => v != null);
+  return lados.length ? lados.reduce((s, v) => s + v, 0) / lados.length : null;
+}
+
+// "caça Tick (+4,4) · evita Griff (−2,9)" pra um brawler nosso contra os inimigos marcados.
+function leituraDe(m, x, eles) {
+  const lidos = eles.map((e) => [e, confrontoLido(m, x, e)]).filter(([, v]) => v != null);
+  if (!lidos.length) return 'sem dado de confronto';
+  const caca = lidos.filter(([, v]) => v >= CORTE_LEITURA).sort((a, b) => b[1] - a[1])[0];
+  const evita = lidos.filter(([, v]) => v <= -CORTE_LEITURA).sort((a, b) => a[1] - b[1])[0];
+  const partes = [caca && `caça ${esc(caca[0])} (${pp(caca[1])})`, evita && `evita ${esc(evita[0])} (${pp(evita[1])})`].filter(Boolean);
+  return partes.join(' · ') || 'nada claro';
+}
+
+// Aparece com pelo menos um de cada lado. A tabela junta os seis com a posição no mapa
+// e os números do wiki; o maior perigo é o inimigo mais forte no mapa, e só aparece com
+// dois ou mais inimigos, senão seria sempre o único.
+function desenharLeitura(m) {
+  const { nos, eles } = partida;
+  const caixa = document.getElementById('draftLeitura');
+  caixa.hidden = !nos.length || !eles.length;
+  if (caixa.hidden) return;
+  document.getElementById('leituraLinhas').innerHTML = nos
+    .map((x) => `<li><b>${esc(x)}</b><span>${leituraDe(m, x, eles)}</span></li>`).join('');
+  const perigo = eles.length > 1 ? eles.reduce((a, b) => ((m.forca[b] ?? 0) > (m.forca[a] ?? 0) ? b : a)) : null;
+  const posicao = new Map(m.brawlers.map((b, i) => [b.nome, i + 1]));
+  const atributos = DADOS.atributos?.brawlers ?? {};
+  const num = (v) => (v == null ? '—' : String(v).replace('.', ','));
+  const linha = (n, lado) => {
+    const a = atributos[n] ?? {};
+    return `<tr class="${lado}"><td>${esc(n)}${n === perigo ? '<span class="perigo">maior perigo</span>' : ''}</td>`
+      + `<td>${posicao.has(n) ? `${posicao.get(n)}º` : '—'}</td><td>${num(a.alcance)}</td><td>${num(a.vida)}</td><td>${a.recarga ?? '—'}</td></tr>`;
+  };
+  document.getElementById('leituraTabela').innerHTML =
+    '<tr><th>Brawler</th><th>No mapa</th><th>Alcance</th><th>Vida</th><th>Recarga</th></tr>'
+    + nos.map((n) => linha(n, 'nos')).join('') + eles.map((n) => linha(n, 'eles')).join('');
+  const quando = DADOS.atributos && new Date(DADOS.atributos.geradoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  document.getElementById('leituraNota').textContent = quando
+    ? `Em vermelho, o outro time. Alcance em quadrados. Números do wiki do Brawl Stars de ${quando}; a vida é a do nível 1, e todos sobem na mesma proporção.`
+    : 'Em vermelho, o outro time. Sem os números do wiki nesta geração.';
+}
+
 const cheio = () => partida[partida.marcando].length >= GRUPOS[partida.marcando].max;
 
 function desenharDica(m) {
@@ -1153,6 +1225,7 @@ function desenharDraft(m) {
     .map((r) => `<li><b>${nome(r.nome)}</b><span>${motivo(r)}</span></li>`).join('')
     || '<li class="vazio">Ninguém livre com partidas suficientes.</li>';
   desenharChance(m);
+  desenharLeitura(m);
   desenharDica(m);
 }
 

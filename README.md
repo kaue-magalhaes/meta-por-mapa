@@ -29,6 +29,11 @@ A chave, criada em developer.brawlstars.com e presa ao IP de casa, fica em
 `~/.config/brawlstars-api/token`. Se o Brawl Time Ninja falhar, o site sai mesmo
 assim, com as estatísticas da última vez e o clube atualizado.
 
+Alcance, vida e recarga de cada brawler, usados na leitura da partida do Draft, vêm
+da ficha dele no [wiki do Brawl Stars](https://brawlstars.fandom.com) (`wiki.mjs`). A
+geração busca de novo uma vez por semana, ou quando aparece um brawler novo, e guarda
+em `atributos.json`. Se o wiki falhar, ficam os números da última vez.
+
 Um robô do GitHub Actions (`.github/workflows/aviso-site-parado.yml`) confere a
 cada hora a data das estatísticas e abre uma issue quando ela passa de 30 horas.
 
