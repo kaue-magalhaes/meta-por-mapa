@@ -108,6 +108,24 @@ export function somar(a, b, fator = 1) {
   return saida;
 }
 
+// O BTN soma as partidas em blocos de duas semanas, rotulados pelo dia em que o bloco
+// termina. Pro peso por idade, cada bloco vira uma linha por dia, com as partidas
+// divididas igualmente; o bloco em andamento divide só pelos dias que já passaram.
+// de e ate guardam o bloco de origem: o efeitoDosPatches não mede no bloco do patch.
+const DIAS_BLOCO = 14;
+const diaMais = (dia, n) => new Date(Date.parse(`${dia}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+
+export function diasDosBlocos(linhas, agora) {
+  const hoje = new Date(agora).toISOString().slice(0, 10);
+  const saida = [];
+  for (const r of linhas) {
+    const fim = r.season.slice(0, 10);
+    const dias = Array.from({ length: DIAS_BLOCO }, (_, i) => diaMais(fim, i - DIAS_BLOCO)).filter((d) => d <= hoje);
+    for (const day of dias) saida.push({ ...r, day, de: dias[0], ate: dias.at(-1), picks: Number(r.picks) / dias.length });
+  }
+  return saida;
+}
+
 const pesoDaIdade = (dia, agora, meiaVida, dias) => {
   const idade = Math.max(0, (agora - Date.parse(`${dia}T12:00:00Z`)) / 864e5);
   return idade > dias ? 0 : 0.5 ** (idade / meiaVida);
@@ -156,7 +174,8 @@ export function efeitoDosPatches(linhas, patches, agora, tabela = CHUTE_PATCH, m
     const b = lados.get(r.brawler);
     const dia = r.day.slice(0, 10);
     const w = pesoDaIdade(dia, agora, meiaVida, dias);
-    if (!b || !w || dia === ultimo.get(r.brawler).dia) continue;
+    const doPatch = ultimo.get(r.brawler)?.dia;
+    if (!b || !w || (doPatch >= (r.de ?? dia) && doPatch <= (r.ate ?? dia))) continue;
     const m = mediaDoDia.get(dia);
     const lado = dia < ultimo.get(r.brawler).dia ? b.antes : b.depois;
     const n = Number(r.picks) * w;
@@ -193,6 +212,21 @@ export function duplasDeTimes(times) {
         duplas[k].v += v;
       }
     }
+  }
+  return duplas;
+}
+
+// O mesmo, a partir da tabela de aliados do BTN ({ brawler, ally, picks, winRate }).
+// Cada dupla aparece duas vezes, uma do lado de cada um; as duas somam, como os times
+// somavam cada par uma vez por partida do jogador rastreado.
+export function duplasDeAliados(linhas) {
+  const duplas = {};
+  for (const r of linhas) {
+    const n = Number(r.picks);
+    const k = [nomeBonito(r.brawler), nomeBonito(r.ally)].sort().join('|');
+    duplas[k] ??= { n: 0, v: 0 };
+    duplas[k].n += n;
+    duplas[k].v += Number(r.winRate) * n;
   }
   return duplas;
 }

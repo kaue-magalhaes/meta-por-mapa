@@ -481,9 +481,9 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         <div class="draft-topo">
           <h3>Draft</h3>
           <div class="segmento" role="group" aria-label="O que marcar">
-            <button type="button" data-marcando="eles" aria-pressed="true" aria-keyshortcuts="1">Inimigo<kbd>1</kbd></button>
+            <button type="button" data-marcando="eles" aria-pressed="false" aria-keyshortcuts="1">Inimigo<kbd>1</kbd></button>
             <button type="button" data-marcando="nos" aria-pressed="false" aria-keyshortcuts="2">Nosso time<kbd>2</kbd></button>
-            <button type="button" data-marcando="bloqueios" aria-pressed="false" aria-keyshortcuts="3">Bloqueio<kbd>3</kbd></button>
+            <button type="button" data-marcando="bloqueios" aria-pressed="true" aria-keyshortcuts="3">Bloqueio<kbd>3</kbd></button>
           </div>
           <button class="limpar" type="button" id="draftNova">Nova partida</button>
         </div>
@@ -546,11 +546,11 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
       <section class="guia">
         <div>
           <h3>Counters</h3>
-          <p>Clique no nome de um brawler. "Perde para" lista quem mais ganha dele neste mapa: se o inimigo escolheu esse brawler, são boas respostas. A conta compara com a taxa normal dele, então mostra o efeito do confronto e não só a força do brawler. No ranqueado, confronto com poucas partidas aqui puxa pro mesmo confronto nos outros mapas do modo.</p>
+          <p>Clique no nome de um brawler. "Perde para" lista quem mais ganha dele neste mapa: se o inimigo escolheu esse brawler, são boas respostas. A conta compara com a taxa normal dele, então mostra o efeito do confronto e não só a força do brawler. No ranqueado, confronto com poucas partidas aqui puxa pro mesmo confronto nos outros mapas do modo. No troféu, os counters são do modo inteiro, porque a maioria dos mapas tem poucas partidas.</p>
         </div>
         <div>
           <h3>Duplas</h3>
-          <p>No ranqueado, a ordem vem da força dos dois na tier list mais o que a dupla rende junta além disso. Essa parte a mais é pequena e só aparece com muitas partidas, então a lista mostra mais dois brawlers fortes juntos do que combinações escondidas. O primeiro número é a vitória estimada; o "real" é o que a dupla fez no período.</p>
+          <p>No ranqueado, a ordem vem da força dos dois na tier list mais o que a dupla rende junta além disso. Essa parte a mais é pequena e só aparece com muitas partidas, então a lista mostra mais dois brawlers fortes juntos do que combinações escondidas. O primeiro número é a vitória estimada; o "real" é o que a dupla fez no período. No troféu, as duplas são do modo inteiro, como os counters.</p>
         </div>
         <div>
           <h3>Como a lista é ordenada</h3>
@@ -710,7 +710,8 @@ const guardar = {
 // pegou e quem o nosso time pegou. O cadeado da tier list e o modo Draft leem e gravam
 // só aqui. Fica guardada pra sobreviver a um F5 no meio do draft, e abrir outro mapa
 // começa outra partida. feitos guarda as marcações na ordem, pro Backspace desfazer.
-const partidaVazia = (mapa) => ({ mapa, marcando: 'eles', bloqueios: [], eles: [], nos: [], feitos: [] });
+// Começa no Bloqueio porque no jogo os bloqueios vêm antes das escolhas.
+const partidaVazia = (mapa) => ({ mapa, marcando: 'bloqueios', bloqueios: [], eles: [], nos: [], feitos: [] });
 let partida = guardar.ler('partida', null);
 // Partida guardada no formato antigo, com as 6 vezes em ordem, não serve mais.
 if (!partida?.eles) partida = partidaVazia(null);
@@ -733,6 +734,14 @@ const MEMBROS = DADOS.clube?.membros ?? [];
 let perfil = MEMBROS.find((p) => p.tag === guardar.ler('perfil', null)) ?? null;
 const meus = new Set();
 const temLista = () => meus.size > 0;
+
+// No ranqueado o jogo deixa alguns brawlers no máximo pra todo mundo até o fim da
+// temporada, mesmo pra quem não tem. Trocar a cada temporada (Kauê, 01/11/2026). Em
+// 01/11 o contador do jogo dizia 16 dias, então vale até o fim de 17/11.
+const MAX_NO_RANQUEADO = new Date() < new Date(2026, 10, 18) ? new Set(['Pearl', 'Edgar', 'Sirius']) : new Set();
+// Se a pessoa joga com o brawler no máximo neste mapa. A caixa "Tenho no máximo" e o
+// que fica guardado continuam valendo só o que é dela.
+const tenho = (nome) => meus.has(nome) || (atual?.parte === 'ranqueado' && MAX_NO_RANQUEADO.has(nome));
 
 function carregarMeus() {
   meus.clear();
@@ -793,7 +802,7 @@ function info() {
   // No ranqueado a tier list pesa as partidas pela idade; duplas e counters usam os blocos.
   const periodo = p.dias
     ? [`tier list das últimas ${p.dias / 7} semanas, as recentes valem mais`, `duplas e counters desde ${desdeTxt}`]
-    : [`partidas desde ${desdeTxt}`];
+    : [`partidas desde ${desdeTxt}`, 'duplas e counters do modo inteiro'];
   const partes = [
     filtro,
     ...periodo,
@@ -984,7 +993,7 @@ function desenharDetalhe() {
   const m = atual;
   const b = m.brawlers.find((x) => x.nome === selecionado);
   const caixa = document.getElementById('detalhe');
-  if (!b) { caixa.innerHTML = '<p>Clique no nome de um brawler pra ver os counters dele neste mapa.</p>'; return; }
+  if (!b) { caixa.innerHTML = `<p>Clique no nome de um brawler pra ver os counters dele neste ${m.parte === 'ranqueado' ? 'mapa' : 'modo'}.</p>`; return; }
   const topo = `
     <div class="detalhe-topo"><h3>${esc(b.nome)}</h3><span class="sub num">${pct(b.adj)} · ${pp(b.adj - m.media)}</span></div>
     <label class="alternar"><input type="checkbox" id="tenho" ${meus.has(b.nome) ? 'checked' : ''}> Tenho no máximo</label>`;
@@ -1135,7 +1144,7 @@ function desenharDraft(m) {
   // O nome é botão, como os da grade: o recomendado nem sempre está lá em cima, e às
   // vezes a pessoa quer bloquear justo ele.
   const nome = (n) => {
-    const apagado = temLista() && !meus.has(n) ? ' nao-tenho' : '';
+    const apagado = temLista() && !tenho(n) ? ' nao-tenho' : '';
     return cheio()
       ? `<span class="${apagado}">${esc(n)}</span>`
       : `<button class="desbloq${apagado}" type="button" data-marcar="${esc(n)}">${esc(n)}</button>`;
@@ -1213,7 +1222,8 @@ function desenharMapa() {
   const bloqueados = new Set(ranqueado ? partida.bloqueios : []);
   document.getElementById('nomeMapa').textContent = m.mapa;
   document.getElementById('statsMapa').textContent =
-    `${m.total.toLocaleString('pt-BR')} partidas · média de vitória ${pct(m.media)}` +
+    (m.partidas != null ? `${m.partidas.toLocaleString('pt-BR')} partidas` : `${m.total.toLocaleString('pt-BR')} escolhas de brawler`) +
+    ` · média de vitória ${pct(m.media)}` +
     // Mapa com poucas partidas: a lista vem quase toda da força de cada brawler no modo.
     (m.estimada ? ' · poucos dados: lista estimada pela força de cada brawler no modo' : '');
 
@@ -1221,7 +1231,7 @@ function desenharMapa() {
   const porTier = { S: [], A: [], B: [], C: [] };
   const esconder = temLista() && document.getElementById('soMeus').checked;
   for (const b of m.brawlers) {
-    if (esconder && !meus.has(b.nome)) continue;
+    if (esconder && !tenho(b.nome)) continue;
     porTier[tierDe(b.adj - m.media)].push(b);
   }
 
@@ -1234,12 +1244,12 @@ function desenharMapa() {
       const d = b.adj - m.media;
       const larg = Math.min(50, Math.abs(d) / escala * 50);
       const bloq = bloqueados.has(b.nome);
-      const classes = ['linha', bloq && 'bloqueado', temLista() && !meus.has(b.nome) && 'nao-tenho', b.nome === selecionado && 'selecionado'].filter(Boolean).join(' ');
+      const classes = ['linha', bloq && 'bloqueado', temLista() && !tenho(b.nome) && 'nao-tenho', b.nome === selecionado && 'selecionado'].filter(Boolean).join(' ');
       const ultima = ranqueado
         ? `<button class="bloq" type="button" data-b="${esc(b.nome)}" aria-pressed="${bloq}" aria-label="${bloq ? 'Desmarcar bloqueio de' : 'Marcar como bloqueado:'} ${esc(b.nome)}">${CADEADO}</button>`
         : `<span class="val num">${trof(b.trofeus)}${b.posicao != null ? `<small>${posicao(b.posicao)}</small>` : ''}</span>`;
       return `<div class="${classes}">
-        <span class="nome"><button type="button" data-ver="${esc(b.nome)}" title="Ver counters de ${esc(b.nome)}">${esc(b.nome)}</button>${meus.has(b.nome) ? '<span class="max">MAX</span>' : ''}${nicho(b) ? `<span class="nicho" title="${TEXTO_NICHO}">nicho</span>` : ''}${seloIncerto(b, m)}</span>
+        <span class="nome"><button type="button" data-ver="${esc(b.nome)}" title="Ver counters de ${esc(b.nome)}">${esc(b.nome)}</button>${tenho(b.nome) ? '<span class="max">MAX</span>' : ''}${nicho(b) ? `<span class="nicho" title="${TEXTO_NICHO}">nicho</span>` : ''}${seloIncerto(b, m)}</span>
         <span class="barra" title="${pp(d)} pontos vs. média do mapa"><i class="${d >= 0 ? 'pos' : 'neg'}" style="width:${larg}%"></i></span>
         <span class="val num">${pct(b.adj)}<small>${b.n ? `${pct(b.wr)} real` : 'sem partida'}</small></span>
         <span class="val num">${pct(b.uso)}<small>${b.n.toLocaleString('pt-BR')}</small></span>
@@ -1253,7 +1263,7 @@ function desenharMapa() {
 
   // No ranqueado ninguém repete brawler: quem já foi marcado na partida não serve mais.
   const marcados = ranqueado ? foraDoDraft() : new Set();
-  const disponiveis = m.brawlers.filter((b) => !marcados.has(b.nome) && (!temLista() || meus.has(b.nome)));
+  const disponiveis = m.brawlers.filter((b) => !marcados.has(b.nome) && (!temLista() || tenho(b.nome)));
   document.getElementById('agora').innerHTML = disponiveis.slice(0, 5).map((b) =>
     `<li><b>${esc(b.nome)}${seloIncerto(b, m)}</b><span class="${b.adj >= m.media ? 'pos' : 'neg'}">${pp(b.adj - m.media)}</span></li>`).join('')
     || '<li class="vazio">Nenhum brawler seu com partidas suficientes neste mapa.</li>';
@@ -1266,14 +1276,14 @@ function desenharMapa() {
   if (ranqueado && m.confrontos) {
     const livre = (nome) => !marcados.has(nome);
     // Sem o selo MAX, que polui a linha: quem não está no máximo sai apagado, como na tier list.
-    const resposta = ([nome]) => temLista() && !meus.has(nome) ? `<span class="nao-tenho">${esc(nome)}</span>` : esc(nome);
+    const resposta = ([nome]) => temLista() && !tenho(nome) ? `<span class="nao-tenho">${esc(nome)}</span>` : esc(nome);
     // O inimigo que já foi escolhido continua: as respostas a ele são a dica.
     document.getElementById('inimigo').innerHTML = m.brawlers.filter((b) => livre(b.nome) || partida.eles.includes(b.nome)).sort((a, b) => b.uso - a.uso).slice(0, 5).map((b) => {
       const r = (m.confrontos[b.nome]?.ruim ?? []).filter(([nome]) => livre(nome)).slice(0, 3);
       return `<li><b>${esc(b.nome)}</b><span>${r.map(resposta).join(', ') || '<span class="vazio">nada claro</span>'}</span></li>`;
     }).join('');
   }
-  const fortesFora = temLista() ? m.brawlers.filter((b) => !meus.has(b.nome) && forte(b, m)).slice(0, 4) : [];
+  const fortesFora = temLista() ? m.brawlers.filter((b) => !tenho(b.nome) && forte(b, m)).slice(0, 4) : [];
   document.getElementById('fora').innerHTML = fortesFora.length
     ? `Fortes aqui que você não tem no máximo: ${fortesFora.map((b) => `<b>${esc(b.nome)}</b>`).join(', ')}.`
     : '';
@@ -1312,7 +1322,7 @@ function desenharInvestir() {
   const conta = {};
   for (const m of ranqueado.mapas) {
     for (const b of m.brawlers) {
-      if (meus.has(b.nome) || !forte(b, m)) continue;
+      if (tenho(b.nome) || !forte(b, m)) continue;
       (conta[b.nome] ??= []).push(m.mapa);
     }
   }
@@ -1368,15 +1378,19 @@ document.addEventListener('click', (e) => {
     mudouPartida();
     return caixaDraft.focus();
   }
+  // O cursor volta pra caixa: o próximo nome pode não estar entre os botões, e até
+  // 01/11 era preciso clicar na caixa de novo no meio do draft.
   const marca = e.target.closest('[data-marcar]');
   if (marca) {
     marcar(marca.dataset.marcar);
-    return mudouPartida();
+    mudouPartida();
+    return caixaDraft.focus();
   }
   const desmarca = e.target.closest('[data-desmarcar]');
   if (desmarca) {
     mudar(desmarca.dataset.desmarcar, desmarca.dataset.nome, false);
-    return mudouPartida();
+    mudouPartida();
+    return caixaDraft.focus();
   }
   const marcando = e.target.closest('[data-marcando]');
   if (marcando) return trocarGrupo(marcando.dataset.marcando);

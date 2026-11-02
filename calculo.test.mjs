@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, duplasDeAliados } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -240,4 +240,64 @@ test('duplasPelaForca ordena pela soma das forças e puxa a sinergia pra zero', 
   // C|D: 0 + 10 / 2000.
   perto(lista[1].nota, 0.005);
   perto(lista[1].wr, 0.51);
+});
+
+const bloco = (brawler, fim, picks, winRate) => ({ brawler, season: `${fim}T00:00:00.000`, picks: String(picks), winRate: String(winRate) });
+
+test('diasDosBlocos divide o bloco pelos 14 dias antes do fim', () => {
+  const agora = Date.parse('2026-10-27T12:00:00Z');
+  const d = diasDosBlocos([bloco('COLT', '2026-10-19', 1400, 0.6)], agora);
+  assert.equal(d.length, 14);
+  assert.deepEqual([d[0].day, d.at(-1).day], ['2026-10-05', '2026-10-18']);
+  perto(d[0].picks, 100);
+  assert.equal(d[0].winRate, '0.6');
+  assert.deepEqual([d[0].de, d[0].ate], ['2026-10-05', '2026-10-18']);
+});
+
+test('diasDosBlocos divide o bloco em andamento só pelos dias que já passaram', () => {
+  const agora = Date.parse('2026-10-27T12:00:00Z');
+  const d = diasDosBlocos([bloco('COLT', '2026-11-02', 900, 0.5)], agora);
+  // O bloco vai de 19/10 a 01/11; até hoje (27/10) são 9 dias.
+  assert.equal(d.length, 9);
+  perto(d[0].picks, 100);
+  assert.deepEqual([d[0].de, d[0].ate], ['2026-10-19', '2026-10-27']);
+});
+
+test('diasDosBlocos com pesarPorIdade desloca só a parte do bloco de antes do patch', () => {
+  const agora = Date.parse('2026-10-27T12:00:00Z');
+  const linhas = diasDosBlocos([bloco('COLT', '2026-10-19', 1400, 0.6)], agora);
+  const r = pesarPorIdade(linhas, agora, new Map([['COLT', { dia: '2026-10-12', efeito: -0.1 }]]));
+  // Dias 5 a 11 andam -0,1, o dia 12 sai, dias 13 a 18 ficam.
+  const w = (dia) => 0.5 ** ((agora - Date.parse(`${dia}T12:00:00Z`)) / 864e5 / 14);
+  const dias = linhas.map((l) => l.day).filter((d) => d !== '2026-10-12');
+  const antes = dias.filter((d) => d < '2026-10-12').reduce((s, d) => s + w(d), 0);
+  const total = dias.reduce((s, d) => s + w(d), 0);
+  perto(r[0].picks, 100 * total);
+  perto(r[0].winRate, 0.6 - (0.1 * antes) / total);
+});
+
+test('efeitoDosPatches não mede no bloco que mistura antes e depois do patch', () => {
+  const agora = Date.parse('2026-10-27T12:00:00Z');
+  const linhas = diasDosBlocos([
+    bloco('COLT', '2026-10-05', 1400, 0.6), bloco('BEA', '2026-10-05', 1400, 0.4),
+    bloco('COLT', '2026-10-19', 1400, 0.9), bloco('BEA', '2026-10-19', 1400, 0.1),
+    bloco('COLT', '2026-11-02', 900, 0.54), bloco('BEA', '2026-11-02', 900, 0.46),
+  ], agora);
+  const patches = [{ data: '2026-10-12', mudancas: [{ brawler: 'COLT', direcao: 'nerf', tamanho: 'pequena' }] }];
+  const e = efeitoDosPatches(linhas, patches, agora, { nerf: { pequena: -0.02 } });
+  // Sem o bloco do meio, Colt fica 10 pontos acima antes e 4 depois.
+  const w = (dia) => 0.5 ** ((agora - Date.parse(`${dia}T12:00:00Z`)) / 864e5 / 14);
+  const soma = (fim, n) => diasDosBlocos([bloco('X', fim, n, 0)], agora).reduce((s, l) => s + l.picks * w(l.day), 0);
+  const velho = 0.1 * soma('2026-10-05', 1400);
+  const novo = soma('2026-11-02', 900);
+  perto(e.get('COLT').efeito, (velho * -0.02 + novo * (0.04 - 0.1)) / (velho + novo));
+});
+
+test('duplasDeAliados junta os dois lados da dupla, como duplasDeTimes', () => {
+  const d = duplasDeAliados([
+    { brawler: 'COLT', ally: 'BEA', picks: '10', winRate: '0.6' },
+    { brawler: 'BEA', ally: 'COLT', picks: '30', winRate: '0.4' },
+    { brawler: 'EL PRIMO', ally: 'COLT', picks: '5', winRate: '1' },
+  ]);
+  assert.deepEqual(d, { 'Bea|Colt': { n: 40, v: 18 }, 'Colt|El Primo': { n: 5, v: 5 } });
 });

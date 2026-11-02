@@ -3,8 +3,12 @@
 // hora, com os mapas da rotação marcados. Os perfis do clube vão junto, pra cada
 // membro escolher o próprio nome na página e ver quem tem no máximo.
 //
+// Roda de hora em hora, mas as estatísticas do BTN só são coletadas uma vez por dia
+// (pedido do dono do site). Nas outras rodadas mudam só a rotação e o clube, que vêm
+// da API oficial.
+//
 // Uso: node atualizar.mjs [--parte ranqueado|trofeu] [--rank 16] [--blocos 2] [--clube 290J9JL8] [--limite N]
-//   --parte   gera só uma parte; a outra continua como estava no dados.json
+//   --parte   coleta essa parte agora, mesmo com a coleta do dia feita; a outra fica como está
 //   --rank    faixa mínima do ranqueado (10 = Diamante I, 13 = Mítico I, 16 = Lendário I, 19 = Mestre I)
 //   --blocos  quantos blocos de duas semanas juntar (o site agrupa os dados assim)
 //   --clube   tag do clube cujos membros aparecem no seletor "Você"
@@ -14,7 +18,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -40,76 +44,75 @@ const MIN_PARTIDAS_DUPLA = 200;
 const MIN_PARTIDAS_ESTIMADA = 1000;
 // Faixa de troféus do brawler, em centenas: 10 = 1.000 troféus ou mais.
 const FAIXA_TROFEU = 10;
-// Mapa de troféu entra com pelo menos isso de partidas nos últimos DIAS_MAPA dias,
-// contando só os dias em que ele valeu troféu. Corta mapa que saiu do jogo, evento
-// que durou um fim de semana e mapa que só passou no Jogo Livre.
+// Mapa de troféu entra com pelo menos isso de partidas nos blocos que terminam nos
+// últimos DIAS_MAPA dias. Corta mapa que saiu do jogo e evento que durou um fim de
+// semana. A tabela somada não separa os dias em que o mapa só passou no Jogo Livre.
 const MIN_PARTIDAS_MAPA = 3000;
 const DIAS_MAPA = 14;
-// Rotação: entre os mapas que valeram troféu nos últimos MINUTOS_ROTACAO, em cada modo
-// conta o que tem a partida mais recente, e também os que tiveram partida até
-// FOLGA_ROTACAO minutos antes dele. Assim modo com pouca gente rastreada ainda é
-// marcado, e o mapa que acabou de sair fica de fora.
-const MINUTOS_ROTACAO = 60;
-const FOLGA_ROTACAO = 20;
-// Mapas consultados ao mesmo tempo (cada um faz até três consultas). Com 3, o
-// cache do site estourou a memória no meio da geração completa.
-const PARALELO = 2;
+// As estatísticas são coletadas de novo quando a coleta anterior passa disso. Com 24,
+// o atraso do timer empurraria a coleta uma hora por dia.
+const HORAS_ENTRE_COLETAS = 23;
 
-// No ranqueado, a vitória de cada brawler pesa as partidas pela idade (pesarPorIdade).
-// Duplas e counters continuam com os blocos juntos. O gerarRanqueado acrescenta o
-// efeito dos patches da lista do config.json.
-const RANQUEADO = { id: 'ranqueado', powerplay: '1', faixa: RANK, porIdade: true };
-// A liga logo abaixo (Mítico, com o rank padrão), usada só como fundo da cascata.
-const FUNDO = { ...RANQUEADO, faixa: RANK - 3, ate: RANK };
-const TROFEU = { id: 'trofeu', powerplay: '0', faixa: FAIXA_TROFEU };
+// Desde 21/10/2026 o BTN barra quem não tem token; o nosso veio em 27/10, por DM ao
+// schneefux, dono do site, no Discord dele. As regras dele: User-Agent com o nome do app e
+// um contato, poucos pedidos a cada poucos minutos e só as tabelas já somadas, que são
+// rápidas e vêm em blocos de duas semanas. A tabela de partidas, usada até 21/10, é
+// lenta. Uma coleta faz uns 55 pedidos, um a cada INTERVALO, e roda uma vez por dia.
+const API_BTN = 'https://brawltime.ninja/api';
+const TOKEN_BTN = join(homedir(), '.config/brawltime-ninja/token');
+const AGENTE = 'meta-por-mapa (https://kaue-magalhaes.github.io/meta-por-mapa/; kauedemagalhaes27@gmail.com)';
+const INTERVALO = 20_000;
+// Máximo de linhas numa resposta; acima disso o BTN corta as de menos partidas.
+const LIMITE_LINHAS = 50000;
 
-const CUBE = 'https://cube.brawltime.ninja/cubejs-api/v1/load';
+const esperar = (ms) => new Promise((ok) => setTimeout(ok, Math.max(0, ms)));
+let tokenBtn;
+let ultimoPedido = 0;
+let pedidosBtn = 0;
 
-async function token() {
-  const r = await fetch('https://brawltime.ninja/api/auth.getToken', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: '{}',
+// Pedido tRPC: a entrada vai em ?input= dentro de { json }, e a resposta vem em
+// result.data.json. Os pedidos saem um por vez, nunca em paralelo.
+async function btn(procedimento, entrada) {
+  tokenBtn ??= (await readFile(TOKEN_BTN, 'utf8')).trim();
+  const url = `${API_BTN}/${procedimento}` + (entrada ? `?input=${encodeURIComponent(JSON.stringify({ json: entrada }))}` : '');
+  for (let tentativa = 1; ; tentativa++) {
+    await esperar(ultimoPedido + INTERVALO - Date.now());
+    ultimoPedido = Date.now();
+    pedidosBtn++;
+    const r = await fetch(url, { headers: { 'User-Agent': AGENTE, Authorization: `Bearer ${tokenBtn}` } });
+    const texto = await r.text();
+    // Quando o site barra o acesso (proteção contra robôs), a resposta é uma página HTML.
+    if (texto.startsWith('<')) {
+      throw new Error(`o BTN barrou ${procedimento} (HTTP ${r.status}): ${texto.slice(0, 120).replace(/\s+/g, ' ')}`);
+    }
+    const j = JSON.parse(texto);
+    if (r.ok) return j.result.data.json;
+    // Site ocupado ou fora do ar: tenta de novo, esperando um minuto a mais por vez.
+    if ((r.status === 429 || r.status >= 500) && tentativa < 3) {
+      await esperar(60_000 * tentativa);
+      continue;
+    }
+    throw new Error(`${procedimento}: HTTP ${r.status} ${j.error?.json?.message ?? ''}`.trim());
+  }
+}
+
+// Uma linha por combinação das dimensões, com as medidas junto:
+// { brawler, map, season, picks, winRate }. fatias são os filtros; season filtra os
+// blocos que terminam nesse dia ou depois.
+async function consultaCortavel(cubo, dimensoes, medidas, fatias, ordem = 'picks') {
+  const { data } = await btn('klicker.query', {
+    query: { cubeId: cubo, dimensionsIds: dimensoes, metricsIds: medidas, slices: fatias, sortId: ordem, limit: LIMITE_LINHAS },
   });
-  const texto = await r.text();
-  // Quando o site barra o acesso (proteção contra robôs), a resposta é uma página HTML.
-  if (!r.ok || texto.startsWith('<')) {
-    throw new Error(`o site recusou o pedido de token (HTTP ${r.status}, ${r.headers.get('server') ?? '?'}): ${texto.slice(0, 120).replace(/\s+/g, ' ')}`);
-  }
-  return JSON.parse(texto).result.data.json.token;
+  return data.map((linha) => Object.assign({}, ...Object.values(linha.dimensionsRaw), linha.metricsRaw));
 }
 
-async function consulta(tok, query) {
-  const url = `${CUBE}?queryType=multi&query=${encodeURIComponent(JSON.stringify({ ...query, responseFormat: 'compact' }))}`;
-  // A consulta de mapas por dia leva uns 15 segundos; 30 esperas dão 1 minuto.
-  let esperas = 0;
-  let tentativa = 0;
-  while (esperas < 30 && tentativa < 5) {
-    const r = await fetch(url, { headers: { Authorization: tok } });
-    const j = await r.json();
-    // O cube responde "Continue wait" enquanto a consulta ainda está rodando.
-    if (j.error === 'Continue wait') {
-      esperas++;
-      await new Promise((ok) => setTimeout(ok, 2000));
-      continue;
-    }
-    // Com carga alta o cache do site estoura a memória; esperar costuma resolver.
-    if (/maxmemory/.test(j.error ?? '')) {
-      await new Promise((ok) => setTimeout(ok, 10000 * ++tentativa));
-      continue;
-    }
-    if (j.error) throw new Error(j.error);
-    const d = j.results[0].data;
-    const nomes = d.members.map((m) => m.replace(/^\w+\.|_measure|_dimension/g, ''));
-    return d.dataset.map((linha) => Object.fromEntries(nomes.map((n, i) => [n, linha[i]])));
-  }
-  throw new Error('o site demorou demais pra responder');
+async function consulta(...args) {
+  const linhas = await consultaCortavel(...args);
+  if (linhas.length >= LIMITE_LINHAS) throw new Error(`${args[0]}: a consulta bateu o limite de ${LIMITE_LINHAS} linhas`);
+  return linhas;
 }
 
-const filtro = (member, operator, ...values) => ({ member, operator, values: values.map(String) });
-// Desde 20/10 o site recusa consulta de partidas sem temporada. Nas consultas das
-// últimas horas, a temporada só precisa cobrir o bloco atual de duas semanas.
-const temporadaRecente = () => filtro('battle.season_dimension', 'gte', new Date(Date.now() - 28 * 864e5).toISOString().slice(0, 10));
+const diasAtras = (dias) => new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10);
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
 
 // Perfis e clube vêm da API oficial da Supercell, e não do BTN: assim o seletor
@@ -161,108 +164,70 @@ async function clube(tag) {
   return { tag, nome: c.name, membros };
 }
 
-// Roda fn em cada item, no máximo `limite` ao mesmo tempo, mantendo a ordem.
-async function emLotes(itens, limite, fn) {
-  const saida = new Array(itens.length);
-  let proximo = 0;
-  async function trabalhador() {
-    while (proximo < itens.length) {
-      const i = proximo++;
-      saida[i] = await fn(itens[i]);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limite, itens.length) }, trabalhador));
-  return saida;
+// Mapas da rotação do troféu agora, como 'modo|mapa'. Vem da API oficial, que não
+// gasta pedido do BTN e por isso é consultada de hora em hora.
+async function rotacaoOficial() {
+  const eventos = await oficial('/events/rotation');
+  return new Set(eventos.map((e) => `${e.event.mode}|${e.event.map}`));
 }
 
 // O site agrupa as partidas em blocos de duas semanas; devolve o rótulo do mais antigo usado.
-async function inicioDosBlocos(tok) {
-  const blocos = (
-    await consulta(tok, {
-      dimensions: ['map.season_dimension'],
-      filters: [filtro('map.season_dimension', 'gte', new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10))],
-      order: { 'map.season_dimension': 'desc' },
-    })
-  ).map((r) => r.season.slice(0, 10));
-  return blocos[Math.min(BLOCOS, blocos.length) - 1];
-}
-
-const filtrosBase = (parte, desde) => [
-  filtro('battle.season_dimension', 'gte', desde),
-  filtro('battle.powerplay_dimension', 'equals', parte.powerplay),
-  filtro('battle.trophyRange_dimension', 'gte', parte.faixa),
-  ...(parte.ate ? [filtro('battle.trophyRange_dimension', 'lt', parte.ate)] : []),
-];
-
-// Partidas e vitória de cada brawler, com os filtros da parte e os de `filtros`.
-// Com peso por idade, a consulta vem dia a dia dos últimos DIAS_PERIODO dias. O site
-// rotula o bloco pela data do fim, e a folga de um bloco a mais garante que o bloco
-// do dia mais velho venha inteiro; o corte exato fica com pesarPorIdade.
-async function brawlersDa(tok, parte, desde, filtros, medidas = []) {
-  if (!parte.porIdade) {
-    return consulta(tok, {
-      measures: ['battle.picks_measure', 'battle.winRate_measure', ...medidas],
-      dimensions: ['battle.brawler_dimension'],
-      filters: [...filtrosBase(parte, desde), ...filtros],
-      limit: 50000,
-    });
-  }
-  if (medidas.length) throw new Error('o peso por idade só junta partidas e vitória');
-  return pesarPorIdade(await diasDa(tok, parte, filtros), Date.now(), parte.patches);
-}
-
-// Partidas e vitória de cada brawler, dia a dia, sem peso.
-function diasDa(tok, parte, filtros) {
-  const inicio = new Date(Date.now() - (DIAS_PERIODO + 14) * 864e5).toISOString().slice(0, 10);
-  return consulta(tok, {
-    measures: ['battle.picks_measure', 'battle.winRate_measure'],
-    dimensions: ['battle.brawler_dimension', 'battle.day_dimension'],
-    filters: [...filtrosBase(parte, inicio), ...filtros],
-    limit: 50000,
-  });
+async function inicioDosBlocos() {
+  const blocos = (await consulta('map', ['season'], ['picks'], { season: [diasAtras(90)] })).map((r) => r.season.slice(0, 10));
+  const recentes = [...new Set(blocos)].sort().reverse();
+  return recentes[Math.min(BLOCOS, recentes.length) - 1];
 }
 
 const porBrawler = (linhas) => new Map(linhas.map((r) => [nomeBonito(r.brawler), { n: Number(r.picks), wr: Number(r.winRate) }]));
+const comVitorias = (m) => new Map([...m].map(([nome, { n, wr }]) => [nome, { n, v: n * wr }]));
+const comTaxa = (m) => new Map([...m].map(([nome, { n, v }]) => [nome, { n, wr: n ? v / n : 0 }]));
 
-// Vitória de cada brawler no modo inteiro, com os filtros da parte. Base dos especialistas.
-// Sem modo, é a parte inteira.
-async function porModo(tok, parte, desde, modo) {
-  return porBrawler(await brawlersDa(tok, parte, desde, modo ? [filtro('battle.mode_dimension', 'equals', modo)] : []));
+// Partidas e vitórias somadas por brawler, de linhas com qualquer outra dimensão.
+function somarPorBrawler(linhas) {
+  const soma = new Map();
+  for (const r of linhas) {
+    const nome = nomeBonito(r.brawler);
+    const x = soma.get(nome) ?? { n: 0, v: 0 };
+    soma.set(nome, { n: x.n + Number(r.picks), v: x.v + Number(r.picks) * Number(r.winRate) });
+  }
+  return soma;
 }
 
-const comVitorias = (m) => new Map([...m].map(([nome, { n, wr }]) => [nome, { n, v: n * wr }]));
+// Duplas (brawlerAllies, outro = 'ally') ou confrontos (brawlerEnemies, outro = 'enemy')
+// nos mapas de um modo. As duas tabelas não separam ranqueado de partida normal; na
+// faixa usada, a mistura só acontece em mapa que está nas duas listas. Se o modo
+// inteiro passar do limite de linhas, pede mapa por mapa.
+// push(...linhas) estoura a pilha acima de ~120 mil linhas, e o troféu passa disso.
+function juntar(destino, linhas) {
+  for (const r of linhas) destino.push(r);
+}
 
-// extras: { medidas: medidas a mais na consulta de brawlers, semConfrontos, margem, geral: Map do porModo,
+async function pares(cubo, outro, mapas, fatias) {
+  const dimensoes = ['brawler', outro, 'map'];
+  const linhas = await consultaCortavel(cubo, dimensoes, ['picks', 'winRate'], { ...fatias, map: mapas });
+  if (linhas.length < LIMITE_LINHAS) return linhas;
+  const porMapa = [];
+  for (const mapa of mapas) juntar(porMapa, await consulta(cubo, dimensoes, ['picks', 'winRate'], { ...fatias, map: [mapa] }));
+  return porMapa;
+}
+
+// Na tabela por mapa do BTN, cada partida conta uma vez para cada brawler do time do
+// jogador rastreado (confirmado pelo schneefux em 30/10). As partidas de verdade são o
+// total dividido pelo tamanho do time. Modo fora desta lista mostra escolhas, e não
+// partidas, para não arriscar um número errado.
+const JOGADORES_POR_TIME = {
+  gemGrab: 3, brawlBall: 3, bounty: 3, heist: 3, knockout: 3, hotZone: 3, basketBrawl: 3, deathmatch: 3,
+  soloShowdown: 1, duoShowdown: 2, trioShowdown: 3,
+  gemGrab5V5: 5, brawlBall5V5: 5, knockout5V5: 5, deathmatch5v5: 5,
+};
+
+// dados: as linhas deste mapa. brawlers { brawler, picks, winRate, trophyChange?, rank? },
+//   aliados { brawler, ally, picks, winRate } e confrontos { brawler, enemy, picks, winRate }.
+// extras: { semConfrontos, margem, geral: Map nome -> { n, wr } do modo inteiro,
 //   cascata: { modo, fundo, parte } em Map nome -> { n, v } e mapas (quantos o modo tem),
 //   todosOsMapas: duplas e counters ficam pro final, com todos os mapas (devolve `bruto`) }
-async function processarMapa(tok, parte, desde, modo, mapa, extras) {
-  const esteMapa = [filtro('battle.mode_dimension', 'equals', modo), filtro('battle.map_dimension', 'equals', mapa)];
-  const filtros = [...filtrosBase(parte, desde), ...esteMapa];
-  const [brawlers, times, confrontos] = await Promise.all([
-    brawlersDa(tok, parte, desde, esteMapa, extras.medidas),
-    consulta(tok, {
-      measures: ['battle.picks_measure', 'battle.winRate_measure'],
-      dimensions: ['battle.team_dimension'],
-      filters: filtros,
-      limit: 50000,
-    }),
-    // Essa tabela não separa ranqueado de partida normal. Na faixa usada, a
-    // mistura só acontece em mapa que está nas duas listas.
-    extras.semConfrontos
-      ? []
-      : consulta(tok, {
-          measures: ['brawlerEnemies.picks_measure', 'brawlerEnemies.winRate_measure'],
-          dimensions: ['brawlerEnemies.brawler_dimension', 'brawlerEnemies.enemy_dimension'],
-          filters: [
-            filtro('brawlerEnemies.season_dimension', 'gte', desde),
-            filtro('brawlerEnemies.trophyRange_dimension', 'gte', parte.faixa),
-            filtro('brawlerEnemies.mode_dimension', 'equals', modo),
-            filtro('brawlerEnemies.map_dimension', 'equals', mapa),
-          ],
-          limit: 50000,
-        }),
-  ]);
-
+function processarMapa(modo, mapa, { brawlers, aliados, confrontos }, extras) {
+  const duplas = duplasDeAliados(aliados);
   const linhas = brawlers.map((r) => ({
     nome: nomeBonito(r.brawler),
     n: Number(r.picks),
@@ -298,11 +263,11 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
 
   const doMapaTodo = extras.todosOsMapas && {
     confrontos: confrontos.map((c) => [nomeBonito(c.brawler), nomeBonito(c.enemy), Number(c.picks), Number(c.winRate)]),
-    duplas: duplasDeTimes(times),
+    duplas,
     forca: new Map([...forca].map(([nome, { delta }]) => [nome, delta])),
     media,
   };
-  const listaDuplas = Object.entries(duplasDeTimes(times))
+  const listaDuplas = Object.entries(duplas)
     .filter(([, d]) => d.n >= MIN_PARTIDAS_DUPLA)
     .map(([k, d]) => ({ par: k.split('|'), n: d.n, wr: r4(d.v / d.n), adj: ajustada(d.v, d.n, media) }))
     .sort((a, b) => b.adj - a.adj);
@@ -320,6 +285,7 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
     mapa,
     // Com peso por idade, partidas vêm fracionadas.
     total: Math.round(total),
+    ...(JOGADORES_POR_TIME[modo] && { partidas: Math.round(total / JOGADORES_POR_TIME[modo]) }),
     media: r4(media),
     ...(estimada && { estimada }),
     brawlers: principais.map(enxuto),
@@ -343,7 +309,6 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
     })),
   };
 }
-
 // Mapas do ranqueado de agora. Todo mapa da lista tem partida a cada poucos minutos;
 // o que saiu na troca de temporada para de ter. Vale o mapa cuja última partida
 // fica a até FOLGA_RANQUEADO horas da partida mais recente do ranqueado inteiro,
@@ -351,23 +316,12 @@ async function processarMapa(tok, parte, desde, modo, mapa, extras) {
 // partida, e não com o relógio, porque o site às vezes passa horas sem gravar nada:
 // em 16/10 ficou de 15h a 18h UTC sem nenhuma partida, e uma janela de 3 horas
 // derrubou metade dos mapas. Numa pausa assim, todo mapa para junto e nenhum sai.
-const HORAS_RANQUEADO = 48;
 const FOLGA_RANQUEADO = 6;
 const ORDEM_RANQUEADO = ['gemGrab', 'brawlBall', 'heist', 'bounty', 'knockout', 'hotZone'];
 
-async function mapasDoRanqueado(tok) {
-  const desde = new Date(Date.now() - HORAS_RANQUEADO * 36e5).toISOString().slice(0, 19);
+async function mapasDoRanqueado() {
   const linhas = (
-    await consulta(tok, {
-      measures: ['battle.picks_measure', 'battle.eventId_measure', 'battle.timestamp_measure'],
-      dimensions: ['battle.mode_dimension', 'battle.map_dimension'],
-      filters: [
-        temporadaRecente(),
-        filtro('battle.powerplay_dimension', 'equals', '1'),
-        filtro('battle.timestamp_dimension', 'afterDate', desde),
-      ],
-      limit: 5000,
-    })
+    await consulta('map', ['mode', 'map'], ['picks', 'eventId', 'timestamp'], { season: [diasAtras(14)], powerplay: ['true'] }, 'timestamp')
   ).filter((r) => Number(r.eventId) !== 0);
   const ultima = Math.max(...linhas.map((r) => Date.parse(r.timestamp)));
   const ativos = linhas.filter((r) => Date.parse(r.timestamp) >= ultima - FOLGA_RANQUEADO * 36e5);
@@ -378,55 +332,89 @@ async function mapasDoRanqueado(tok) {
     .sort((a, b) => pos(a.modo) - pos(b.modo) || a.modo.localeCompare(b.modo) || a.mapa.localeCompare(b.mapa));
 }
 
-async function gerarRanqueado(tok, desde, anterior) {
-  const lista = (await mapasDoRanqueado(tok)).slice(0, LIMITE);
+// No ranqueado, a vitória de cada brawler pesa as partidas pela idade (pesarPorIdade),
+// com o efeito dos patches da lista do config.json. Duplas e counters continuam com os
+// blocos juntos.
+async function gerarRanqueado(desde, anterior) {
+  const lista = (await mapasDoRanqueado()).slice(0, LIMITE);
   console.log(`ranqueado: ${lista.length} mapas`);
   // Troca na lista fica no log, pra dar pra conferir depois se foi temporada nova ou erro.
   if (anterior?.mapas && LIMITE === Infinity) {
     const antes = new Set(anterior.mapas.map((m) => m.mapa));
-    const agora = new Set(lista.map((m) => m.mapa));
-    const entrou = [...agora].filter((m) => !antes.has(m));
-    const saiu = [...antes].filter((m) => !agora.has(m));
+    const atuais = new Set(lista.map((m) => m.mapa));
+    const entrou = [...atuais].filter((m) => !antes.has(m));
+    const saiu = [...antes].filter((m) => !atuais.has(m));
     if (entrou.length) console.log(`ranqueado: entrou ${entrou.join(', ')}`);
     if (saiu.length) console.log(`ranqueado: saiu ${saiu.join(', ')}`);
   }
+  const agora = Date.now();
+  // Os blocos que terminam dentro do período; o pesarPorIdade corta os dias mais velhos.
+  const base = { season: [diasAtras(DIAS_PERIODO)], powerplay: ['true'] };
+  const daFaixa = async (faixa, dimensoes, fatias = {}) =>
+    diasDosBlocos(await consulta('map', [...dimensoes, 'season'], ['picks', 'winRate'], { ...base, trophyRangeGte: [String(faixa)], ...fatias }), agora);
+  const doModo = await daFaixa(RANK, ['brawler', 'mode']);
+  // A liga logo abaixo (Mítico, com o rank padrão) entra como fundo da cascata. A tabela
+  // só filtra "dessa faixa pra cima", então o Mítico sai da diferença entre as duas.
+  const comAbaixo = await daFaixa(RANK - 3, ['brawler', 'mode']);
+  const doMapa = await daFaixa(RANK, ['brawler', 'mode', 'map'], { map: lista.map((m) => m.mapa) });
+
   // O efeito de cada patch sai do ranqueado inteiro e vale igual em todo mapa e no fundo.
-  const doRanqueado = await diasDa(tok, RANQUEADO, []);
-  const patches = efeitoDosPatches(doRanqueado, config.patches ?? [], Date.now());
+  const patches = efeitoDosPatches(doModo, config.patches ?? [], agora);
   if (patches.size) {
     const efeitos = [...patches].map(([b, { efeito }]) => `${nomeBonito(b)} ${efeito > 0 ? '+' : ''}${(efeito * 100).toFixed(1)}`);
     console.log(`ranqueado: efeito dos patches, em pontos: ${efeitos.join(', ')}`);
   }
-  const parte = { ...RANQUEADO, patches };
+  const pesar = (linhas) => porBrawler(pesarPorIdade(linhas, agora, patches));
   const modos = [...new Set(lista.map((m) => m.modo))];
-  const geral = new Map(await emLotes(modos, PARALELO, async (modo) => [modo, await porModo(tok, parte, desde, modo)]));
-  const fundo = new Map(await emLotes(modos, PARALELO, async (modo) => [modo, comVitorias(await porModo(tok, { ...FUNDO, patches }, desde, modo))]));
-  const ranqueado = comVitorias(porBrawler(pesarPorIdade(doRanqueado, Date.now(), patches)));
-  const saida = await emLotes(lista, PARALELO, async ({ modo, mapa }) => {
-    const m = await processarMapa(tok, parte, desde, modo, mapa, {
-      medidas: [],
-      semConfrontos: false,
-      margem: true,
-      todosOsMapas: true,
-      geral: geral.get(modo),
-      cascata: {
-        modo: comVitorias(geral.get(modo)),
-        fundo: fundo.get(modo),
-        parte: ranqueado,
-        mapas: lista.filter((m) => m.modo === modo).length,
+  const doModoX = (linhas, modo) => linhas.filter((r) => r.mode === modo);
+  const geral = new Map(modos.map((modo) => [modo, pesar(doModoX(doModo, modo))]));
+  const fundo = new Map(
+    modos.map((modo) => [modo, somar(comVitorias(pesar(doModoX(comAbaixo, modo))), comVitorias(geral.get(modo)), -1)]),
+  );
+  const ranqueado = comVitorias(pesar(doModo));
+
+  const fatiasPares = { season: [desde], trophyRangeGte: [String(RANK)] };
+  const aliados = [];
+  const confrontos = [];
+  for (const modo of modos) {
+    const mapas = lista.filter((m) => m.modo === modo).map((m) => m.mapa);
+    juntar(aliados, await pares('brawlerAllies', 'ally', mapas, fatiasPares));
+    juntar(confrontos, await pares('brawlerEnemies', 'enemy', mapas, fatiasPares));
+  }
+
+  const saida = lista.map(({ modo, mapa }) => {
+    const m = processarMapa(
+      modo,
+      mapa,
+      {
+        brawlers: pesarPorIdade(doMapa.filter((r) => r.mode === modo && r.map === mapa), agora, patches),
+        aliados: aliados.filter((r) => r.map === mapa),
+        confrontos: confrontos.filter((r) => r.map === mapa),
       },
-    });
-    console.log(`ranqueado · ${mapa}: ${m.total} partidas${m.estimada ? ' (lista estimada pelo modo)' : ''}`);
+      {
+        semConfrontos: false,
+        margem: true,
+        todosOsMapas: true,
+        geral: geral.get(modo),
+        cascata: {
+          modo: comVitorias(geral.get(modo)),
+          fundo: fundo.get(modo),
+          parte: ranqueado,
+          mapas: lista.filter((m) => m.modo === modo).length,
+        },
+      },
+    );
+    console.log(`ranqueado · ${mapa}: ${m.partidas != null ? `${m.partidas} partidas` : `${m.total} escolhas`}${m.estimada ? ' (lista estimada pelo modo)' : ''}`);
     return m;
   });
   // Counters e duplas usam os outros mapas e a tier list, então só saem com tudo pronto.
-  const confrontos = confrontosEmCascata(saida.map((m) => ({ modo: m.modo, linhas: m.bruto.confrontos, forca: m.bruto.forca })));
+  const confrontosCascata = confrontosEmCascata(saida.map((m) => ({ modo: m.modo, linhas: m.bruto.confrontos, forca: m.bruto.forca })));
   const duplas = duplasPelaForca(saida.map((m) => m.bruto));
   const mapas = saida.map(({ bruto, ...m }, i) => {
     const lista = duplas[i].filter((d) => d.n >= MIN_PARTIDAS_DUPLA).map(({ nota, ...d }) => ({ ...d, wr: r4(d.wr), adj: r4(bruto.media + nota) }));
     // A tabela de confrontos do BTN mistura o troféu, onde dá pra pegar o mesmo brawler
     // dos dois lados. No ranqueado não dá, então o espelho sai.
-    const efeitos = (nome) => (confrontos[i].get(nome) ?? []).filter(([e]) => e !== nome);
+    const efeitos = (nome) => (confrontosCascata[i].get(nome) ?? []).filter(([e]) => e !== nome);
     return {
       ...m,
       melhoresDuplas: lista.slice(0, 8),
@@ -435,7 +423,7 @@ async function gerarRanqueado(tok, desde, anterior) {
       // Os confrontos com amostra de todo brawler, não só dos da tier list: o modo Draft
       // soma contra os inimigos escolhidos, e qualquer um pode ser escolhido. Sem o corte
       // de amostra o arquivo dobrava pra quase nenhum ganho na chance (2026-10-20).
-      tabela: Object.fromEntries([...confrontos[i].keys()].map((nome) => [nome, tabelaDeConfrontos(efeitos(nome))])),
+      tabela: Object.fromEntries([...confrontosCascata[i].keys()].map((nome) => [nome, tabelaDeConfrontos(efeitos(nome))])),
       // A força de todo brawler, não só de quem tem partidas pra tier list. Sem ela, no
       // Draft quem ficava de fora contava como mediano, e esses ganham 47%.
       forca: Object.fromEntries([...bruto.forca].map(([nome, delta]) => [nome, r4(delta)])),
@@ -444,97 +432,74 @@ async function gerarRanqueado(tok, desde, anterior) {
   return { geradoEm: new Date().toISOString(), desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, rank: RANK, mapas };
 }
 
-async function gerarTrofeu(tok, desde) {
-  const base = filtrosBase(TROFEU, desde);
+// rotacao: Set 'modo|mapa' da API oficial, ou null se ela falhou.
+async function gerarTrofeu(desde, rotacao) {
+  const base = { powerplay: ['false'], trophyRangeGte: [String(FAIXA_TROFEU)] };
 
-  // Modo vale troféu quando o site registra variação de troféu nele.
-  const modos = (
-    await consulta(tok, {
-      measures: ['battle.picks_measure', 'battle.trophyChange_measure', 'battle.rank_measure'],
-      dimensions: ['battle.mode_dimension'],
-      filters: base,
-      order: { 'battle.picks_measure': 'desc' },
-    })
-  )
-    .filter((r) => r.trophyChange != null)
-    .map((r) => ({ modo: r.mode, temPosicao: r.rank != null }));
-  if (!modos.length) throw new Error('nenhum modo com variação de troféu: o site mudou o formato?');
-  const infoModo = new Map(modos.map((m) => [m.modo, m]));
-
-  // O site grava com powerplay 0 também as partidas sem troféu (Jogo Livre, eventos).
-  // Não há campo que separe partida a partida, mas num dia sem troféu nenhum a média
-  // de troféus do mapa vem vazia. Por isso a conta é por dia.
-  const recente = new Date(Date.now() - DIAS_MAPA * 864e5).toISOString().slice(0, 19);
-  const porDia = await consulta(tok, {
-    measures: ['battle.picks_measure', 'battle.eventId_measure', 'battle.trophyChange_measure'],
-    dimensions: ['battle.mode_dimension', 'battle.map_dimension', 'battle.day_dimension'],
-    filters: [
-      ...base,
-      filtro('battle.timestamp_dimension', 'afterDate', recente),
-      filtro('battle.mode_dimension', 'equals', ...modos.map((m) => m.modo)),
-    ],
-    limit: 50000,
-  });
-  const comTrofeu = new Map();
-  for (const r of porDia) {
-    // eventId 0 são os mapas de Competition, que o site também esconde.
-    if (r.trophyChange == null || Number(r.eventId) === 0) continue;
-    const k = `${r.mode}|${r.map}`;
-    comTrofeu.set(k, (comTrofeu.get(k) ?? 0) + Number(r.picks));
-  }
-  const mapas = [...comTrofeu]
-    .filter(([, n]) => n >= MIN_PARTIDAS_MAPA)
-    .map(([k]) => k)
-    .sort();
-
-  const ultimaHora = new Date(Date.now() - MINUTOS_ROTACAO * 6e4).toISOString().slice(0, 19);
-  const recentes = (
-    await consulta(tok, {
-      measures: ['battle.eventId_measure', 'battle.trophyChange_measure', 'battle.timestamp_measure'],
-      dimensions: ['battle.mode_dimension', 'battle.map_dimension'],
-      filters: [
-        temporadaRecente(),
-        filtro('battle.powerplay_dimension', 'equals', '0'),
-        filtro('battle.timestamp_dimension', 'afterDate', ultimaHora),
-        filtro('battle.mode_dimension', 'equals', ...modos.map((m) => m.modo)),
-      ],
-      limit: 5000,
-    })
+  // Modo e mapa valem troféu quando o site registra variação de troféu neles. eventId 0
+  // são os mapas de Competition, que o site também esconde.
+  const porMapa = (
+    await consulta('map', ['mode', 'map'], ['picks', 'trophyChange', 'eventId'], { ...base, season: [diasAtras(DIAS_MAPA)] })
   ).filter((r) => r.trophyChange != null && Number(r.eventId) !== 0);
-  const ultimaDoModo = new Map();
-  for (const r of recentes) {
-    const t = Date.parse(r.timestamp);
-    if (t > (ultimaDoModo.get(r.mode) ?? 0)) ultimaDoModo.set(r.mode, t);
-  }
-  const naRotacao = new Set(
-    recentes
-      .filter((r) => Date.parse(r.timestamp) >= ultimaDoModo.get(r.mode) - FOLGA_ROTACAO * 6e4)
-      .map((r) => `${r.mode}|${r.map}`),
-  );
+  const doModo = new Map();
+  for (const r of porMapa) doModo.set(r.mode, (doModo.get(r.mode) ?? 0) + Number(r.picks));
+  const modos = [...doModo].sort((a, b) => b[1] - a[1]).map(([modo]) => modo);
+  if (!modos.length) throw new Error('nenhum modo com variação de troféu: o site mudou o formato?');
+  const mapas = porMapa
+    .filter((r) => Number(r.picks) >= MIN_PARTIDAS_MAPA)
+    .map((r) => `${r.mode}|${r.map}`)
+    .sort();
 
   // Mapa da rotação entra mesmo sem partidas suficientes: é o que dá pra jogar agora.
   // A página avisa quando tem poucos dados.
+  const naRotacao = [...(rotacao ?? [])].filter((k) => modos.includes(k.split('|')[0]));
   const lista = [...new Set([...mapas, ...naRotacao])]
     .map((k) => {
       const [modo, mapa] = k.split('|');
-      return { modo, mapa, rotacao: naRotacao.has(k) };
+      return { modo, mapa, rotacao: naRotacao.includes(k) };
     })
     .slice(0, LIMITE);
-  console.log(`troféu: ${lista.length} mapas em ${modos.length} modos; na rotação: ${[...naRotacao].map((k) => k.split('|')[1]).join(', ') || 'nenhum'}`);
+  console.log(`troféu: ${lista.length} mapas em ${modos.length} modos; na rotação: ${naRotacao.map((k) => k.split('|')[1]).join(', ') || 'nenhum'}`);
   const presentes = [...new Set(lista.map((m) => m.modo))];
-  const geral = new Map(await emLotes(presentes, PARALELO, async (modo) => [modo, await porModo(tok, TROFEU, desde, modo)]));
-  const trofeu = comVitorias(await porModo(tok, TROFEU, desde));
 
-  const saida = await emLotes(lista, PARALELO, async ({ modo, mapa, rotacao }) => {
-    const m = await processarMapa(tok, TROFEU, desde, modo, mapa, {
-      medidas: ['battle.trophyChange_measure', ...(infoModo.get(modo).temPosicao ? ['battle.rank_measure'] : [])],
-      // No Showdown os inimigos são a sala inteira; confronto direto mede pouco.
-      semConfrontos: modo.endsWith('Showdown'),
-      geral: geral.get(modo),
-      // No troféu não há liga abaixo que sirva de fundo: a faixa já é o corte de 1.000 troféus.
-      cascata: { modo: comVitorias(geral.get(modo)), fundo: new Map(), parte: trofeu, mapas: lista.filter((m) => m.modo === modo).length },
-    });
-    console.log(`troféu · ${modo} · ${mapa}: ${m.total} partidas${rotacao ? ' (na rotação)' : ''}${m.estimada ? ' (lista estimada pelo modo)' : ''}`);
+  // Todos os mapas de uma vez, sem peso por idade; a posição só vale no Showdown.
+  const linhas = await consulta('map', ['brawler', 'mode', 'map'], ['picks', 'winRate', 'trophyChange', 'rank'], { ...base, season: [desde] });
+  const doModoTodo = new Map(presentes.map((modo) => [modo, somarPorBrawler(linhas.filter((r) => r.mode === modo))]));
+  const trofeu = somarPorBrawler(linhas);
+  const ehShowdown = (modo) => modo.endsWith('Showdown');
+
+  // Duplas e counters do troféu são do modo inteiro, e não de cada mapa. Mapa a mapa,
+  // com 162 mapas, eram uns 300 pedidos por dia; e a maioria dos mapas tem tão poucas
+  // partidas que quase nenhuma dupla passava do mínimo. O ranqueado continua por mapa.
+  const fatiasPares = { season: [desde], trophyRangeGte: [String(FAIXA_TROFEU)] };
+  const aliados = new Map();
+  const confrontos = new Map();
+  for (const modo of presentes) {
+    const fatias = { ...fatiasPares, mode: [modo] };
+    aliados.set(modo, await consulta('brawlerAllies', ['brawler', 'ally'], ['picks', 'winRate'], fatias));
+    // No Showdown os inimigos são a sala inteira; confronto direto mede pouco.
+    if (!ehShowdown(modo)) confrontos.set(modo, await consulta('brawlerEnemies', ['brawler', 'enemy'], ['picks', 'winRate'], fatias));
+  }
+
+  const saida = lista.map(({ modo, mapa, rotacao }) => {
+    const m = processarMapa(
+      modo,
+      mapa,
+      {
+        brawlers: linhas
+          .filter((r) => r.mode === modo && r.map === mapa)
+          .map((r) => (ehShowdown(modo) ? r : { ...r, rank: null })),
+        aliados: aliados.get(modo),
+        confrontos: confrontos.get(modo) ?? [],
+      },
+      {
+        semConfrontos: ehShowdown(modo),
+        geral: comTaxa(doModoTodo.get(modo)),
+        // No troféu não há liga abaixo que sirva de fundo: a faixa já é o corte de 1.000 troféus.
+        cascata: { modo: doModoTodo.get(modo), fundo: new Map(), parte: trofeu, mapas: lista.filter((m) => m.modo === modo).length },
+      },
+    );
+    console.log(`troféu · ${modo} · ${mapa}: ${m.partidas != null ? `${m.partidas} partidas` : `${m.total} escolhas`}${rotacao ? ' (na rotação)' : ''}${m.estimada ? ' (lista estimada pelo modo)' : ''}`);
     return { ...m, rotacao };
   });
 
@@ -543,7 +508,7 @@ async function gerarTrofeu(tok, desde) {
     desde,
     faixa: FAIXA_TROFEU,
     nicho: LIMITE_NICHO,
-    modos: modos.map((m) => m.modo).filter((m) => presentes.includes(m)),
+    modos: modos.filter((m) => presentes.includes(m)),
     mapas: saida,
   };
 }
@@ -552,18 +517,28 @@ async function main() {
   // A parte que não foi pedida continua como estava. Arquivo do formato antigo não tem partes.
   const anterior = await readFile(new URL('dados.json', dir), 'utf8').then(JSON.parse).catch(() => null);
   const partes = { ...anterior?.partes };
+  const rotacao = await rotacaoOficial().catch((e) => {
+    console.warn(`rotação falhou, fica a da última vez: ${e.message}`);
+    return null;
+  });
   // Com o BTN fora, o site sai com as estatísticas da última vez e o clube atualizado.
   // Cada parte guarda a data em que foi gerada; é ela que a página mostra e que o
-  // aviso de site parado confere (estado.json).
+  // aviso de site parado confere (estado.json). Coleta que falha tenta de novo na
+  // rodada seguinte.
+  const coletar = (id) =>
+    PARTE ? PARTE === id : !partes[id] || Date.now() - Date.parse(partes[id].geradoEm) > HORAS_ENTRE_COLETAS * 36e5;
   try {
-    const tok = await token();
-    const desde = await inicioDosBlocos(tok);
-    if (PARTE !== 'trofeu') partes.ranqueado = await gerarRanqueado(tok, desde, anterior?.partes?.ranqueado);
-    if (PARTE !== 'ranqueado') partes.trofeu = await gerarTrofeu(tok, desde);
+    if (coletar('ranqueado') || coletar('trofeu')) {
+      const desde = await inicioDosBlocos();
+      if (coletar('ranqueado')) partes.ranqueado = await gerarRanqueado(desde, anterior?.partes?.ranqueado);
+      if (coletar('trofeu')) partes.trofeu = await gerarTrofeu(desde, rotacao);
+    }
   } catch (e) {
     if (!partes.ranqueado || !partes.trofeu) throw e;
     console.warn(`estatísticas falharam, ficam as da última vez: ${e.message}`);
   }
+  // A rotação muda ao longo do dia, então a marca é refeita a cada rodada.
+  if (rotacao) for (const m of partes.trofeu.mapas) m.rotacao = rotacao.has(`${m.modo}|${m.mapa}`);
 
   // Clube que falha não derruba a geração: vale o da última vez.
   const doClube = CLUBE
@@ -587,7 +562,7 @@ async function main() {
   await writeFile(new URL('site/index.html', dir), modelo.replace('/*__DADOS__*/null', json));
   const estatisticasEm = Object.values(partes).map((p) => p.geradoEm).sort()[0];
   await writeFile(new URL('site/estado.json', dir), JSON.stringify({ publicadoEm: dados.geradoEm, estatisticasEm }));
-  console.log(`ok: site/index.html gerado (${(json.length / 1e6).toFixed(2)} MB de dados, ${doClube?.membros.length ?? 0} perfis do clube)`);
+  console.log(`ok: site/index.html gerado (${(json.length / 1e6).toFixed(2)} MB de dados, ${doClube?.membros.length ?? 0} perfis do clube, ${pedidosBtn} pedidos ao BTN)`);
 }
 
 main().catch((e) => {
