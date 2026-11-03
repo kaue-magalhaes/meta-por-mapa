@@ -20,6 +20,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
 import { atributosDaSemana } from './wiki.mjs';
+import { partidasRanqueadas, juntarPartidas } from './registro.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -133,7 +134,8 @@ async function oficial(caminho) {
 const comTag = (tag) => encodeURIComponent(`#${tag}`);
 
 // "No máximo" = nível 11 com pelo menos um gadget, uma star power e a hipercarga.
-// Engrenagem fica de fora porque é barata de comprar.
+// Engrenagem fica de fora porque é barata de comprar. recordes é o maior troféu que a
+// pessoa já teve com cada brawler: no Draft, marca quem ela mais jogou.
 async function perfil(tag) {
   const p = await oficial(`/players/${comTag(tag)}`);
   const tem = (b, k) => (b[k] ?? []).length > 0;
@@ -144,24 +146,37 @@ async function perfil(tag) {
       .filter((b) => b.power === 11 && tem(b, 'gadgets') && tem(b, 'starPowers') && tem(b, 'hyperCharges'))
       .map((b) => nomeBonito(b.name))
       .sort(),
+    recordes: Object.fromEntries(p.brawlers.filter((b) => b.highestTrophies > 0).map((b) => [nomeBonito(b.name), b.highestTrophies])),
   };
 }
 
 // Membros do clube com o que cada um tem no máximo. Um perfil por vez: são poucos,
-// e a API oficial limita a taxa de cada chave.
+// e a API oficial limita a taxa de cada chave. De cada membro também vêm as partidas do
+// Ranqueado, guardadas em partidas-clube.json (fora do git e do site).
 async function clube(tag) {
   const c = await oficial(`/clubs/${comTag(tag)}`);
   const membros = [];
+  const novas = [];
   for (const m of c.members) {
     const t = m.tag.replace(/^#/, '');
-    // Um perfil que falha não derruba a geração: o membro fica de fora até a próxima.
+    // Um perfil ou registro que falha não derruba a geração: o membro fica de fora até a próxima.
     try {
       membros.push(await perfil(t));
     } catch (e) {
       console.warn(`perfil #${t} falhou: ${e.message}`);
     }
+    try {
+      novas.push(...partidasRanqueadas((await oficial(`/players/${comTag(t)}/battlelog`)).items, m.tag));
+    } catch (e) {
+      console.warn(`partidas de #${t} falharam: ${e.message}`);
+    }
   }
   membros.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  const arquivo = new URL('partidas-clube.json', dir);
+  const antigas = JSON.parse(await readFile(arquivo, 'utf8').catch(() => '[]'));
+  const juntas = juntarPartidas(antigas, novas, Date.now());
+  await writeFile(arquivo, JSON.stringify(juntas));
+  console.log(`partidas do clube: ${juntas.length} guardadas (${juntas.length - antigas.length} novas)`);
   return { tag, nome: c.name, membros };
 }
 

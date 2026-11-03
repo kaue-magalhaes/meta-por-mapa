@@ -29,6 +29,11 @@ A chave, criada em developer.brawlstars.com e presa ao IP de casa, fica em
 `~/.config/brawlstars-api/token`. Se o Brawl Time Ninja falhar, o site sai mesmo
 assim, com as estatísticas da última vez e o clube atualizado.
 
+Do perfil de cada membro vem também o recorde de troféus com cada brawler, que o Draft
+usa para marcar quem a pessoa mais jogou. As partidas do Ranqueado de cada membro são
+guardadas a cada rodada em `partidas-clube.json` (fora do git e do site), até 90 dias,
+porque a API devolve só as 25 últimas de cada jogador.
+
 Alcance, vida e recarga de cada brawler, usados na leitura da partida do Draft, vêm
 da ficha dele no [wiki do Brawl Stars](https://brawlstars.fandom.com) (`wiki.mjs`). A
 geração busca de novo uma vez por semana, ou quando aparece um brawler novo, e guarda
