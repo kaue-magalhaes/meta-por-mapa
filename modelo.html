@@ -445,6 +445,9 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
 .leitura th { color: var(--muted); font-weight: 500; }
 .leitura tr.eles td:first-child { color: var(--bad); }
 .leitura .perigo { display: block; font-size: 0.75rem; color: var(--bad); }
+/* Selo de quem a pessoa mais jogou, e a barra dos empatados com o 1º. */
+.forte { white-space: nowrap; font-size: 0.66rem; font-weight: 400; color: var(--good); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-left: 6px; flex: none; }
+#draftRecomenda li.empate { box-shadow: inset 3px 0 0 var(--accent); padding-left: 6px; }
 </style>
 
 </head>
@@ -512,7 +515,13 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
           <div class="leitura-rolagem"><table class="leitura" id="leituraTabela"></table></div>
           <p class="draft-legenda" id="leituraNota"></p>
         </div>
+        <div id="draftBloqueio" hidden>
+          <h4>Pra bloquear</h4>
+          <ol class="picks ordenada" id="bloqueioLista"></ol>
+          <p class="draft-legenda">Quem mais aparece aqui e mais ajudaria o outro time, contra o nosso 1º da lista. Clicar bloqueia.</p>
+        </div>
         <h4>Pra nossa próxima escolha</h4>
+        <p class="draft-legenda" id="draftEmpate"></p>
         <ol class="picks ordenada" id="draftRecomenda"></ol>
         <p>Clique no brawler ou digite o nome e aperte Enter. Ele vai pro que estiver selecionado lá em cima, inclusive o clique num recomendado. As teclas 1, 2 e 3 trocam entre Inimigo, Nosso time e Bloqueio, até com o cursor na caixa. Backspace com a caixa vazia desfaz a última marcação, e clicar num nome marcado desmarca.</p>
       </section>
@@ -599,6 +608,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         <div id="guiaDraft" hidden>
           <h3>Draft</h3>
           <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. Com pelo menos um brawler de cada lado, a leitura da partida diz quem cada um do nosso time caça e evita, pelos mesmos confrontos, e compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.</p>
+          <p>Antes das escolhas, "Pra bloquear" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra o nosso 1º da lista. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados. Com seu nome em "Você", entre os empatados vem antes quem você mais jogou, pelo seu recorde de troféus com cada brawler, e o selo "seu forte" marca o quarto de cima dos seus recordes. O recorde mede o troféu e não o ranqueado, mas é o que existe hoje. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza.</p>
         </div>
         <div>
           <h3>De onde vêm os dados</h3>
@@ -1088,14 +1098,62 @@ function pesoNoDraft(m) {
 function recomendar(m, fora, inimigos, quantos = 5) {
   const peso = pesoNoDraft(m);
   const posicao = new Map(m.brawlers.map((b, i) => [b.nome, i + 1]));
+  const sd = new Map(m.brawlers.map((b) => [b.nome, b.sd]));
   return Object.keys(m.forca)
     .filter((nome) => !fora.has(nome))
     .map((nome) => {
       const contra = inimigos.map((e) => [e, m.tabela?.[nome]?.[e] ?? 0]);
       const pesou = contra.reduce((a, c) => (Math.abs(c[1]) > Math.abs(a?.[1] ?? 0) ? c : a), null);
-      return { nome, pos: posicao.get(nome), nota: peso(nome, inimigos), pesou };
+      return { nome, pos: posicao.get(nome), nota: peso(nome, inimigos), pesou, sd: sd.get(nome) ?? SD_SEM_MARGEM };
     })
     .sort((a, b) => b.nota - a.nota)
+    .slice(0, quantos);
+}
+
+// Empate: a conta não separa nomes com diferença de nota menor que a margem da força (o
+// sd da tier list, o mesmo do selo "incerto"). Brawler sem sd, com poucas partidas no
+// mapa, usa 0,03, acima de todo sd medido em 2026-11-02 (o maior era 0,024). Nos mapas do
+// ranqueado de 02/11, o grupo empatado com o 1º teve de 1 a 4 nomes.
+const SD_SEM_MARGEM = 0.03;
+
+// O recorde de troféus de quem está em "Você" com o brawler: mede quanto a pessoa jogou
+// com ele, no troféu e não no ranqueado, mas é o que existe hoje. "Seu forte" é o quarto
+// de cima dos recordes da própria pessoa. Pedido do Kauê em 02/11, pelo caso da Amber:
+// forte no mapa, mas ele não ia bem com ela.
+const recorde = (nome) => perfil?.recordes?.[nome] ?? 0;
+function corteDoForte() {
+  const v = Object.values(perfil?.recordes ?? {}).sort((a, b) => a - b);
+  return v.length ? v[Math.floor(v.length * 0.75)] : Infinity;
+}
+
+// Põe o grupo empatado com o 1º na frente, do maior recorde da pessoa pro menor. Sem
+// perfil, todo recorde é zero e fica a ordem da nota.
+function comEmpate(lista) {
+  let n = 1;
+  while (n < lista.length && lista[0].nota - lista[n].nota < PESO_FORCA * Math.hypot(lista[0].sd, lista[n].sd)) n++;
+  const grupo = lista.slice(0, n).sort((a, b) => recorde(b.nome) - recorde(a.nome) || b.nota - a.nota);
+  return { lista: [...grupo, ...lista.slice(n)], empatados: Math.min(n, lista.length) };
+}
+
+// Tank pelo wiki: vida de 5.000 ou mais e alcance até 6 quadrados (16 brawlers em
+// 02/11). É só aviso, a conta não muda: nas 53.740 partidas do Mítico pra cima, time com
+// dois tanks contra time sem nenhum ganhou 49,7% e a conta esperava 51,6%, em 344
+// partidas, dentro do ruído.
+function ehTank(nome) {
+  const a = DADOS.atributos?.brawlers?.[nome];
+  return !!a && a.vida >= 5000 && a.alcance > 0 && a.alcance <= 6;
+}
+
+// Antes das escolhas, quem bloquear: o uso no mapa vezes o quanto o brawler soma pro
+// outro time, pela conta do Draft, contra o nosso 1º da lista, pra protegê-lo. Quem
+// ninguém escolhe aqui ou soma zero fica de fora, porque bloqueá-lo gasta a vaga à toa.
+function sugerirBloqueios(m, fora, alvo, quantos = 3) {
+  const peso = pesoNoDraft(m);
+  return m.brawlers
+    .filter((b) => b.uso > 0 && !fora.has(b.nome) && b.nome !== alvo)
+    .map((b) => ({ nome: b.nome, uso: b.uso, soma: peso(b.nome, alvo ? [alvo] : []), contra: alvo ? confrontoLido(m, b.nome, alvo) : null }))
+    .filter((b) => b.soma > 0)
+    .sort((a, b) => b.uso * b.soma - a.uso * a.soma)
     .slice(0, quantos);
 }
 
@@ -1223,9 +1281,26 @@ function desenharDraft(m) {
       ? `<span class="${apagado}">${esc(n)}</span>`
       : `<button class="desbloq${apagado}" type="button" data-marcar="${esc(n)}">${esc(n)}</button>`;
   };
-  document.getElementById('draftRecomenda').innerHTML = recomendar(m, fora, partida.eles)
-    .map((r) => `<li><b>${nome(r.nome)}</b><span>${motivo(r)}</span></li>`).join('')
+  const { lista, empatados } = comEmpate(recomendar(m, fora, partida.eles));
+  const comPerfil = !!perfil?.recordes;
+  const forte = comPerfil ? corteDoForte() : Infinity;
+  const temTank = partida.nos.some(ehTank);
+  const extra = (r, i) => (i < empatados && empatados > 1 && recorde(r.nome) ? ` · seu recorde ${recorde(r.nome).toLocaleString('pt-BR')}` : '')
+    + (temTank && ehTank(r.nome) ? ' · já temos um tank' : '');
+  document.getElementById('draftRecomenda').innerHTML = lista
+    .map((r, i) => `<li${i < empatados && empatados > 1 ? ' class="empate"' : ''}><b>${nome(r.nome)}${recorde(r.nome) >= forte ? '<span class="forte">seu forte</span>' : ''}</b><span>${motivo(r)}${extra(r, i)}</span></li>`).join('')
     || '<li class="vazio">Ninguém livre com partidas suficientes.</li>';
+  document.getElementById('draftEmpate').textContent = empatados > 1
+    ? `Os ${empatados} primeiros estão empatados: a diferença entre eles é menor que a margem da conta. ${comPerfil ? 'Entre eles, vem antes quem você mais jogou.' : 'Escolha seu nome em "Você" pra pôr antes quem você mais jogou.'}`
+    : '';
+  // Bloqueio sugerido só antes das escolhas: no jogo, os bloqueios vêm primeiro.
+  const caixaBloq = document.getElementById('draftBloqueio');
+  const bloqs = !partida.eles.length && !partida.nos.length && partida.bloqueios.length < GRUPOS.bloqueios.max
+    ? sugerirBloqueios(m, fora, lista[0]?.nome) : [];
+  caixaBloq.hidden = !bloqs.length;
+  document.getElementById('bloqueioLista').innerHTML = bloqs.map((b) =>
+    `<li><b><button class="desbloq" type="button" data-bloquear="${esc(b.nome)}">${esc(b.nome)}</button></b>`
+    + `<span>em ${pct(Math.min(1, 3 * b.uso), 0)} dos times · ${pp(m.forca[b.nome] ?? 0)}${b.contra != null ? ` · contra ${esc(lista[0].nome)} ${pp(b.contra)}` : ''}</span></li>`).join('');
   desenharChance(m);
   desenharLeitura(m);
   desenharDica(m);
@@ -1458,6 +1533,16 @@ document.addEventListener('click', (e) => {
   const marca = e.target.closest('[data-marcar]');
   if (marca) {
     marcar(marca.dataset.marcar);
+    mudouPartida();
+    return caixaDraft.focus();
+  }
+  // O bloqueio sugerido vai sempre pros bloqueios, seja qual for o grupo selecionado.
+  const bloquear = e.target.closest('[data-bloquear]');
+  if (bloquear) {
+    if (partida.bloqueios.length < GRUPOS.bloqueios.max) {
+      mudar('bloqueios', bloquear.dataset.bloquear, true);
+      partida.feitos.push({ grupo: 'bloqueios', nome: bloquear.dataset.bloquear });
+    }
     mudouPartida();
     return caixaDraft.focus();
   }
