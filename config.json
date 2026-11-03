@@ -27,6 +27,46 @@
         { "brawler": "R-T", "direcao": "buff", "tamanho": "pequena" },
         { "brawler": "GIGI", "direcao": "buff", "tamanho": "pequena" }
       ]
+    },
+    {
+      "data": "2026-11-03",
+      "nome": "Release Notes November 2026",
+      "mudancas": [
+        { "brawler": "SHADE", "direcao": "nerf", "tamanho": "grande" },
+        { "brawler": "GUS", "direcao": "nerf", "tamanho": "grande" },
+        { "brawler": "AMBER", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "WENDY", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "MAX", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "ASH", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "MAISIE", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "BROCK", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "RICO", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "COLETTE", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "PIERCE", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "NORI", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "DRACO", "direcao": "buff", "tamanho": "grande" },
+        { "brawler": "HANK", "direcao": "buff", "tamanho": "media" },
+        { "brawler": "SHELLY", "direcao": "buff", "tamanho": "media" },
+        { "brawler": "CHUCK", "direcao": "buff", "tamanho": "media" },
+        { "brawler": "DARRYL", "direcao": "buff", "tamanho": "media" },
+        { "brawler": "MELODIE", "direcao": "buff", "tamanho": "media" },
+        { "brawler": "BUSTER", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "ANGELO", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "R-T", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "MR. P", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "LOU", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "GALE", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "MANDY", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "CHESTER", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "BERRY", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "VINCE", "direcao": "buff", "tamanho": "pequena" },
+        { "brawler": "ZIGGY", "direcao": "misto", "tamanho": "media" },
+        { "brawler": "SURGE", "direcao": "misto", "tamanho": "media" },
+        { "brawler": "SQUEAK", "direcao": "misto", "tamanho": "media" },
+        { "brawler": "COSMO", "direcao": "misto", "tamanho": "pequena" },
+        { "brawler": "DAMIAN", "direcao": "misto", "tamanho": "pequena" },
+        { "brawler": "KIT", "direcao": "misto", "tamanho": "pequena" }
+      ]
     }
   ]
 }
