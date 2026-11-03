@@ -33,3 +33,18 @@ export function juntarPartidas(antigas, novas, agora) {
   for (const p of [...antigas, ...novas]) if (dataDe(p.quando) >= limite) todas.set(chave(p), p);
   return [...todas.values()].sort((a, b) => a.quando.localeCompare(b.quando));
 }
+
+// Vitórias e derrotas de um jogador com cada brawler, em todas as partidas guardadas.
+// nome: converte o nome da API ("EL PRIMO") pro da página ("El Primo").
+export function placarPorBrawler(partidas, tag, nome) {
+  const placar = {};
+  for (const p of partidas) {
+    for (const [time, i] of [[p.vencedor, 0], [p.perdedor, 1]]) {
+      const eu = time.find((j) => j.tag === tag);
+      if (!eu) continue;
+      const n = nome(eu.b);
+      (placar[n] ??= [0, 0])[i]++;
+    }
+  }
+  return placar;
+}

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { partidasRanqueadas, juntarPartidas } from './registro.mjs';
+import { partidasRanqueadas, juntarPartidas, placarPorBrawler } from './registro.mjs';
 
 const jogador = (tag, b, nivel = 14) => ({ tag: `#${tag}`, brawler: { name: b, trophies: nivel } });
 const item = (quando, result, tipo = 'soloRanked') => ({
@@ -32,4 +32,16 @@ test('juntarPartidas não repete partida vista por dois membros e corta as velha
   const j = juntarPartidas([velha, nova], [nova, { ...nova }], agora);
   assert.equal(j.length, 1);
   assert.equal(j[0].quando, '20261102T120000.000Z');
+});
+
+test('placarPorBrawler conta vitórias e derrotas do jogador por brawler', () => {
+  const p = partidasRanqueadas([
+    item('20261102T120000.000Z', 'victory'),
+    item('20261102T110000.000Z', 'defeat'),
+    item('20261102T100000.000Z', 'victory'),
+  ], '#EU');
+  const nome = (n) => n[0] + n.slice(1).toLowerCase();
+  assert.deepEqual(placarPorBrawler(p, '#EU', nome), { Amber: [2, 1] });
+  assert.deepEqual(placarPorBrawler(p, '#B1', nome), { Shade: [1, 2] });
+  assert.deepEqual(placarPorBrawler(p, '#NINGUEM', nome), {});
 });

@@ -20,7 +20,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
 import { atributosDaSemana } from './wiki.mjs';
-import { partidasRanqueadas, juntarPartidas } from './registro.mjs';
+import { partidasRanqueadas, juntarPartidas, placarPorBrawler } from './registro.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -152,7 +152,8 @@ async function perfil(tag) {
 
 // Membros do clube com o que cada um tem no máximo. Um perfil por vez: são poucos,
 // e a API oficial limita a taxa de cada chave. De cada membro também vêm as partidas do
-// Ranqueado, guardadas em partidas-clube.json (fora do git e do site).
+// Ranqueado, guardadas em partidas-clube.json (fora do git e do site); delas vai pro
+// site só o placar de cada membro com cada brawler.
 async function clube(tag) {
   const c = await oficial(`/clubs/${comTag(tag)}`);
   const membros = [];
@@ -177,6 +178,8 @@ async function clube(tag) {
   const juntas = juntarPartidas(antigas, novas, Date.now());
   await writeFile(arquivo, JSON.stringify(juntas));
   console.log(`partidas do clube: ${juntas.length} guardadas (${juntas.length - antigas.length} novas)`);
+  // Só a contagem por brawler vai pro site, pro Draft mostrar "seu Ranqueado 5V 3D".
+  for (const m of membros) m.ranqueado = placarPorBrawler(juntas, `#${m.tag}`, nomeBonito);
   return { tag, nome: c.name, membros };
 }
 
