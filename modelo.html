@@ -370,6 +370,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
 .ferramentas { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
 .alternar { display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--muted); cursor: pointer; }
 .alternar input { accent-color: var(--tier-b); width: 16px; height: 16px; }
+.alternares { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 
 /* Selo que não cabe ao lado do nome desce pra linha de baixo */
 .linha .nome { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; font-weight: 600; }
@@ -518,11 +519,16 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         <div id="draftBloqueio" hidden>
           <h4>Pra bloquear</h4>
           <ol class="picks ordenada" id="bloqueioLista"></ol>
-          <p class="draft-legenda">Quem mais aparece aqui e mais ajudaria o outro time, contra o nosso 1º da lista. Clicar bloqueia.</p>
+          <p class="draft-legenda" id="bloqueioNota"></p>
         </div>
         <h4>Pra nossa próxima escolha</h4>
         <p class="draft-legenda" id="draftEmpate"></p>
         <ol class="picks ordenada" id="draftRecomenda"></ol>
+        <div id="draftSeus" hidden>
+          <h4>Dos seus fortes</h4>
+          <ul class="picks" id="seusLista"></ul>
+          <p class="draft-legenda">Fora dos 5 de cima. Quem joga bem com o brawler muitas vezes compensa os pontos.</p>
+        </div>
         <p>Clique no brawler ou digite o nome e aperte Enter. Ele vai pro que estiver selecionado lá em cima, inclusive o clique num recomendado. As teclas 1, 2 e 3 trocam entre Inimigo, Nosso time e Bloqueio, até com o cursor na caixa. Backspace com a caixa vazia desfaz a última marcação, e clicar num nome marcado desmarca.</p>
       </section>
 
@@ -608,7 +614,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         <div id="guiaDraft" hidden>
           <h3>Draft</h3>
           <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. Com pelo menos um brawler de cada lado, a leitura da partida diz quem cada um do nosso time caça e evita, pelos mesmos confrontos, e compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.</p>
-          <p>Antes das escolhas, "Pra bloquear" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra o nosso 1º da lista. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados. Com seu nome em "Você", entre os empatados vem antes quem você mais jogou, pelo seu recorde de troféus com cada brawler, e o selo "seu forte" marca o quarto de cima dos seus recordes. O recorde mede o troféu e não o ranqueado, mas é o que existe hoje. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza.</p>
+          <p>Antes das escolhas, "Pra bloquear" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra as suas 3 melhores opções. As opções são os seus fortes que você tem no máximo, os melhores no mapa primeiro, completados pelos outros que você tem no máximo. Proteger três evita que um bloqueio do outro time numa delas desperdice o seu. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. "Seu forte" é quem você marcou com "Sei jogar" no cartão do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos. "Seu Ranqueado" conta as suas vitórias e derrotas com o brawler nas partidas do Ranqueado guardadas pela página, em todos os mapas. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza.</p>
         </div>
         <div>
           <h3>De onde vêm os dados</h3>
@@ -762,6 +768,10 @@ const MEMBROS = DADOS.clube?.membros ?? [];
 let perfil = MEMBROS.find((p) => p.tag === guardar.ler('perfil', null)) ?? null;
 const meus = new Set();
 const temLista = () => meus.size > 0;
+// "Sei jogar" marcado na mão, por perfil: nome -> true ou false. Vence o recorde de
+// troféus nos dois sentidos (Kauê, 03/11: ele só joga Ranqueado, e a Sandy tinha 394
+// troféus).
+let sei = {};
 
 // No ranqueado o jogo deixa alguns brawlers no máximo pra todo mundo até o fim da
 // temporada, mesmo pra quem não tem. Trocar a cada temporada (Kauê, 01/11/2026). Em
@@ -773,6 +783,7 @@ const tenho = (nome) => meus.has(nome) || (atual?.parte === 'ranqueado' && MAX_N
 
 function carregarMeus() {
   meus.clear();
+  sei = guardar.ler('sei:' + (perfil?.tag ?? ''), {});
   if (!perfil) {
     for (const b of guardar.ler('meus', [])) meus.add(b);
     return;
@@ -1024,7 +1035,10 @@ function desenharDetalhe() {
   if (!b) { caixa.innerHTML = `<p>Clique no nome de um brawler pra ver os counters dele neste ${m.parte === 'ranqueado' ? 'mapa' : 'modo'}.</p>`; return; }
   const topo = `
     <div class="detalhe-topo"><h3>${esc(b.nome)}</h3><span class="sub num">${pct(b.adj)} · ${pp(b.adj - m.media)}</span></div>
-    <label class="alternar"><input type="checkbox" id="tenho" ${meus.has(b.nome) ? 'checked' : ''}> Tenho no máximo</label>`;
+    <div class="alternares">
+      <label class="alternar"><input type="checkbox" id="tenho" ${meus.has(b.nome) ? 'checked' : ''}> Tenho no máximo</label>
+      <label class="alternar"><input type="checkbox" id="sei" ${seuForte(b.nome) ? 'checked' : ''}> Sei jogar</label>
+    </div>`;
   if (!m.confrontos) {
     caixa.innerHTML = topo + '<p>Sem counters no Showdown: os inimigos são a sala inteira, então um confronto direto mede pouco.</p>';
     return;
@@ -1126,13 +1140,32 @@ function corteDoForte() {
   return v.length ? v[Math.floor(v.length * 0.75)] : Infinity;
 }
 
-// Põe o grupo empatado com o 1º na frente, do maior recorde da pessoa pro menor. Sem
-// perfil, todo recorde é zero e fica a ordem da nota.
+// Forte pra pessoa: "Sei jogar" marcado na mão ou, sem marcação, recorde no quarto de cima.
+const seuForte = (nome) => (nome in sei ? sei[nome] : recorde(nome) >= corteDoForte());
+
+// Vitórias e derrotas de quem está em "Você" com o brawler, nas partidas do Ranqueado
+// guardadas pela geração. Só informação: são poucas partidas pra mudar a ordem.
+function seuRanqueado(nome) {
+  const [v, d] = perfil?.ranqueado?.[nome] ?? [0, 0];
+  return v + d ? `seu Ranqueado ${v}V ${d}D` : '';
+}
+
+// Põe o grupo empatado com o 1º na frente: primeiro os fortes da pessoa, depois o maior
+// recorde. Sem perfil nem marcação, fica a ordem da nota.
 function comEmpate(lista) {
   let n = 1;
   while (n < lista.length && lista[0].nota - lista[n].nota < PESO_FORCA * Math.hypot(lista[0].sd, lista[n].sd)) n++;
-  const grupo = lista.slice(0, n).sort((a, b) => recorde(b.nome) - recorde(a.nome) || b.nota - a.nota);
+  const grupo = lista.slice(0, n).sort((a, b) => seuForte(b.nome) - seuForte(a.nome) || recorde(b.nome) - recorde(a.nome) || b.nota - a.nota);
   return { lista: [...grupo, ...lista.slice(n)], empatados: Math.min(n, lista.length) };
+}
+
+// Os brawlers livres que a pessoa pode pegar (no máximo, quando há lista), pela nota,
+// com os fortes dela na frente. As 3 primeiras são as opções que o bloqueio protege:
+// até 03/11 ele protegia o 1º geral, que às vezes a pessoa nem tinha no máximo, e um
+// bloqueio do outro time no 1º desperdiçava o nosso.
+function suasEscolhas(m, fora) {
+  const minhas = recomendar(m, fora, partida.eles, Infinity).filter((r) => !temLista() || tenho(r.nome));
+  return [...minhas.filter((r) => seuForte(r.nome)), ...minhas.filter((r) => !seuForte(r.nome))];
 }
 
 // Tank pelo wiki: vida de 5.000 ou mais e alcance até 6 quadrados (16 brawlers em
@@ -1145,13 +1178,20 @@ function ehTank(nome) {
 }
 
 // Antes das escolhas, quem bloquear: o uso no mapa vezes o quanto o brawler soma pro
-// outro time, pela conta do Draft, contra o nosso 1º da lista, pra protegê-lo. Quem
+// outro time, pela conta do Draft, na média contra as nossas opções, pra protegê-las.
+// Com 3 opções, um bloqueio do outro time numa delas não desperdiça o nosso. Quem
 // ninguém escolhe aqui ou soma zero fica de fora, porque bloqueá-lo gasta a vaga à toa.
-function sugerirBloqueios(m, fora, alvo, quantos = 3) {
+// contra é o confronto mais forte dele contra uma das opções, pra linha na tela.
+function sugerirBloqueios(m, fora, opcoes, quantos = 3) {
   const peso = pesoNoDraft(m);
   return m.brawlers
-    .filter((b) => b.uso > 0 && !fora.has(b.nome) && b.nome !== alvo)
-    .map((b) => ({ nome: b.nome, uso: b.uso, soma: peso(b.nome, alvo ? [alvo] : []), contra: alvo ? confrontoLido(m, b.nome, alvo) : null }))
+    .filter((b) => b.uso > 0 && !fora.has(b.nome) && !opcoes.includes(b.nome))
+    .map((b) => {
+      const soma = opcoes.length ? opcoes.reduce((s, o) => s + peso(b.nome, [o]), 0) / opcoes.length : peso(b.nome, []);
+      const contra = opcoes.map((o) => [o, confrontoLido(m, b.nome, o)]).filter(([, v]) => v != null)
+        .reduce((a, c) => (c[1] > (a?.[1] ?? -Infinity) ? c : a), null);
+      return { nome: b.nome, uso: b.uso, soma, contra };
+    })
     .filter((b) => b.soma > 0)
     .sort((a, b) => b.uso * b.soma - a.uso * a.soma)
     .slice(0, quantos);
@@ -1248,6 +1288,26 @@ function desenharDica(m) {
         : `Enter marca ${achados[0]}${achados.length > 1 ? ` (também: ${achados.slice(1, 4).join(', ')})` : ''}.`;
 }
 
+// Os fortes da pessoa fora dos 5 recomendados, livres e no máximo, com quanto o time
+// perde de chance em relação ao melhor que ela pode pegar, pela mesma conta da chance.
+// Caso do Edgar em Parallel Plays (03/11): maior recorde do Kauê, 48º no mapa, 45%
+// contra 54% da Amber, e ele ganhou por 2 a 0. A pessoa vê o preço e decide.
+function desenharSeusFortes(m, lista, escolhas, nome, selo) {
+  const { nos, eles } = partida;
+  const naLista = new Set(lista.map((r) => r.nome));
+  const fortes = nos.length < 3 ? escolhas.filter((r) => seuForte(r.nome) && !naLista.has(r.nome)).slice(0, 3) : [];
+  document.getElementById('draftSeus').hidden = !fortes.length;
+  if (!fortes.length) return;
+  const melhor = escolhas.reduce((a, b) => (b.nota > a.nota ? b : a)).nome;
+  const base = chanceDoTime(m, [...nos, melhor], eles);
+  const custo = (n) => {
+    const pontos = Math.round(100 * (base - chanceDoTime(m, [...nos, n], eles)));
+    return pontos > 0 ? `${pontos} ${pontos === 1 ? 'ponto' : 'pontos'} a menos que ${esc(melhor)}` : `mesma chance que ${esc(melhor)}`;
+  };
+  document.getElementById('seusLista').innerHTML = fortes.map((r) =>
+    `<li><b>${nome(r.nome)}${selo(r.nome)}</b><span>${r.pos ? `${r.pos}º no mapa` : 'pouco jogado aqui'} · ${custo(r.nome)}${seuRanqueado(r.nome) ? ` · ${seuRanqueado(r.nome)}` : ''}</span></li>`).join('');
+}
+
 function desenharDraft(m) {
   // Sempre aberto no ranqueado: no draft não sobra tempo pra um clique a mais.
   const secao = document.getElementById('draft');
@@ -1282,25 +1342,32 @@ function desenharDraft(m) {
       : `<button class="desbloq${apagado}" type="button" data-marcar="${esc(n)}">${esc(n)}</button>`;
   };
   const { lista, empatados } = comEmpate(recomendar(m, fora, partida.eles));
-  const comPerfil = !!perfil?.recordes;
-  const forte = comPerfil ? corteDoForte() : Infinity;
+  const comForte = !!perfil?.recordes || Object.values(sei).some(Boolean);
   const temTank = partida.nos.some(ehTank);
+  const selo = (n) => (seuForte(n) ? '<span class="forte">seu forte</span>' : '');
   const extra = (r, i) => (i < empatados && empatados > 1 && recorde(r.nome) ? ` · seu recorde ${recorde(r.nome).toLocaleString('pt-BR')}` : '')
+    + (seuRanqueado(r.nome) ? ` · ${seuRanqueado(r.nome)}` : '')
     + (temTank && ehTank(r.nome) ? ' · já temos um tank' : '');
   document.getElementById('draftRecomenda').innerHTML = lista
-    .map((r, i) => `<li${i < empatados && empatados > 1 ? ' class="empate"' : ''}><b>${nome(r.nome)}${recorde(r.nome) >= forte ? '<span class="forte">seu forte</span>' : ''}</b><span>${motivo(r)}${extra(r, i)}</span></li>`).join('')
+    .map((r, i) => `<li${i < empatados && empatados > 1 ? ' class="empate"' : ''}><b>${nome(r.nome)}${selo(r.nome)}</b><span>${motivo(r)}${extra(r, i)}</span></li>`).join('')
     || '<li class="vazio">Ninguém livre com partidas suficientes.</li>';
   document.getElementById('draftEmpate').textContent = empatados > 1
-    ? `Os ${empatados} primeiros estão empatados: a diferença entre eles é menor que a margem da conta. ${comPerfil ? 'Entre eles, vem antes quem você mais jogou.' : 'Escolha seu nome em "Você" pra pôr antes quem você mais jogou.'}`
+    ? `Os ${empatados} primeiros estão empatados: a diferença entre eles é menor que a margem da conta. ${comForte ? 'Entre eles, vêm antes os seus fortes.' : 'Escolha seu nome em "Você" pra pôr antes quem você mais jogou.'}`
     : '';
+  const escolhas = suasEscolhas(m, fora);
+  desenharSeusFortes(m, lista, escolhas, nome, selo);
   // Bloqueio sugerido só antes das escolhas: no jogo, os bloqueios vêm primeiro.
   const caixaBloq = document.getElementById('draftBloqueio');
+  const opcoes = escolhas.slice(0, 3).map((r) => r.nome);
   const bloqs = !partida.eles.length && !partida.nos.length && partida.bloqueios.length < GRUPOS.bloqueios.max
-    ? sugerirBloqueios(m, fora, lista[0]?.nome) : [];
+    ? sugerirBloqueios(m, fora, opcoes) : [];
   caixaBloq.hidden = !bloqs.length;
   document.getElementById('bloqueioLista').innerHTML = bloqs.map((b) =>
     `<li><b><button class="desbloq" type="button" data-bloquear="${esc(b.nome)}">${esc(b.nome)}</button></b>`
-    + `<span>em ${pct(Math.min(1, 3 * b.uso), 0)} dos times · ${pp(m.forca[b.nome] ?? 0)}${b.contra != null ? ` · contra ${esc(lista[0].nome)} ${pp(b.contra)}` : ''}</span></li>`).join('');
+    + `<span>em ${pct(Math.min(1, 3 * b.uso), 0)} dos times · ${pp(m.forca[b.nome] ?? 0)}${b.contra ? ` · contra ${esc(b.contra[0])} ${pp(b.contra[1])}` : ''}</span></li>`).join('');
+  document.getElementById('bloqueioNota').textContent = opcoes.length
+    ? `Quem mais aparece aqui e mais ajudaria o outro time contra ${temLista() || comForte ? 'as suas opções' : 'as nossas 3 melhores opções'}: ${opcoes.join(', ')}. Clicar bloqueia.`
+    : '';
   desenharChance(m);
   desenharLeitura(m);
   desenharDica(m);
@@ -1566,6 +1633,12 @@ document.addEventListener('change', (e) => {
     e.target.checked ? meus.add(selecionado) : meus.delete(selecionado);
     salvarMeus();
     mudouMeus();
+  }
+  // Marcado ou desmarcado na mão, vale o que a pessoa disse, mesmo igual ao recorde.
+  if (e.target.id === 'sei') {
+    sei[selecionado] = e.target.checked;
+    guardar.gravar('sei:' + (perfil?.tag ?? ''), sei);
+    desenharMapa();
   }
   if (e.target.id === 'perfil') {
     perfil = MEMBROS.find((p) => p.tag === e.target.value) ?? null;
