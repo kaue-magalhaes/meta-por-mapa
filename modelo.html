@@ -775,8 +775,10 @@ let sei = {};
 
 // No ranqueado o jogo deixa alguns brawlers no máximo pra todo mundo até o fim da
 // temporada, mesmo pra quem não tem. Trocar a cada temporada (Kauê, 01/11/2026). Em
-// 01/11 o contador do jogo dizia 16 dias, então vale até o fim de 17/11.
-const MAX_NO_RANQUEADO = new Date() < new Date(2026, 10, 18) ? new Set(['Pearl', 'Edgar', 'Sirius']) : new Set();
+// 01/11 o contador do jogo dizia 16 dias, então vale até o fim de 17/11. A atualização
+// de 03/11 subiu de 3 pra 6; a lista é a que o Kauê leu no jogo nesse dia (o Edgar de
+// antes era engano).
+const MAX_NO_RANQUEADO = new Date() < new Date(2026, 10, 18) ? new Set(['Pearl', 'Byron', 'Sirius', 'Bull', 'Melodie', 'Squeak']) : new Set();
 // Se a pessoa joga com o brawler no máximo neste mapa. A caixa "Tenho no máximo" e o
 // que fica guardado continuam valendo só o que é dela.
 const tenho = (nome) => meus.has(nome) || (atual?.parte === 'ranqueado' && MAX_NO_RANQUEADO.has(nome));
