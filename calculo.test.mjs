@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, duplasDeAliados } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, duplasDeAliados, mapasNoAr, depoisDaTroca } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -300,4 +300,33 @@ test('duplasDeAliados junta os dois lados da dupla, como duplasDeTimes', () => {
     { brawler: 'EL PRIMO', ally: 'COLT', picks: '5', winRate: '1' },
   ]);
   assert.deepEqual(d, { 'Bea|Colt': { n: 40, v: 18 }, 'Colt|El Primo': { n: 5, v: 5 } });
+});
+
+const partida = (mode, map, hora, eventId = '1') => ({ mode, map, eventId, timestamp: `2026-11-07T${hora}:00.000Z` });
+const nomes = (linhas) => linhas.map((r) => r.map).sort();
+
+test('mapasNoAr mede a folga a partir da última partida, e não do relógio', () => {
+  const linhas = [partida('gemGrab', 'A', '10:00'), partida('gemGrab', 'B', '05:00'), partida('gemGrab', 'C', '03:59')];
+  // Seis horas antes da última partida (10h) é 4h: B fica, C sai.
+  assert.deepEqual(nomes(mapasNoAr(linhas, (ultima) => ultima - 6 * 36e5)), ['A', 'B']);
+});
+
+test('mapasNoAr ignora os mapas de Competition, até na última partida', () => {
+  const linhas = [partida('gemGrab', 'A', '10:00'), partida('brawlBall', 'Competition Entry', '23:00', '0')];
+  assert.deepEqual(nomes(mapasNoAr(linhas, (ultima) => ultima - 36e5)), ['A']);
+});
+
+test('depoisDaTroca tira o mapa que parou logo depois da troca de rotação', () => {
+  // A rotação trocou às 2h; o mapa que saiu ainda teve partida às 2h02.
+  const linhas = [partida('megaDuoShowdown', 'Saiu', '02:02'), partida('megaDuoShowdown', 'Entrou', '02:45'), partida('duoShowdown', 'Raro', '02:25')];
+  assert.deepEqual(nomes(mapasNoAr(linhas, depoisDaTroca)), ['Entrou', 'Raro']);
+});
+
+test('depoisDaTroca não marca nada logo depois da troca, quando ainda não dá pra separar', () => {
+  const linhas = [partida('megaDuoShowdown', 'Saiu', '02:02'), partida('megaDuoShowdown', 'Entrou', '02:05')];
+  assert.deepEqual(mapasNoAr(linhas, depoisDaTroca), []);
+});
+
+test('mapasNoAr sem partida nenhuma devolve lista vazia', () => {
+  assert.deepEqual(mapasNoAr([], depoisDaTroca), []);
 });

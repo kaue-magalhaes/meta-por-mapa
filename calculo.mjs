@@ -354,3 +354,23 @@ export function especialistas(brawlersMapa, porModo, quantos = 5) {
     .sort((a, b) => b.delta - a.delta)
     .slice(0, quantos);
 }
+
+// Linhas do BTN { mode, map, eventId, timestamp } dos mapas jogados agora. desde recebe
+// a hora da partida mais recente, em ms, e devolve a partir de quando o mapa conta como
+// no ar. A comparação é com a última partida, e não com o relógio, porque o BTN às vezes
+// passa horas sem gravar. eventId 0 são os mapas de Competition, que o site esconde.
+export function mapasNoAr(linhas, desde) {
+  const validas = linhas.filter((r) => Number(r.eventId) !== 0);
+  if (!validas.length) return [];
+  const corte = desde(Math.max(...validas.map((r) => Date.parse(r.timestamp))));
+  return validas.filter((r) => Date.parse(r.timestamp) >= corte);
+}
+
+// A rotação do troféu troca a cada duas horas, na hora cheia par em UTC; em 07/11 todos
+// os eventos da API oficial começavam assim, e a aba Especial trocou o Mega Showdown em
+// Duplas às 0h e às 2h. O mapa que sai ainda tem partida por uns 2 minutos (as que
+// começaram antes da troca). Conta como no ar o mapa jogado depois da última troca mais
+// MARGEM_TROCA; logo depois da troca, nenhum mapa passa.
+const TROCA = 2 * 36e5;
+const MARGEM_TROCA = 10 * 6e4;
+export const depoisDaTroca = (ultima) => Math.floor(ultima / TROCA) * TROCA + MARGEM_TROCA;
