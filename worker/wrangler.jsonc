@@ -1,0 +1,16 @@
+// worker/wrangler.jsonc
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "meta-por-mapa-perfil",
+  "main": "index.mjs",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  // Workers Cache: a resposta guardada sai antes de a Worker rodar. A Cache API antiga
+  // não funciona em *.workers.dev.
+  "cache": { "enabled": true },
+  // O deploy falha se o segredo não existir.
+  "secrets": { "required": ["SUPERCELL_KEY"] },
+  // 30 buscas por minuto por IP. A doc não diz se o limitador está no plano grátis;
+  // se o deploy recusar, este bloco sai (Task 7).
+  "ratelimits": [{ "name": "LIMITE", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }]
+}
