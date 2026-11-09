@@ -2,7 +2,7 @@
 #
 # O site é gerado no PC do Kauê, de hora em hora (deploy/publicar.sh), mas as
 # estatísticas do BTN só são coletadas uma vez por dia. Com o BTN fora, ele continua
-# publicando, com as estatísticas da última vez e o clube novo. Por isso este robô
+# publicando, com as estatísticas da última vez e a rotação atualizada. Por isso este robô
 # olha a data das estatísticas, no estado.json da gh-pages, e não só a da publicação:
 # passou de LIMITE_HORAS, abre uma issue; voltou, fecha. Assim o aviso sai também com
 # o PC desligado.
@@ -55,9 +55,9 @@ jobs:
 
           # Publicação recente com estatística velha: o PC está bem, a coleta no BTN é que falha.
           if [ $(( ($(date +%s) - $(date -d "$publicado" +%s)) / 3600 )) -lt "$LIMITE_PUBLICACAO" ]; then
-            causa="O PC continua publicando (última vez em $(quando "$publicado")), então o problema é a coleta no Brawl Time Ninja. O site segue no ar com as estatísticas antigas, e a lista de quem cada um tem no máximo continua atualizando."
+            causa="O PC continua publicando (última vez em $(quando "$publicado")), então o problema é a coleta no Brawl Time Ninja. O site segue no ar com as estatísticas antigas."
           else
-            causa="O PC também não publica desde $(quando "$publicado"). Se ele estiver desligado, é só isso: o timer roda assim que ele ligar. A lista de quem cada um tem no máximo também está parada."
+            causa="O PC também não publica desde $(quando "$publicado"). Se ele estiver desligado, é só isso: o timer roda assim que ele ligar."
           fi
 
           cat > corpo.md <<EOF

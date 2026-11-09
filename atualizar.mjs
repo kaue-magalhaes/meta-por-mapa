@@ -1,17 +1,16 @@
 // Puxa do Brawl Time Ninja o meta por mapa e gera site/index.html.
 // Duas partes: o ranqueado e os mapas que valem troféu, as duas descobertas na
-// hora, com os mapas da rotação marcados. Os perfis do clube vão junto, pra cada
-// membro escolher o próprio nome na página e ver quem tem no máximo.
+// hora, com os mapas da rotação marcados. O perfil de quem usa a página vem da Worker
+// em worker/, buscado pela tag na hora; o endereço dela vai junto nos dados.
 //
 // Roda de hora em hora, mas as estatísticas do BTN só são coletadas uma vez por dia
-// (pedido do dono do site). Nas outras rodadas mudam só a rotação e o clube, que vêm
+// (pedido do dono do site). Nas outras rodadas mudam só a rotação, que vem
 // da API oficial, e os mapas do troféu jogados agora, num pedido pequeno ao BTN.
 //
-// Uso: node atualizar.mjs [--parte ranqueado|trofeu] [--rank 16] [--blocos 2] [--clube 290J9JL8] [--limite N]
+// Uso: node atualizar.mjs [--parte ranqueado|trofeu] [--rank 16] [--blocos 2] [--limite N]
 //   --parte   coleta essa parte agora, mesmo com a coleta do dia feita; a outra fica como está
 //   --rank    faixa mínima do ranqueado (10 = Diamante I, 13 = Mítico I, 16 = Lendário I, 19 = Mestre I)
 //   --blocos  quantos blocos de duas semanas juntar (o site agrupa os dados assim)
-//   --clube   tag do clube cujos membros aparecem no seletor "Você"
 //   --limite  processa só os N primeiros mapas de cada parte, pra testar rápido
 // Sem argumento, vale o que está em config.json e as duas partes são geradas.
 
@@ -20,7 +19,6 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM, mapasNoAr, depoisDaTroca } from './calculo.mjs';
 import { atributosDaSemana } from './wiki.mjs';
-import { partidasRanqueadas, juntarPartidas, placarPorBrawler } from './registro.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -30,7 +28,6 @@ const arg = (nome) => {
 };
 const RANK = Number(arg('rank') ?? 16);
 const BLOCOS = Number(arg('blocos') ?? 2);
-const CLUBE = arg('clube')?.replace(/^#/, '').toUpperCase();
 const PARTE = arg('parte');
 const LIMITE = Number(arg('limite') ?? Infinity);
 if (PARTE && !['ranqueado', 'trofeu'].includes(PARTE)) {
@@ -118,10 +115,9 @@ async function consulta(...args) {
 const diasAtras = (dias) => new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10);
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
 
-// Perfis e clube vêm da API oficial da Supercell, e não do BTN: assim o seletor
-// "Você" continua atualizando mesmo quando o BTN barra a coleta. A chave é criada em
+// A rotação vem da API oficial da Supercell, e não do BTN. A chave é criada em
 // developer.brawlstars.com e fica presa ao IP de casa; se o IP mudar, a API responde
-// 403 e é preciso criar outra.
+// 403 e é preciso criar outra. A Worker (worker/) usa outra chave, pelo proxy.
 const CHAVE_OFICIAL = join(homedir(), '.config/brawlstars-api/token');
 
 async function oficial(caminho) {
@@ -130,58 +126,6 @@ async function oficial(caminho) {
   const d = await r.json().catch(() => null);
   if (!r.ok) throw new Error(`API oficial recusou ${caminho} (HTTP ${r.status}): ${d?.reason ?? ''} ${d?.message ?? ''}`.trim());
   return d;
-}
-
-const comTag = (tag) => encodeURIComponent(`#${tag}`);
-
-// "No máximo" = nível 11 com pelo menos um gadget, uma star power e a hipercarga.
-// Engrenagem fica de fora porque é barata de comprar. recordes é o maior troféu que a
-// pessoa já teve com cada brawler: no Draft, marca quem ela mais jogou.
-async function perfil(tag) {
-  const p = await oficial(`/players/${comTag(tag)}`);
-  const tem = (b, k) => (b[k] ?? []).length > 0;
-  return {
-    tag,
-    nome: p.name,
-    maximizados: p.brawlers
-      .filter((b) => b.power === 11 && tem(b, 'gadgets') && tem(b, 'starPowers') && tem(b, 'hyperCharges'))
-      .map((b) => nomeBonito(b.name))
-      .sort(),
-    recordes: Object.fromEntries(p.brawlers.filter((b) => b.highestTrophies > 0).map((b) => [nomeBonito(b.name), b.highestTrophies])),
-  };
-}
-
-// Membros do clube com o que cada um tem no máximo. Um perfil por vez: são poucos,
-// e a API oficial limita a taxa de cada chave. De cada membro também vêm as partidas do
-// Ranqueado, guardadas em partidas-clube.json (fora do git e do site); delas vai pro
-// site só o placar de cada membro com cada brawler.
-async function clube(tag) {
-  const c = await oficial(`/clubs/${comTag(tag)}`);
-  const membros = [];
-  const novas = [];
-  for (const m of c.members) {
-    const t = m.tag.replace(/^#/, '');
-    // Um perfil ou registro que falha não derruba a geração: o membro fica de fora até a próxima.
-    try {
-      membros.push(await perfil(t));
-    } catch (e) {
-      console.warn(`perfil #${t} falhou: ${e.message}`);
-    }
-    try {
-      novas.push(...partidasRanqueadas((await oficial(`/players/${comTag(t)}/battlelog`)).items, m.tag));
-    } catch (e) {
-      console.warn(`partidas de #${t} falharam: ${e.message}`);
-    }
-  }
-  membros.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-  const arquivo = new URL('partidas-clube.json', dir);
-  const antigas = JSON.parse(await readFile(arquivo, 'utf8').catch(() => '[]'));
-  const juntas = juntarPartidas(antigas, novas, Date.now());
-  await writeFile(arquivo, JSON.stringify(juntas));
-  console.log(`partidas do clube: ${juntas.length} guardadas (${juntas.length - antigas.length} novas)`);
-  // Só a contagem por brawler vai pro site, pro Draft mostrar "seu Ranqueado 5V 3D".
-  for (const m of membros) m.ranqueado = placarPorBrawler(juntas, `#${m.tag}`, nomeBonito);
-  return { tag, nome: c.name, membros };
 }
 
 // Mapas da rotação do troféu agora, como 'modo|mapa'. Vem da API oficial, que não
@@ -552,7 +496,7 @@ async function main() {
   });
   // Se as duas falharem, a marca fica a da última vez.
   const rotacao = daApi || jogados ? new Set([...(daApi ?? []), ...(jogados ?? [])]) : null;
-  // Com o BTN fora, o site sai com as estatísticas da última vez e o clube atualizado.
+  // Com o BTN fora, o site sai com as estatísticas da última vez e a rotação atualizada.
   // Cada parte guarda a data em que foi gerada; é ela que a página mostra e que o
   // aviso de site parado confere (estado.json). Coleta que falha tenta de novo na
   // rodada seguinte.
@@ -576,14 +520,6 @@ async function main() {
     console.log(`rotação: ${daApi.size} mapas da API oficial; jogados agora fora dela: ${especiais.join(', ') || 'nenhum'}`);
   }
 
-  // Clube que falha não derruba a geração: vale o da última vez.
-  const doClube = CLUBE
-    ? await clube(CLUBE).catch((e) => {
-        console.warn(`clube #${CLUBE} falhou: ${e.message}`);
-        return anterior?.clube ?? null;
-      })
-    : null;
-
   // Alcance, vida e recarga de todo brawler que aparece nos dados, pra leitura da
   // partida no Draft. Vêm do wiki uma vez por semana; sem eles a tabela sai com traços.
   const nomes = [...new Set(Object.values(partes).flatMap((p) =>
@@ -594,7 +530,8 @@ async function main() {
     geradoEm: new Date().toISOString(),
     blocos: BLOCOS,
     minPartidas: MIN_PARTIDAS,
-    clube: doClube,
+    // Endereço da Worker que busca o perfil pela tag. Sem ele, a página esconde o campo.
+    worker: config.worker ?? null,
     atributos: atributos && { geradoEm: atributos.geradoEm, brawlers: atributos.brawlers },
     partes,
   };
@@ -605,7 +542,7 @@ async function main() {
   await writeFile(new URL('site/index.html', dir), modelo.replace('/*__DADOS__*/null', json));
   const estatisticasEm = Object.values(partes).map((p) => p.geradoEm).sort()[0];
   await writeFile(new URL('site/estado.json', dir), JSON.stringify({ publicadoEm: dados.geradoEm, estatisticasEm }));
-  console.log(`ok: site/index.html gerado (${(json.length / 1e6).toFixed(2)} MB de dados, ${doClube?.membros.length ?? 0} perfis do clube, ${pedidosBtn} pedidos ao BTN)`);
+  console.log(`ok: site/index.html gerado (${(json.length / 1e6).toFixed(2)} MB de dados, ${pedidosBtn} pedidos ao BTN)`);
 }
 
 main().catch((e) => {

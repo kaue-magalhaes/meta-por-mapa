@@ -2,7 +2,6 @@
 site/
 dados.json
 atributos.json
-partidas-clube.json
 brawl-meta*.html
 
 # Cópias de segurança locais
