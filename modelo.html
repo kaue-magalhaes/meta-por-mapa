@@ -90,11 +90,17 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px 
 }
 .segmento button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
-.voce { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
-.voce select {
-  min-height: 40px; max-width: 220px; padding: 6px 10px; border-radius: 12px;
+.voce { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
+.voce input, .voce button {
+  min-height: 40px; padding: 6px 10px; border-radius: 12px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 500;
 }
+.voce input { width: 10.5em; text-transform: uppercase; }
+.voce button { cursor: pointer; }
+.aviso-perfil { font-weight: 500; font-size: 0.85rem; flex-basis: 100%; }
+/* Vazio, some da tela mas fica pro leitor de tela anunciar quando o texto chegar.
+   Absoluto pra não ocupar lugar no flex nem ganhar o gap. */
+.aviso-perfil:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 /* Corpo: coluna do seletor só a partir de 1000px */
 .corpo { display: grid; gap: 16px; align-items: start; }
@@ -460,7 +466,12 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
       <div class="sub" id="info"></div>
     </div>
     <div class="controles">
-      <label class="voce" id="voce" hidden>Você <select id="perfil"></select></label>
+      <form class="voce" id="voce" hidden>
+        <label for="tag">Sua tag</label>
+        <input id="tag" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="#2PU0YL92J" maxlength="20" aria-describedby="avisoPerfil">
+        <button type="submit">Buscar</button>
+        <span class="aviso-perfil" id="avisoPerfil" role="status"></span>
+      </form>
       <div class="segmento" id="partes" role="group" aria-label="Tipo de partida"></div>
     </div>
   </header>
@@ -605,7 +616,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         </div>
         <div id="guiaVoce" hidden>
           <h3>Seu perfil</h3>
-          <p>Escolha seu nome em "Você" e a página marca quem você tem no máximo: nível 11 com gadget, star power e hipercarga. A lista vem do seu perfil e se atualiza sozinha. Se marcar ou desmarcar algum brawler na mão, o ajuste fica guardado neste navegador.</p>
+          <p>Digite sua tag em "Sua tag" (ela fica no seu perfil do jogo, embaixo do nome) e a página marca quem você tem no máximo: nível 11 com gadget, star power e hipercarga. A página lembra a tag neste navegador e atualiza o perfil a cada visita. Se marcar ou desmarcar algum brawler na mão, o ajuste fica guardado. Para marcar tudo na mão, deixe o campo vazio e aperte Buscar.</p>
         </div>
         <div id="guiaBloqueio">
           <h3>Bloqueio</h3>
@@ -614,11 +625,11 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         <div id="guiaDraft" hidden>
           <h3>Draft</h3>
           <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. Com pelo menos um brawler de cada lado, a leitura da partida diz quem cada um do nosso time caça e evita, pelos mesmos confrontos, e compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.</p>
-          <p>Antes das escolhas, "Pra bloquear" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra as suas 3 melhores opções. As opções são os seus fortes que você tem no máximo, os melhores no mapa primeiro, completados pelos outros que você tem no máximo. Proteger três evita que um bloqueio do outro time numa delas desperdice o seu. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. "Seu forte" é quem você marcou com "Sei jogar" no cartão do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos. "Seu Ranqueado" conta as suas vitórias e derrotas com o brawler nas partidas do Ranqueado guardadas pela página, em todos os mapas. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza.</p>
+          <p>Antes das escolhas, "Pra bloquear" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra as suas 3 melhores opções. As opções são os seus fortes que você tem no máximo, os melhores no mapa primeiro, completados pelos outros que você tem no máximo. Proteger três evita que um bloqueio do outro time numa delas desperdice o seu. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. "Seu forte" é quem você marcou com "Sei jogar" no cartão do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza.</p>
         </div>
         <div>
           <h3>De onde vêm os dados</h3>
-          <p>Das partidas registradas pelo <a href="https://brawltime.ninja" target="_blank" rel="noopener">Brawl Time Ninja</a>, no período que aparece no topo. No ranqueado, a tier list usa as últimas 6 semanas, e uma partida de duas semanas atrás vale metade de uma de hoje; o número de partidas mostrado já vem com esse peso. As contas (vitória ajustada, tiers, duplas, counters) são desta página. Não é um site oficial da Supercell.</p>
+          <p>Das partidas registradas pelo <a href="https://brawltime.ninja" target="_blank" rel="noopener">Brawl Time Ninja</a>, no período que aparece no topo. No ranqueado, a tier list usa as últimas 6 semanas, e uma partida de duas semanas atrás vale metade de uma de hoje; o número de partidas mostrado já vem com esse peso. As contas (vitória ajustada, tiers, duplas, counters) são desta página. Não é um site oficial da Supercell. <span lang="en">This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: <a href="https://www.supercell.com/fan-content-policy" target="_blank" rel="noopener">www.supercell.com/fan-content-policy</a>.</span></p>
         </div>
       </section>
     </main>
@@ -761,11 +772,33 @@ function mudar(grupo, nome, marcado) {
   partida.feitos = partida.feitos.filter((f) => f.grupo !== grupo || f.nome !== nome);
 }
 
-// Quem a pessoa tem no máximo. Com um perfil do clube escolhido, vem do perfil
-// (renovado a cada geração da página) mais os ajustes feitos na mão. Sem perfil,
-// vale só o que foi marcado na mão. Tudo fica no navegador de quem usa.
-const MEMBROS = DADOS.clube?.membros ?? [];
-let perfil = MEMBROS.find((p) => p.tag === guardar.ler('perfil', null)) ?? null;
+// Quem a pessoa tem no máximo. Com uma tag buscada, vem do perfil dela (Worker em
+// DADOS.worker) mais os ajustes feitos na mão. Sem tag, vale só o que foi marcado na
+// mão. Tudo fica no navegador de quem usa: a tag, o último perfil que deu certo (pra
+// página abrir com ele mesmo se a busca falhar) e os ajustes.
+const MENSAGENS = {
+  'tag-invalida': 'Essa tag não parece válida. Ela fica no seu perfil, embaixo do nome.',
+  'nao-existe': 'Não achei essa tag no jogo.',
+  manutencao: 'O Brawl Stars está em manutenção. Tenta de novo daqui a pouco.',
+  ocupado: 'Muita gente buscando agora. Tenta de novo em alguns minutos.',
+  fora: 'Não consegui falar com o jogo agora.',
+};
+// Até 08/11/2026 a pessoa escolhia um membro do clube, e a tag dele ficava em 'perfil'.
+// A tag tem o mesmo formato, então os ajustes e o "Sei jogar" continuam valendo.
+// A chave antiga é apagada na migração; sem isso, quem esvazia o campo ganharia a tag de volta.
+if (typeof guardar.ler('perfil', null) === 'string') {
+  if (!guardar.ler('tag', null)) guardar.gravar('tag', guardar.ler('perfil', null));
+  guardar.gravar('perfil', null);
+}
+// Perfil no formato que a Worker devolve. Resposta torta ou perfil guardado estragado
+// não entra, senão quebraria a página a cada visita.
+function perfilValido(p) {
+  return typeof p?.tag === 'string' && typeof p.nome === 'string' && Array.isArray(p.maximizados)
+    && typeof p.recordes === 'object' && p.recordes !== null;
+}
+// Página gerada sem a Worker não tem o campo da tag, então não usa perfil guardado.
+let perfil = DADOS.worker ? guardar.ler('perfil:dados', null) : null;
+if (perfil && !perfilValido(perfil)) perfil = null;
 const meus = new Set();
 const temLista = () => meus.size > 0;
 // "Sei jogar" marcado na mão, por perfil: nome -> true ou false. Vence o recorde de
@@ -796,7 +829,7 @@ function carregarMeus() {
 }
 
 // Com perfil, guarda só a diferença pra ele: brawler que chegar ao máximo depois
-// aparece sozinho na próxima geração.
+// aparece sozinho na próxima busca ou visita.
 function salvarMeus() {
   if (!perfil) return guardar.gravar('meus', [...meus]);
   const base = new Set(perfil.maximizados);
@@ -806,6 +839,45 @@ function salvarMeus() {
   });
 }
 carregarMeus();
+
+// Conta as buscas: só a última vale, pra uma resposta atrasada não passar por cima de
+// uma busca mais nova nem trazer de volta o perfil que a pessoa limpou.
+let pedidoPerfil = 0;
+// silencioso: a busca de quando a página abre. Não mostra "Buscando" e, se falhar com
+// um perfil guardado, avisa que está usando ele.
+async function buscarPerfil(texto, silencioso) {
+  const meu = ++pedidoPerfil;
+  const aviso = document.getElementById('avisoPerfil');
+  if (!silencioso) aviso.textContent = 'Buscando...';
+  let corpo = null;
+  try {
+    const r = await fetch(`${DADOS.worker}/perfil/${encodeURIComponent(texto.trim())}`, { signal: AbortSignal.timeout(8000) });
+    corpo = await r.json();
+  } catch {}
+  if (meu !== pedidoPerfil) return;
+  if (!perfilValido(corpo)) {
+    const msg = MENSAGENS[corpo?.erro] ?? MENSAGENS.fora;
+    aviso.textContent = silencioso && perfil ? `Usando o perfil guardado. ${msg}` : msg;
+    return;
+  }
+  aviso.textContent = '';
+  perfil = corpo;
+  guardar.gravar('tag', corpo.tag);
+  guardar.gravar('perfil:dados', corpo);
+  if (!silencioso) document.getElementById('tag').value = `#${corpo.tag}`;
+  carregarMeus();
+  mudouMeus();
+}
+
+function semPerfil() {
+  ++pedidoPerfil;
+  perfil = null;
+  guardar.gravar('tag', null);
+  guardar.gravar('perfil:dados', null);
+  document.getElementById('avisoPerfil').textContent = '';
+  carregarMeus();
+  mudouMeus();
+}
 
 // Cada mapa sabe de qual parte veio: o mesmo nome existe em duas partes
 // (Shooting Star) ou em dois modos (Rockwall Brawl no Solo e no Duo Showdown).
@@ -1132,7 +1204,7 @@ function recomendar(m, fora, inimigos, quantos = 5) {
 // ranqueado de 02/11, o grupo empatado com o 1º teve de 1 a 4 nomes.
 const SD_SEM_MARGEM = 0.03;
 
-// O recorde de troféus de quem está em "Você" com o brawler: mede quanto a pessoa jogou
+// O recorde de troféus com o brawler de quem buscou a tag: mede quanto a pessoa jogou
 // com ele, no troféu e não no ranqueado, mas é o que existe hoje. "Seu forte" é o quarto
 // de cima dos recordes da própria pessoa. Pedido do Kauê em 02/11, pelo caso da Amber:
 // forte no mapa, mas ele não ia bem com ela.
@@ -1144,13 +1216,6 @@ function corteDoForte() {
 
 // Forte pra pessoa: "Sei jogar" marcado na mão ou, sem marcação, recorde no quarto de cima.
 const seuForte = (nome) => (nome in sei ? sei[nome] : recorde(nome) >= corteDoForte());
-
-// Vitórias e derrotas de quem está em "Você" com o brawler, nas partidas do Ranqueado
-// guardadas pela geração. Só informação: são poucas partidas pra mudar a ordem.
-function seuRanqueado(nome) {
-  const [v, d] = perfil?.ranqueado?.[nome] ?? [0, 0];
-  return v + d ? `seu Ranqueado ${v}V ${d}D` : '';
-}
 
 // Põe o grupo empatado com o 1º na frente: primeiro os fortes da pessoa, depois o maior
 // recorde. Sem perfil nem marcação, fica a ordem da nota.
@@ -1307,7 +1372,7 @@ function desenharSeusFortes(m, lista, escolhas, nome, selo) {
     return pontos > 0 ? `${pontos} ${pontos === 1 ? 'ponto' : 'pontos'} a menos que ${esc(melhor)}` : `mesma chance que ${esc(melhor)}`;
   };
   document.getElementById('seusLista').innerHTML = fortes.map((r) =>
-    `<li><b>${nome(r.nome)}${selo(r.nome)}</b><span>${r.pos ? `${r.pos}º no mapa` : 'pouco jogado aqui'} · ${custo(r.nome)}${seuRanqueado(r.nome) ? ` · ${seuRanqueado(r.nome)}` : ''}</span></li>`).join('');
+    `<li><b>${nome(r.nome)}${selo(r.nome)}</b><span>${r.pos ? `${r.pos}º no mapa` : 'pouco jogado aqui'} · ${custo(r.nome)}</span></li>`).join('');
 }
 
 function desenharDraft(m) {
@@ -1348,13 +1413,12 @@ function desenharDraft(m) {
   const temTank = partida.nos.some(ehTank);
   const selo = (n) => (seuForte(n) ? '<span class="forte">seu forte</span>' : '');
   const extra = (r, i) => (i < empatados && empatados > 1 && recorde(r.nome) ? ` · seu recorde ${recorde(r.nome).toLocaleString('pt-BR')}` : '')
-    + (seuRanqueado(r.nome) ? ` · ${seuRanqueado(r.nome)}` : '')
     + (temTank && ehTank(r.nome) ? ' · já temos um tank' : '');
   document.getElementById('draftRecomenda').innerHTML = lista
     .map((r, i) => `<li${i < empatados && empatados > 1 ? ' class="empate"' : ''}><b>${nome(r.nome)}${selo(r.nome)}</b><span>${motivo(r)}${extra(r, i)}</span></li>`).join('')
     || '<li class="vazio">Ninguém livre com partidas suficientes.</li>';
   document.getElementById('draftEmpate').textContent = empatados > 1
-    ? `Os ${empatados} primeiros estão empatados: a diferença entre eles é menor que a margem da conta. ${comForte ? 'Entre eles, vêm antes os seus fortes.' : 'Escolha seu nome em "Você" pra pôr antes quem você mais jogou.'}`
+    ? `Os ${empatados} primeiros estão empatados: a diferença entre eles é menor que a margem da conta. ${comForte ? 'Entre eles, vêm antes os seus fortes.' : 'Digite sua tag em "Sua tag" pra pôr antes quem você mais jogou.'}`
     : '';
   const escolhas = suasEscolhas(m, fora);
   desenharSeusFortes(m, lista, escolhas, nome, selo);
@@ -1642,16 +1706,16 @@ document.addEventListener('change', (e) => {
     guardar.gravar('sei:' + (perfil?.tag ?? ''), sei);
     desenharMapa();
   }
-  if (e.target.id === 'perfil') {
-    perfil = MEMBROS.find((p) => p.tag === e.target.value) ?? null;
-    guardar.gravar('perfil', perfil?.tag ?? null);
-    carregarMeus();
-    mudouMeus();
-  }
   if (e.target.id === 'soMeus') {
     guardar.gravar('soMeus', e.target.checked);
     desenharMapa();
   }
+});
+
+document.getElementById('voce').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const texto = document.getElementById('tag').value;
+  texto.trim() ? buscarPerfil(texto, false) : semPerfil();
 });
 
 // A borda da barra do mapa só aparece quando ela gruda no topo.
@@ -1666,14 +1730,15 @@ function mudouMeus() {
   desenharMapa();
 }
 
-// O seletor "Você" só existe quando a página foi gerada com um clube.
-if (MEMBROS.length) {
-  const opcoes = MEMBROS.map((p) => `<option value="${esc(p.tag)}">${esc(p.nome)}</option>`).join('');
-  const sel = document.getElementById('perfil');
-  sel.innerHTML = `<option value="">Ninguém (marco na mão)</option>${opcoes}`;
-  sel.value = perfil?.tag ?? '';
+// O campo da tag só existe quando a página foi gerada com o endereço da Worker.
+if (DADOS.worker) {
   document.getElementById('voce').hidden = false;
   document.getElementById('guiaVoce').hidden = false;
+  const tag = guardar.ler('tag', null);
+  if (tag) {
+    document.getElementById('tag').value = `#${tag}`;
+    buscarPerfil(tag, true);
+  }
 }
 document.getElementById('ferramentas').hidden = !temLista();
 document.getElementById('soMeus').checked = guardar.ler('soMeus', false);
