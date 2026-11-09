@@ -1,5 +1,5 @@
 {
-  "worker": null,
+  "worker": "https://meta-por-mapa-perfil.kaue-magalhaes.workers.dev",
   "rank": 16,
   "blocos": 2,
   "patches": [

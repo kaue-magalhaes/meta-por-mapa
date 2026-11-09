@@ -3,8 +3,8 @@
 Quais brawlers escolher em cada mapa de Brawl Stars, no ranqueado e no troféu,
 com counters, duplas e especialistas por mapa, e um modo Draft para o ranqueado
 do Mítico pra cima, que recomenda o brawler conforme os bloqueios e as escolhas
-digitados. Os membros do clube escolhem o próprio nome na página e veem só os
-brawlers que têm no máximo.
+digitados. Quem usa digita a própria tag e a página marca quem a pessoa tem no
+máximo.
 
 Os dados vêm das partidas registradas pelo [Brawl Time Ninja](https://brawltime.ninja).
 As contas (vitória ajustada, tiers, duplas, counters) são deste projeto. Não é um
@@ -19,21 +19,15 @@ Um timer do systemd (`deploy/meta-por-mapa.timer`) roda isso a cada hora.
 As estatísticas do Brawl Time Ninja são coletadas uma vez por dia, com o token que o
 dono do site cedeu, em `~/.config/brawltime-ninja/token`. Cada pedido leva o nome do
 projeto e um contato, e os pedidos saem um a cada 20 segundos. Nas outras rodadas
-mudam só a rotação do troféu e o clube.
+muda só a rotação do troféu.
 
 A publicação roda numa máquina de casa, e não no GitHub Actions: o Brawl Time Ninja
 fica atrás do Cloudflare, que barra os servidores do GitHub.
 
-A rotação, os membros do clube e o que cada um tem no máximo vêm da API oficial da Supercell.
+A rotação vem da API oficial da Supercell.
 A chave, criada em developer.brawlstars.com e presa ao IP de casa, fica em
 `~/.config/brawlstars-api/token`. Se o Brawl Time Ninja falhar, o site sai mesmo
-assim, com as estatísticas da última vez e o clube atualizado.
-
-Do perfil de cada membro vem também o recorde de troféus com cada brawler, que o Draft
-usa para marcar quem a pessoa mais jogou. As partidas do Ranqueado de cada membro são
-guardadas a cada rodada em `partidas-clube.json` (fora do git), até 90 dias,
-porque a API devolve só as 25 últimas de cada jogador. Para o site vai só o placar de
-cada membro com cada brawler, que o Draft mostra como "seu Ranqueado 5V 3D".
+assim, com as estatísticas da última vez e a rotação atualizada.
 
 Alcance, vida e recarga de cada brawler, usados na leitura da partida do Draft, vêm
 da ficha dele no [wiki do Brawl Stars](https://brawlstars.fandom.com) (`wiki.mjs`). A
@@ -66,3 +60,18 @@ As opções estão no começo de `atualizar.mjs`. O padrão fica em `config.json
 Logo depois de um patch, quase todas as partidas do período são de antes dele, e a lista do ranqueado erra justamente nos brawlers alterados. Para corrigir isso, anote o patch em `patches`, no `config.json`: a data (dia do patch, em UTC) e, para cada brawler alterado, a direção (`nerf`, `buff` ou `misto`) e o tamanho (`pequena`, `media` ou `grande`), lidos nas notas.
 
 As partidas de antes do patch andam o efeito estimado dele, igual em todos os mapas, e o dia do patch sai. O Brawl Time Ninja dá as partidas em blocos de duas semanas, então elas são divididas igualmente pelos dias do bloco; o bloco que tem o patch no meio não entra na medida do efeito. O efeito começa no tamanho típico daquela mudança (`CHUTE_PATCH` em `calculo.mjs`) e vira o efeito medido conforme chegam os dias de depois. Patch que já saiu das 6 semanas pode ser apagado da lista.
+
+## Perfil pela tag
+
+A página busca o perfil numa Cloudflare Worker (`worker/`), que guarda uma chave da
+API oficial só dela e chama a API pelo proxy da RoyaleAPI (`bsproxy.royaleapi.dev`,
+IP `45.79.218.79` cadastrado na chave). Cada perfil fica 3 minutos em cache. O
+endereço da Worker fica em `config.json` (`worker`).
+
+Testes: `node --test` na raiz roda os da Worker junto. Deploy: `cd worker && npx
+wrangler deploy`. Log ao vivo: `npx wrangler tail`. Se a busca só der "Não consegui
+falar com o jogo", procure no log a linha `ATENÇÃO`: a chave ou o IP do proxy mudou.
+
+A Worker leva junto o `perfil.mjs` e, por ele, o `nomeBonito` de `calculo.mjs`. O timer
+só republica a página, nunca a Worker. Se o `nomeBonito` mudar, rode o deploy da Worker
+de novo; sem isso, os nomes que ela devolve deixam de bater com os da página.
