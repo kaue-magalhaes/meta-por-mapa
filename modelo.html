@@ -633,7 +633,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
         <div id="guiaDraft" hidden>
           <h3>Draft</h3>
           <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. Com pelo menos um brawler de cada lado, a leitura da partida diz quem cada um do nosso time caça e evita, pelos mesmos confrontos, e compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.</p>
-          <p>Antes das escolhas, "Pra bloquear" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra as suas 3 melhores opções. As opções são os seus fortes que você tem no máximo, os melhores no mapa primeiro, completados pelos outros que você tem no máximo. Proteger três evita que um bloqueio do outro time numa delas desperdice o seu. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. "Seu forte" é quem você marcou com "Sei jogar" no cartão do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza.</p>
+          <p>Antes das escolhas, "Pra bloquear" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra as suas 3 melhores opções. As opções são os seus fortes que você tem no máximo, os melhores no mapa primeiro, completados pelos outros que você tem no máximo. Proteger três evita que um bloqueio do outro time numa delas desperdice o seu. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. "Seu forte" é quem você marcou com "Sei jogar" no cartão do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza. Nos modos de objetivo (Pique-Gema, Futebol, Roubo e Zona Estratégica), com um brawler de alcance longo no nosso time (<span id="guiaAlcanceLongo"></span> quadrados ou mais, pelo wiki), os outros de alcance longo ganham o aviso "já temos um de alcance longo". A ordem também não muda: nas partidas do Lendário pra cima, time com dois ou mais deles nesses modos fez uns 1,5 ponto abaixo do esperado. Em Caça-Estrelas e Nocaute isso não acontece, e o aviso não aparece.</p>
         </div>
         <div>
           <h3>De onde vêm os dados</h3>
@@ -1280,6 +1280,17 @@ function ehTank(nome) {
   return !!a && a.vida >= 5000 && a.alcance > 0 && a.alcance <= 6;
 }
 
+// Alcance longo pelo wiki: 9 quadrados ou mais (27 brawlers em 10/11). Só nos modos de
+// objetivo e só aviso, a conta não muda: nas partidas do Mítico pra cima de 30/10 a
+// 01/11, time com dois ou mais ganhou 1,5 ponto abaixo do esperado no Lendário+ (± 1,0).
+// Em Caça-Estrelas e Nocaute o desvio inverte.
+const ALCANCE_LONGO = 9;
+const MODOS_OBJETIVO = new Set(['gemGrab', 'brawlBall', 'heist', 'hotZone']);
+function ehLongo(nome) {
+  return (DADOS.atributos?.brawlers?.[nome]?.alcance ?? 0) >= ALCANCE_LONGO;
+}
+document.getElementById('guiaAlcanceLongo').textContent = ALCANCE_LONGO;
+
 // Antes das escolhas, quem bloquear: o uso no mapa vezes o quanto o brawler soma pro
 // outro time, pela conta do Draft, na média contra as nossas opções, pra protegê-las.
 // Com 3 opções, um bloqueio do outro time numa delas não desperdiça o nosso. Quem
@@ -1447,12 +1458,14 @@ function desenharDraft(m) {
   const { lista, empatados } = comEmpate(recomendar(m, fora, partida.eles));
   const comForte = !!perfil?.recordes || Object.values(sei).some(Boolean);
   const temTank = partida.nos.some(ehTank);
+  const temLongo = MODOS_OBJETIVO.has(m.modo) && partida.nos.some(ehLongo);
   const selo = (n) => {
     const b = m.brawlers.find((x) => x.nome === n);
     return (b ? seloEscondido(b, m) : '') + (seuForte(n) ? '<span class="forte">seu forte</span>' : '');
   };
   const extra = (r, i) => (i < empatados && empatados > 1 && recorde(r.nome) ? ` · seu recorde ${recorde(r.nome).toLocaleString('pt-BR')}` : '')
-    + (temTank && ehTank(r.nome) ? ' · já temos um tank' : '');
+    + (temTank && ehTank(r.nome) ? ' · já temos um tank' : '')
+    + (temLongo && ehLongo(r.nome) ? ' · já temos um de alcance longo' : '');
   document.getElementById('draftRecomenda').innerHTML = lista
     .map((r, i) => `<li${i < empatados && empatados > 1 ? ' class="empate"' : ''}><b>${nome(r.nome)}${selo(r.nome)}</b><span>${motivo(r)}${extra(r, i)}</span></li>`).join('')
     || '<li class="vazio">Ninguém livre com partidas suficientes.</li>';
