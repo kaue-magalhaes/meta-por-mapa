@@ -5,7 +5,7 @@
 //
 // Roda de hora em hora, mas as estatísticas do BTN só são coletadas uma vez por dia
 // (pedido do dono do site). Nas outras rodadas mudam só a rotação, que vem
-// da API oficial, e os mapas do troféu jogados agora, num pedido pequeno ao BTN.
+// da API oficial, e os mapas da aba Especial, num pedido pequeno ao BTN.
 //
 // Uso: node atualizar.mjs [--parte ranqueado|trofeu] [--rank 16] [--blocos 2] [--limite N]
 //   --parte   coleta essa parte agora, mesmo com a coleta do dia feita; a outra fica como está
@@ -17,7 +17,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM, mapasNoAr, depoisDaTroca } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM, mapasNoAr, especiaisNoAr } from './calculo.mjs';
 import { atributosDaSemana } from './wiki.mjs';
 
 const dir = new URL('.', import.meta.url);
@@ -57,7 +57,7 @@ const HORAS_ENTRE_COLETAS = 23;
 // um contato, poucos pedidos a cada poucos minutos e só as tabelas já somadas, que são
 // rápidas e vêm em blocos de duas semanas. A tabela de partidas, usada até 21/10, é
 // lenta. Uma coleta faz uns 55 pedidos, um a cada INTERVALO, e roda uma vez por dia. Fora
-// dela sai um pedido por hora, o dos mapas jogados agora (desde 07/11).
+// dela sai um pedido por hora, o dos mapas da aba Especial (desde 07/11).
 const API_BTN = 'https://brawltime.ninja/api';
 const TOKEN_BTN = join(homedir(), '.config/brawltime-ninja/token');
 const AGENTE = 'meta-por-mapa (https://kaue-magalhaes.github.io/meta-por-mapa/; kauedemagalhaes27@gmail.com)';
@@ -135,12 +135,15 @@ async function rotacaoOficial() {
   return new Set(eventos.map((e) => `${e.event.mode}|${e.event.map}`));
 }
 
-// Mapas do troféu jogados agora, como 'modo|mapa'. A API oficial não lista os eventos da
-// aba Especial do jogo (em 06/11, o Mega Showdown em Duplas no Quadrant Clash); o BTN
-// tem as partidas deles. Um pedido só, com o horário da última partida de cada mapa.
-async function jogadosNoTrofeu() {
+// Mapas da aba Especial do jogo agora, como 'modo|mapa'. A API oficial não lista essa aba
+// (em 06/11, o Mega Showdown em Duplas no Quadrant Clash); o BTN tem as partidas. Um pedido
+// só, com o horário da última partida de cada mapa. daApi: Set 'modo|mapa' da API oficial.
+// Até 09/11 entrava tudo o que o BTN mostrava jogado, e a lista ganhava mapas do Ranqueado
+// e da rotação que já tinha saído.
+async function especiaisDoTrofeu(daApi) {
   const linhas = await consulta('map', ['mode', 'map'], ['picks', 'eventId', 'timestamp'], { season: [diasAtras(2)], powerplay: ['false'] }, 'timestamp');
-  return new Set(mapasNoAr(linhas, depoisDaTroca).map((r) => `${r.mode}|${r.map}`));
+  const fora = new Set([...ORDEM_RANQUEADO, ...[...daApi].map((k) => k.split('|')[0])]);
+  return especiaisNoAr(linhas, fora);
 }
 
 // O site agrupa as partidas em blocos de duas semanas; devolve o rótulo do mais antigo usado.
@@ -401,7 +404,7 @@ async function gerarRanqueado(desde, anterior) {
   return { geradoEm: new Date().toISOString(), desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, rank: RANK, mapas };
 }
 
-// rotacao: Set 'modo|mapa' da API oficial e dos jogados agora, ou null se os dois falharam.
+// rotacao: Set 'modo|mapa' da API oficial e da aba Especial, ou null se a API falhou.
 async function gerarTrofeu(desde, rotacao) {
   const base = { powerplay: ['false'], trophyRangeGte: [String(FAIXA_TROFEU)] };
 
@@ -490,12 +493,12 @@ async function main() {
     console.warn(`rotação da API oficial falhou: ${e.message}`);
     return null;
   });
-  const jogados = await jogadosNoTrofeu().catch((e) => {
-    console.warn(`mapas jogados agora falharam: ${e.message}`);
-    return null;
-  });
-  // Se as duas falharem, a marca fica a da última vez.
-  const rotacao = daApi || jogados ? new Set([...(daApi ?? []), ...(jogados ?? [])]) : null;
+  // Sem a API não dá pra separar a aba Especial do resto: a marca fica a da última vez.
+  const especiais = daApi && (await especiaisDoTrofeu(daApi).catch((e) => {
+    console.warn(`mapas da aba Especial falharam: ${e.message}`);
+    return [];
+  }));
+  const rotacao = daApi && new Set([...daApi, ...especiais]);
   // Com o BTN fora, o site sai com as estatísticas da última vez e a rotação atualizada.
   // Cada parte guarda a data em que foi gerada; é ela que a página mostra e que o
   // aviso de site parado confere (estado.json). Coleta que falha tenta de novo na
@@ -513,11 +516,13 @@ async function main() {
     console.warn(`estatísticas falharam, ficam as da última vez: ${e.message}`);
   }
   // A rotação muda ao longo do dia, então a marca é refeita a cada rodada.
-  if (rotacao) for (const m of partes.trofeu.mapas) m.rotacao = rotacao.has(`${m.modo}|${m.mapa}`);
-  if (daApi && jogados) {
+  // A página mostra rotacaoEm como a hora da lista "Na rotação agora".
+  if (rotacao) {
+    for (const m of partes.trofeu.mapas) m.rotacao = rotacao.has(`${m.modo}|${m.mapa}`);
+    partes.trofeu.rotacaoEm = new Date().toISOString();
     const naLista = new Set(partes.trofeu.mapas.map((m) => `${m.modo}|${m.mapa}`));
-    const especiais = [...jogados].filter((k) => !daApi.has(k)).map((k) => (naLista.has(k) ? k : `${k} (fora da lista até a próxima coleta)`));
-    console.log(`rotação: ${daApi.size} mapas da API oficial; jogados agora fora dela: ${especiais.join(', ') || 'nenhum'}`);
+    const extra = especiais.map((k) => (naLista.has(k) ? k : `${k} (fora da lista até a próxima coleta)`));
+    console.log(`rotação: ${daApi.size} mapas da API oficial; aba Especial: ${extra.join(', ') || 'nenhum'}`);
   }
 
   // Alcance, vida e recarga de todo brawler que aparece nos dados, pra leitura da

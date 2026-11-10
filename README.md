@@ -24,7 +24,9 @@ muda só a rotação do troféu.
 A publicação roda numa máquina de casa, e não no GitHub Actions: o Brawl Time Ninja
 fica atrás do Cloudflare, que barra os servidores do GitHub.
 
-A rotação vem da API oficial da Supercell.
+A rotação vem da API oficial da Supercell. Ela não lista a aba Especial do jogo (os
+Mega Showdown), que vem do Brawl Time Ninja: o mapa jogado por último em cada modo que
+não está na API nem no Ranqueado.
 A chave, criada em developer.brawlstars.com e presa ao IP de casa, fica em
 `~/.config/brawlstars-api/token`. Se o Brawl Time Ninja falhar, o site sai mesmo
 assim, com as estatísticas da última vez e a rotação atualizada.

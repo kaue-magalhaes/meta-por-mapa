@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, duplasDeAliados, mapasNoAr, depoisDaTroca } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, duplasDeAliados, mapasNoAr, especiaisNoAr } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -316,17 +316,35 @@ test('mapasNoAr ignora os mapas de Competition, até na última partida', () => 
   assert.deepEqual(nomes(mapasNoAr(linhas, (ultima) => ultima - 36e5)), ['A']);
 });
 
-test('depoisDaTroca tira o mapa que parou logo depois da troca de rotação', () => {
-  // A rotação trocou às 2h; o mapa que saiu ainda teve partida às 2h02.
-  const linhas = [partida('megaDuoShowdown', 'Saiu', '02:02'), partida('megaDuoShowdown', 'Entrou', '02:45'), partida('duoShowdown', 'Raro', '02:25')];
-  assert.deepEqual(nomes(mapasNoAr(linhas, depoisDaTroca)), ['Entrou', 'Raro']);
+const fora = new Set(['gemGrab', 'duoShowdown']);
+
+test('especiaisNoAr ignora os modos da API oficial e do Ranqueado', () => {
+  // O BTN mistura partidas do Ranqueado; Gem Grab já vem da API.
+  const linhas = [partida('gemGrab', 'Ranqueado', '10:00'), partida('duoShowdown', 'Normal', '10:00'), partida('megaDuoShowdown', 'Especial', '09:50')];
+  assert.deepEqual(especiaisNoAr(linhas, fora), ['megaDuoShowdown|Especial']);
 });
 
-test('depoisDaTroca não marca nada logo depois da troca, quando ainda não dá pra separar', () => {
-  const linhas = [partida('megaDuoShowdown', 'Saiu', '02:02'), partida('megaDuoShowdown', 'Entrou', '02:05')];
-  assert.deepEqual(mapasNoAr(linhas, depoisDaTroca), []);
+test('especiaisNoAr fica com o mapa de partida mais recente de cada modo', () => {
+  // O evento trocou de mapa: o anterior ainda aparece nas últimas horas.
+  const linhas = [partida('megaDuoShowdown', 'Saiu', '09:58'), partida('megaDuoShowdown', 'Entrou', '10:20'), partida('megaShowdown', 'Outro', '10:15')];
+  assert.deepEqual(especiaisNoAr(linhas, fora).sort(), ['megaDuoShowdown|Entrou', 'megaShowdown|Outro']);
+});
+
+test('especiaisNoAr tira o modo que parou de ser jogado antes da última partida', () => {
+  // O evento acabou: a última partida dele é de mais de uma hora antes da última gravada.
+  const linhas = [partida('gemGrab', 'A', '12:00'), partida('megaDuoShowdown', 'Acabou', '10:30')];
+  assert.deepEqual(especiaisNoAr(linhas, fora), []);
+});
+
+test('especiaisNoAr ignora os mapas de Competition', () => {
+  const linhas = [partida('megaShowdown', 'Competition Entry', '10:20', '0'), partida('megaShowdown', 'Normal', '10:10')];
+  assert.deepEqual(especiaisNoAr(linhas, fora), ['megaShowdown|Normal']);
+});
+
+test('especiaisNoAr sem partida nenhuma devolve lista vazia', () => {
+  assert.deepEqual(especiaisNoAr([], fora), []);
 });
 
 test('mapasNoAr sem partida nenhuma devolve lista vazia', () => {
-  assert.deepEqual(mapasNoAr([], depoisDaTroca), []);
+  assert.deepEqual(mapasNoAr([], (ultima) => ultima), []);
 });

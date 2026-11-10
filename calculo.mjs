@@ -366,11 +366,24 @@ export function mapasNoAr(linhas, desde) {
   return validas.filter((r) => Date.parse(r.timestamp) >= corte);
 }
 
-// A rotação do troféu troca a cada duas horas, na hora cheia par em UTC; em 07/11 todos
-// os eventos da API oficial começavam assim, e a aba Especial trocou o Mega Showdown em
-// Duplas às 0h e às 2h. O mapa que sai ainda tem partida por uns 2 minutos (as que
-// começaram antes da troca). Conta como no ar o mapa jogado depois da última troca mais
-// MARGEM_TROCA; logo depois da troca, nenhum mapa passa.
-const TROCA = 2 * 36e5;
-const MARGEM_TROCA = 10 * 6e4;
-export const depoisDaTroca = (ultima) => Math.floor(ultima / TROCA) * TROCA + MARGEM_TROCA;
+// Mapas da aba Especial do jogo, como 'modo|mapa', das linhas do BTN { mode, map, eventId,
+// timestamp }. A API oficial não lista essa aba, e o BTN mistura todas as partidas, inclusive
+// as do Ranqueado; por isso só entra modo fora de modosFora (os da API e os do Ranqueado).
+// Cada evento tem um mapa por vez, então vale o de partida mais recente do modo. O mapa do
+// evento troca em hora diferente da rotação normal (em 09/11, nas horas pares de Brasília),
+// e pegar o mais recente dispensa adivinhar a hora da troca. Modo sem partida na última
+// JANELA_ESPECIAL antes da última partida gravada é evento que acabou. eventId 0 são os
+// mapas de Competition.
+const JANELA_ESPECIAL = 36e5;
+export function especiaisNoAr(linhas, modosFora) {
+  const validas = linhas.filter((r) => Number(r.eventId) !== 0);
+  if (!validas.length) return [];
+  const corte = Math.max(...validas.map((r) => Date.parse(r.timestamp))) - JANELA_ESPECIAL;
+  const recente = new Map();
+  for (const r of validas) {
+    const t = Date.parse(r.timestamp);
+    if (modosFora.has(r.mode) || t < corte) continue;
+    if (!recente.has(r.mode) || t > recente.get(r.mode).t) recente.set(r.mode, { mapa: r.map, t });
+  }
+  return [...recente].map(([modo, { mapa }]) => `${modo}|${mapa}`);
+}

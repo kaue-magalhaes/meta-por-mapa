@@ -674,6 +674,8 @@ const MODOS = {
   basketBrawl: 'Basket Brawl', brawlArena: 'Brawl Arena', hunterSurvivor: 'Hide & Seek',
   // Um contra um, cada jogador com três brawlers em sequência (Kauê, 02/11/2026).
   tagTeam: 'Duels',
+  // Eventos da aba Especial, com vinte jogadores no mapa.
+  megaShowdown: 'Mega Showdown', megaDuoShowdown: 'Mega Duo Showdown',
 };
 // Ordem fixa dos modos no seletor: o mesmo modo fica sempre no mesmo lugar.
 // Cada modo tem cor (aproximada da do jogo) e família.
@@ -682,12 +684,14 @@ const ORDEM = [
   'soloShowdown', 'duoShowdown', 'trioShowdown',
   'gemGrab5V5', 'brawlBall5V5', 'knockout5V5', 'deathmatch5v5',
   'airHockey', 'brawlArena', 'hunterSurvivor', 'deathmatch', 'tagTeam',
+  'megaShowdown', 'megaDuoShowdown',
 ];
 const COR = {
   gemGrab: '#a24bf2', brawlBall: '#4f78e6', bounty: '#14a9d9', heist: '#d14bc2', knockout: '#ef7d16', hotZone: '#e0364b',
   basketBrawl: '#e5672b', soloShowdown: '#54b72a', duoShowdown: '#3fa33a', trioShowdown: '#2f8f45',
   gemGrab5V5: '#a24bf2', brawlBall5V5: '#4f78e6', knockout5V5: '#ef7d16', deathmatch5v5: '#cf4545',
   airHockey: '#22a99a', brawlArena: '#c39a1f', hunterSurvivor: '#7a5cd6', deathmatch: '#cf4545', tagTeam: '#d9468a',
+  megaShowdown: '#8fc31f', megaDuoShowdown: '#8fc31f',
 };
 const FAMILIA = {
   gemGrab: 'tres', brawlBall: 'tres', bounty: 'tres', heist: 'tres', knockout: 'tres', hotZone: 'tres', basketBrawl: 'tres',
@@ -888,7 +892,8 @@ const chave = (m) => slug(`${m.parte} ${m.modo} ${m.mapa}`);
 let atual = null;
 let selecionado = null;
 
-const quandoDa = (parte) => hora(DADOS.partes[parte].geradoEm);
+// A rotação do troféu é refeita de hora em hora; as estatísticas, uma vez por dia.
+const quandoRot = (parte) => hora(DADOS.partes[parte].rotacaoEm ?? DADOS.partes[parte].geradoEm);
 const modosDa = (parte) => [...new Set(DADOS.partes[parte].mapas.map((m) => m.modo))]
   .sort((a, b) => posModo({ modo: a }) - posModo({ modo: b }));
 
@@ -982,7 +987,7 @@ function desenharSeletor() {
   const rot = agrupar(todos.filter((m) => m.rotacao)).sort(ordemRot);
   let html = '';
   if (rot.length) {
-    html += `<h3 class="secao-titulo">Na rotação agora <span>atualizado às ${quandoDa(parte)}</span></h3>
+    html += `<h3 class="secao-titulo">Na rotação agora <span>atualizado às ${quandoRot(parte)}</span></h3>
       <ul class="lista-mapas rotacao">${rot.map((g) => entrada(g, { comModo: true, semSelo: true })).join('')}</ul>`;
   }
   // Cada modo é um bloco, menos o Showdown: Solo, Duo e Trio dividem os mapas, então viram um bloco só.
@@ -1082,7 +1087,7 @@ function desenharNavegacao() {
   document.getElementById('modoNome').innerHTML = `<i style="--c:${corModo(m.modo)}" aria-hidden="true"></i>${esc(nomeModo(m.modo))}`;
   const selo = document.getElementById('seloRot');
   selo.hidden = !m.rotacao;
-  selo.textContent = `na rotação às ${quandoDa(m.parte)}`;
+  selo.textContent = `na rotação às ${quandoRot(m.parte)}`;
   // O mesmo mapa em outros modos da mesma parte (Solo, Duo e Trio Showdown).
   const irmaos = DADOS.partes[m.parte].mapas.filter((x) => x.mapa === m.mapa && x !== m).sort((a, b) => posModo(a) - posModo(b));
   const caixa = document.getElementById('irmaos');
@@ -1095,7 +1100,7 @@ function desenharNavegacao() {
   const rot = agrupar(DADOS.partes[m.parte].mapas.filter((x) => x.rotacao)).sort(ordemRot);
   faixa.hidden = !rot.length;
   faixa.innerHTML = rot.length
-    ? `<h3>Na rotação agora <span>atualizado às ${quandoDa(m.parte)}</span></h3>
+    ? `<h3>Na rotação agora <span>atualizado às ${quandoRot(m.parte)}</span></h3>
        <ul class="lista-mapas cartoes">${rot.map((g) => entrada(g, { comModo: true, semSelo: true })).join('')}</ul>`
     : '';
 
