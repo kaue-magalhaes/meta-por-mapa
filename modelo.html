@@ -614,6 +614,14 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
           <h3>Selo "incerto"</h3>
           <p>Marca brawler do S que ainda pode ser B ou pior, com mais de 10% de chance. Acontece com quem tem poucas partidas no mapa, ou que ficou bem perto do corte do S. A conta já puxa esses brawlers pra força deles no modo, então o S costuma se confirmar; o selo avisa quando a dúvida é maior. Se for treinar um brawler novo, prefira um S sem o selo.</p>
         </div>
+        <div id="guiaEscondido" hidden>
+          <h3>Selo "escondido"</h3>
+          <p id="textoGuiaEscondido"></p>
+        </div>
+        <div id="guiaPopular" hidden>
+          <h3>Selo "popular"</h3>
+          <p id="textoGuiaPopular"></p>
+        </div>
         <div id="guiaVoce" hidden>
           <h3>Seu perfil</h3>
           <p>Digite sua tag em "Sua tag" (ela fica no seu perfil do jogo, embaixo do nome) e a página marca quem você tem no máximo: nível 11 com gadget, star power e hipercarga. A página lembra a tag neste navegador e atualiza o perfil a cada visita. Se marcar ou desmarcar algum brawler na mão, o ajuste fica guardado. Para marcar tudo na mão, deixe o campo vazio e aperte Buscar.</p>
@@ -770,6 +778,8 @@ function maisUsados(m) {
 }
 const popular = (b, m) => m.parte === 'ranqueado' && b.adj < m.media && maisUsados(m).has(b.nome);
 const seloPopular = (b, m) => (popular(b, m) ? `<span class="popular" title="${TEXTO_POPULAR}">popular</span>` : '');
+document.getElementById('textoGuiaEscondido').textContent = `Marca brawler do S com menos de ${pct(USO_ESCONDIDO, 0)} de uso no mapa e sem o selo "incerto". Na ranqueada, quem escolhe por último poderia levar um brawler raro só quando o confronto é bom, e aí a vitória viria do confronto, não da força. Isso foi testado em 10/11 com 58 mil partidas do Lendário pra cima: o confronto real desses brawlers foi até um pouco pior que contra um time inimigo sorteado, e eles ganharam 53,9%. O que o teste não separa é a mão de quem joga, porque quem escolhe brawler raro pode ser especialista nele. Se você não joga com ele, treine antes de levar à ranqueada.`;
+document.getElementById('textoGuiaPopular').textContent = `Marca brawler entre os ${TOP_POPULAR} mais escolhidos do mapa que ganha abaixo da média. O mapa inteiro vai com ele, mas a vitória não acompanha. O selo não muda nenhuma conta: chama atenção pra um número que já está na lista. O top conta o mapa todo, então não muda com "só os meus" nem com bloqueio.`;
 
 const guardar = {
   ler(k, padrao) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : padrao; } catch { return padrao; } },
@@ -1619,6 +1629,8 @@ function desenharMapa() {
   document.getElementById('guiaBloqueio').hidden = !ranqueado;
   document.getElementById('guiaNicho').hidden = ranqueado;
   document.getElementById('guiaIncerto').hidden = !ranqueado;
+  document.getElementById('guiaEscondido').hidden = !ranqueado;
+  document.getElementById('guiaPopular').hidden = !ranqueado;
   document.getElementById('guiaDraft').hidden = !ranqueado;
 
   desenharDraft(m);
