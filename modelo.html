@@ -386,8 +386,8 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
 }
 .nome button:hover { text-decoration: underline; }
 .max { font: 400 0.66rem var(--font-display); letter-spacing: 0.04em; color: var(--on-accent); background: var(--accent); border-radius: 4px; padding: 1px 5px; flex: none; }
-.nicho, .incerto { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
-#agora .incerto { margin-left: 6px; }
+.nicho, .incerto, .escondido, .popular { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
+#agora .incerto, #agora .escondido { margin-left: 6px; }
 .linha.nao-tenho .nome button { color: var(--muted); font-weight: 400; }
 .linha.selecionado { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 
@@ -749,6 +749,27 @@ const TEXTO_INCERTO = 'Pode não ser S: com as partidas que tem, a chance de ser
 const incerto = (b, m) => b.sd != null && tierDe(b.adj - m.media) === 'S'
   && normal((FAIXAS.A - (b.adj - m.media)) / b.sd) > CHANCE_INCERTO;
 const seloIncerto = (b, m) => (incerto(b, m) ? `<span class="incerto" title="${TEXTO_INCERTO}">incerto</span>` : '');
+
+// Só no ranqueado. Escondido: força de S, quase ninguém escolhe e sem dúvida de ser S.
+// Em 10/11, com 58 mil partidas do Lendário+, o confronto real desses brawlers foi até
+// um pouco pior que contra um time sorteado: a vitória é força, não sorte de confronto.
+const USO_ESCONDIDO = 0.01;
+const TEXTO_ESCONDIDO = `Ganha como um S e quase ninguém escolhe aqui (menos de ${pct(USO_ESCONDIDO, 0)} das escolhas). Parte da vitória pode ser a mão de quem treina ele: se você não joga com ele, treine antes de levar à ranqueada.`;
+const escondido = (b, m) => m.parte === 'ranqueado' && tierDe(b.adj - m.media) === 'S'
+  && b.uso < USO_ESCONDIDO && !incerto(b, m);
+const seloEscondido = (b, m) => (escondido(b, m) ? `<span class="escondido" title="${TEXTO_ESCONDIDO}">escondido</span>` : '');
+
+// Só no ranqueado. Popular: entre os mais escolhidos do mapa inteiro e abaixo da média.
+// O top não muda com "só os meus", bloqueio ou Draft: é um fato do mapa.
+const TOP_POPULAR = 10;
+const TEXTO_POPULAR = `Está entre os ${TOP_POPULAR} mais escolhidos deste mapa e ganha menos que a média. Não precisa ir com ele só porque todo mundo vai.`;
+const topDoMapa = new WeakMap();
+function maisUsados(m) {
+  if (!topDoMapa.has(m)) topDoMapa.set(m, new Set([...m.brawlers].sort((a, b) => b.uso - a.uso).slice(0, TOP_POPULAR).map((b) => b.nome)));
+  return topDoMapa.get(m);
+}
+const popular = (b, m) => m.parte === 'ranqueado' && b.adj < m.media && maisUsados(m).has(b.nome);
+const seloPopular = (b, m) => (popular(b, m) ? `<span class="popular" title="${TEXTO_POPULAR}">popular</span>` : '');
 
 const guardar = {
   ler(k, padrao) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : padrao; } catch { return padrao; } },
@@ -1537,7 +1558,7 @@ function desenharMapa() {
         ? `<button class="bloq" type="button" data-b="${esc(b.nome)}" aria-pressed="${bloq}" aria-label="${bloq ? 'Desmarcar bloqueio de' : 'Marcar como bloqueado:'} ${esc(b.nome)}">${CADEADO}</button>`
         : `<span class="val num">${trof(b.trofeus)}${b.posicao != null ? `<small>${posicao(b.posicao)}</small>` : ''}</span>`;
       return `<div class="${classes}">
-        <span class="nome"><button type="button" data-ver="${esc(b.nome)}" title="Ver counters de ${esc(b.nome)}">${esc(b.nome)}</button>${tenho(b.nome) ? '<span class="max">MAX</span>' : ''}${nicho(b) ? `<span class="nicho" title="${TEXTO_NICHO}">nicho</span>` : ''}${seloIncerto(b, m)}</span>
+        <span class="nome"><button type="button" data-ver="${esc(b.nome)}" title="Ver counters de ${esc(b.nome)}">${esc(b.nome)}</button>${tenho(b.nome) ? '<span class="max">MAX</span>' : ''}${nicho(b) ? `<span class="nicho" title="${TEXTO_NICHO}">nicho</span>` : ''}${seloIncerto(b, m)}${seloEscondido(b, m)}${seloPopular(b, m)}</span>
         <span class="barra" title="${pp(d)} pontos vs. média do mapa"><i class="${d >= 0 ? 'pos' : 'neg'}" style="width:${larg}%"></i></span>
         <span class="val num">${pct(b.adj)}<small>${b.n ? `${pct(b.wr)} real` : 'sem partida'}</small></span>
         <span class="val num">${pct(b.uso)}<small>${b.n.toLocaleString('pt-BR')}</small></span>
@@ -1553,7 +1574,7 @@ function desenharMapa() {
   const marcados = ranqueado ? foraDoDraft() : new Set();
   const disponiveis = m.brawlers.filter((b) => !marcados.has(b.nome) && (!temLista() || tenho(b.nome)));
   document.getElementById('agora').innerHTML = disponiveis.slice(0, 5).map((b) =>
-    `<li><b>${esc(b.nome)}${seloIncerto(b, m)}</b><span class="${b.adj >= m.media ? 'pos' : 'neg'}">${pp(b.adj - m.media)}</span></li>`).join('')
+    `<li><b>${esc(b.nome)}${seloIncerto(b, m)}${seloEscondido(b, m)}</b><span class="${b.adj >= m.media ? 'pos' : 'neg'}">${pp(b.adj - m.media)}</span></li>`).join('')
     || '<li class="vazio">Nenhum brawler seu com partidas suficientes neste mapa.</li>';
   const nota = temLista() ? 'Os 5 melhores entre os seus no máximo.' : 'Os 5 melhores deste mapa.';
   document.getElementById('agoraNota').textContent = ranqueado
