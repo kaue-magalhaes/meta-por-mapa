@@ -2,7 +2,9 @@
 Description=Atualiza o site Meta por Mapa a cada hora
 
 [Timer]
-OnCalendar=*-*-* *:17:00
+# Os mapas trocam na hora cheia: os da API nas horas ímpares de Brasília, os da aba
+# Especial nas pares. No minuto 10 o BTN já tem partidas do mapa novo.
+OnCalendar=*-*-* *:10:00
 # PC desligado na hora marcada: roda assim que ligar.
 Persistent=true
 RandomizedDelaySec=5min
