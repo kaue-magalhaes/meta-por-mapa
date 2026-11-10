@@ -387,7 +387,7 @@ dialog.folha::backdrop { background: rgb(6 12 24 / .55); }
 .nome button:hover { text-decoration: underline; }
 .max { font: 400 0.66rem var(--font-display); letter-spacing: 0.04em; color: var(--on-accent); background: var(--accent); border-radius: 4px; padding: 1px 5px; flex: none; }
 .nicho, .incerto, .escondido, .popular { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
-#agora .incerto, #agora .escondido { margin-left: 6px; }
+#agora .incerto, #agora .escondido, #draftRecomenda .escondido, #seusLista .escondido { margin-left: 6px; }
 .linha.nao-tenho .nome button { color: var(--muted); font-weight: 400; }
 .linha.selecionado { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 
@@ -1437,7 +1437,10 @@ function desenharDraft(m) {
   const { lista, empatados } = comEmpate(recomendar(m, fora, partida.eles));
   const comForte = !!perfil?.recordes || Object.values(sei).some(Boolean);
   const temTank = partida.nos.some(ehTank);
-  const selo = (n) => (seuForte(n) ? '<span class="forte">seu forte</span>' : '');
+  const selo = (n) => {
+    const b = m.brawlers.find((x) => x.nome === n);
+    return (b ? seloEscondido(b, m) : '') + (seuForte(n) ? '<span class="forte">seu forte</span>' : '');
+  };
   const extra = (r, i) => (i < empatados && empatados > 1 && recorde(r.nome) ? ` · seu recorde ${recorde(r.nome).toLocaleString('pt-BR')}` : '')
     + (temTank && ehTank(r.nome) ? ' · já temos um tank' : '');
   document.getElementById('draftRecomenda').innerHTML = lista
