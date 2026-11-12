@@ -67,6 +67,20 @@
         { "brawler": "DAMIAN", "direcao": "buff", "tamanho": "media" },
         { "brawler": "KIT", "direcao": "misto", "tamanho": "pequena" }
       ]
+    },
+    {
+      "data": "2026-11-11",
+      "nome": "Maintenance - November 11",
+      "mudancas": [
+        { "brawler": "WENDY", "direcao": "misto", "tamanho": "media" },
+        { "brawler": "MR. P", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "AMBER", "direcao": "nerf", "tamanho": "grande" },
+        { "brawler": "GALE", "direcao": "nerf", "tamanho": "media" },
+        { "brawler": "VINCE", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "CHESTER", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "LOU", "direcao": "nerf", "tamanho": "pequena" },
+        { "brawler": "MANDY", "direcao": "misto", "tamanho": "pequena" }
+      ]
     }
   ]
 }
