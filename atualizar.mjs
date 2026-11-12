@@ -333,7 +333,8 @@ async function gerarRanqueado(desde, anterior) {
   // O efeito de cada patch sai do ranqueado inteiro e vale igual em todo mapa e no fundo.
   const patches = efeitoDosPatches(doModo, config.patches ?? [], agora);
   if (patches.size) {
-    const efeitos = [...patches].map(([b, { efeito }]) => `${nomeBonito(b)} ${efeito > 0 ? '+' : ''}${(efeito * 100).toFixed(1)}`);
+    const pontos = (x) => `${x > 0 ? '+' : ''}${(x * 100).toFixed(1)}`;
+    const efeitos = [...patches].map(([b, lista]) => `${nomeBonito(b)} ${lista.map((p) => `${pontos(p.efeito)} (${p.dia.slice(8)}/${p.dia.slice(5, 7)})`).join(' ')}`);
     console.log(`ranqueado: efeito dos patches, em pontos: ${efeitos.join(', ')}`);
   }
   const pesar = (linhas) => porBrawler(pesarPorIdade(linhas, agora, patches));

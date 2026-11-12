@@ -134,64 +134,85 @@ const pesoDaIdade = (dia, agora, meiaVida, dias) => {
 // Junta linhas dia a dia { brawler, day, picks, winRate } numa por brawler, no formato
 // da consulta sem dia. Cada partida vale 0,5^(idade / meiaVida), com a idade contada
 // do meio do dia (o site grava o dia em UTC); dia mais velho que o período fica de fora.
-// patches é o Map do efeitoDosPatches: os dias de antes do patch andam o efeito, e o
-// dia do patch, que mistura antes e depois, sai. O peso dos dias de antes não muda,
-// porque o patch mexe no nível do brawler, não em onde ele é bom.
+// patches é o Map do efeitoDosPatches: cada dia anda a soma dos efeitos dos patches que
+// vieram depois dele, e o dia de um patch, que mistura antes e depois, sai. O peso dos
+// dias de antes não muda, porque o patch mexe no nível do brawler, não em onde ele é bom.
 export function pesarPorIdade(linhas, agora, patches = new Map(), meiaVida = MEIA_VIDA, dias = DIAS_PERIODO) {
   const soma = new Map();
   for (const r of linhas) {
     const dia = r.day.slice(0, 10);
     const w = pesoDaIdade(dia, agora, meiaVida, dias);
-    const patch = patches.get(r.brawler);
-    if (!w || dia === patch?.dia) continue;
+    const doBrawler = patches.get(r.brawler) ?? [];
+    if (!w || doBrawler.some((p) => p.dia === dia)) continue;
     const n = Number(r.picks) * w;
-    const wr = Number(r.winRate) + (patch && dia < patch.dia ? patch.efeito : 0);
+    const wr = Number(r.winRate) + somaDepoisDe(dia, doBrawler);
     const x = soma.get(r.brawler) ?? { n: 0, v: 0 };
     soma.set(r.brawler, { n: x.n + n, v: x.v + n * wr });
   }
   return [...soma].map(([brawler, { n, v }]) => ({ brawler, picks: n, winRate: n ? v / n : 0 }));
 }
 
-// Efeito do último patch de cada brawler alterado, medido no ranqueado inteiro (linhas
-// dia a dia de todos os brawlers, como no pesarPorIdade). Começa no chute da tabela e
-// vira o efeito medido conforme chegam os dias de depois: vitória acima da média do
-// dia depois do patch, menos antes. Devolve Map BRAWLER -> { dia, efeito }.
+// Quanto um dia anda pra chegar ao nível de hoje: a soma dos efeitos dos patches depois dele.
+const somaDepoisDe = (dia, lista) => lista.reduce((s, p) => (dia < p.dia ? s + p.efeito : s), 0);
+
+// Efeito de cada patch de cada brawler alterado, medido no ranqueado inteiro (linhas dia
+// a dia de todos os brawlers, como no pesarPorIdade). Começa no chute da tabela e vira o
+// efeito medido conforme chegam os dias de depois: vitória acima da média do dia depois do
+// patch, menos antes. Brawler com mais de um patch é medido em ordem: o depois de um
+// patch para no seguinte, e o antes anda os efeitos já medidos dos anteriores. Bloco que
+// tem patch do brawler no meio mistura dois níveis e fica fora da medida.
+// Devolve Map BRAWLER -> [{ dia, efeito }], em ordem de data.
 // patches: [{ data: 'AAAA-MM-DD', mudancas: [{ brawler, direcao, tamanho }] }].
 export function efeitoDosPatches(linhas, patches, agora, tabela = CHUTE_PATCH, meiaVida = MEIA_VIDA, dias = DIAS_PERIODO) {
   const hoje = new Date(agora).toISOString().slice(0, 10);
-  const ultimo = new Map();
+  const porBrawler = new Map();
   for (const p of [...patches].sort((a, b) => a.data.localeCompare(b.data))) {
     if (p.data > hoje) continue;
-    for (const m of p.mudancas) ultimo.set(m.brawler.toUpperCase(), { dia: p.data, chute: tabela[m.direcao]?.[m.tamanho] ?? 0 });
+    for (const m of p.mudancas) {
+      const b = m.brawler.toUpperCase();
+      porBrawler.set(b, [...(porBrawler.get(b) ?? []), { dia: p.data, chute: tabela[m.direcao]?.[m.tamanho] ?? 0 }]);
+    }
   }
   const mediaDoDia = new Map();
   for (const r of linhas) {
     const x = mediaDoDia.get(r.day.slice(0, 10)) ?? { n: 0, v: 0 };
     mediaDoDia.set(r.day.slice(0, 10), { n: x.n + Number(r.picks), v: x.v + Number(r.picks) * Number(r.winRate) });
   }
-  const lados = new Map([...ultimo.keys()].map((b) => [b, { antes: { n: 0, v: 0 }, depois: { n: 0, v: 0 } }]));
+  // Por brawler, os dias que entram na medida: { dia, n (já pesado), d (vitória menos a média do dia) }.
+  const medidos = new Map([...porBrawler.keys()].map((b) => [b, []]));
   for (const r of linhas) {
-    const b = lados.get(r.brawler);
+    const lista = porBrawler.get(r.brawler);
     const dia = r.day.slice(0, 10);
     const w = pesoDaIdade(dia, agora, meiaVida, dias);
-    const doPatch = ultimo.get(r.brawler)?.dia;
-    if (!b || !w || (doPatch >= (r.de ?? dia) && doPatch <= (r.ate ?? dia))) continue;
+    if (!lista || !w || lista.some((p) => p.dia >= (r.de ?? dia) && p.dia <= (r.ate ?? dia))) continue;
     const m = mediaDoDia.get(dia);
-    const lado = dia < ultimo.get(r.brawler).dia ? b.antes : b.depois;
-    const n = Number(r.picks) * w;
-    lado.n += n;
-    lado.v += n * (Number(r.winRate) - m.v / m.n);
+    medidos.get(r.brawler).push({ dia, n: Number(r.picks) * w, d: Number(r.winRate) - m.v / m.n });
   }
   const saida = new Map();
-  for (const [brawler, { dia, chute }] of ultimo) {
-    const { antes, depois } = lados.get(brawler);
-    if (!antes.n) {
-      saida.set(brawler, { dia, efeito: chute });
-      continue;
-    }
-    const velho = PESO_ANTES_DO_PATCH * antes.n;
-    const medido = depois.n ? depois.v / depois.n - antes.v / antes.n : 0;
-    saida.set(brawler, { dia, efeito: (velho * chute + depois.n * medido) / (velho + depois.n) });
+  for (const [brawler, lista] of porBrawler) {
+    const feitos = [];
+    lista.forEach(({ dia, chute }, i) => {
+      const fim = lista[i + 1]?.dia;
+      const antes = { n: 0, v: 0 };
+      const depois = { n: 0, v: 0 };
+      for (const x of medidos.get(brawler)) {
+        if (x.dia < dia) {
+          antes.n += x.n;
+          antes.v += x.n * (x.d + somaDepoisDe(x.dia, feitos));
+        } else if (!fim || x.dia < fim) {
+          depois.n += x.n;
+          depois.v += x.n * x.d;
+        }
+      }
+      let efeito = chute;
+      if (antes.n) {
+        const velho = PESO_ANTES_DO_PATCH * antes.n;
+        const medido = depois.n ? depois.v / depois.n - antes.v / antes.n : 0;
+        efeito = (velho * chute + depois.n * medido) / (velho + depois.n);
+      }
+      feitos.push({ dia, efeito });
+    });
+    saida.set(brawler, feitos);
   }
   return saida;
 }

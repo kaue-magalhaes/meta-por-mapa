@@ -123,13 +123,29 @@ test('pesarPorIdade desloca os dias de antes do patch e tira o dia do patch', ()
     { brawler: 'COLT', day: '2026-10-16T00:00:00.000', picks: '100', winRate: '0.9' },
     { brawler: 'COLT', day: '2026-10-15T00:00:00.000', picks: '100', winRate: '0.6' },
     { brawler: 'BEA', day: '2026-10-15T00:00:00.000', picks: '100', winRate: '0.6' },
-  ], agora, new Map([['COLT', { dia: '2026-10-16', efeito: -0.1 }]]));
+  ], agora, new Map([['COLT', [{ dia: '2026-10-16', efeito: -0.1 }]]]));
   const colt = r.find((x) => x.brawler === 'COLT');
   const w = (dias) => 0.5 ** (dias / 14);
   // O dia 16 sai; o dia 15 vale 0,6 - 0,1.
   perto(colt.picks, 100 * (w(0) + w(2)));
   perto(colt.winRate, (0.5 * w(0) + 0.5 * w(2)) / (w(0) + w(2)));
   perto(r.find((x) => x.brawler === 'BEA').winRate, 0.6);
+});
+
+test('pesarPorIdade soma o efeito de todos os patches que vieram depois do dia', () => {
+  const agora = Date.parse('2026-10-17T12:00:00Z');
+  const r = pesarPorIdade([
+    { brawler: 'COLT', day: '2026-10-11T00:00:00.000', picks: '100', winRate: '0.5' },
+    { brawler: 'COLT', day: '2026-10-12T00:00:00.000', picks: '100', winRate: '0.9' },
+    { brawler: 'COLT', day: '2026-10-14T00:00:00.000', picks: '100', winRate: '0.7' },
+    { brawler: 'COLT', day: '2026-10-15T00:00:00.000', picks: '100', winRate: '0.9' },
+    { brawler: 'COLT', day: '2026-10-17T00:00:00.000', picks: '100', winRate: '0.6' },
+  ], agora, new Map([['COLT', [{ dia: '2026-10-12', efeito: 0.1 }, { dia: '2026-10-15', efeito: -0.05 }]]]));
+  const w = (dias) => 0.5 ** (dias / 14);
+  // Os dias 12 e 15 saem. O dia 11 anda os dois efeitos, o 14 só o segundo, o 17 nenhum.
+  const total = w(6) + w(3) + w(0);
+  perto(r[0].picks, 100 * total);
+  perto(r[0].winRate, ((0.5 + 0.1 - 0.05) * w(6) + (0.7 - 0.05) * w(3) + 0.6 * w(0)) / total);
 });
 
 const diaDe = (brawler, day, picks, winRate) => ({ brawler, day: `${day}T00:00:00.000`, picks: String(picks), winRate: String(winRate) });
@@ -140,8 +156,8 @@ test('efeitoDosPatches usa só o chute quando ainda não há dia depois do patch
   const patches = [{ data: '2026-10-17', mudancas: [{ brawler: 'Colt', direcao: 'nerf', tamanho: 'media' }] }];
   const e = efeitoDosPatches(linhas, patches, agora, { nerf: { media: -0.025 } });
   assert.deepEqual([...e.keys()], ['COLT']);
-  perto(e.get('COLT').efeito, -0.025);
-  assert.equal(e.get('COLT').dia, '2026-10-17');
+  perto(e.get('COLT')[0].efeito, -0.025);
+  assert.equal(e.get('COLT')[0].dia, '2026-10-17');
 });
 
 test('efeitoDosPatches mistura chute e dado novo, com cada dia antigo valendo 10% de um novo', () => {
@@ -156,19 +172,44 @@ test('efeitoDosPatches mistura chute e dado novo, com cada dia antigo valendo 10
   const e = efeitoDosPatches(linhas, patches, agora, { nerf: { pequena: -0.02 } });
   const velho = 0.1 * 1000 * 0.5 ** (2 / 14);
   const novo = 1000;
-  perto(e.get('COLT').efeito, (velho * -0.02 + novo * (0.04 - 0.1)) / (velho + novo));
+  perto(e.get('COLT')[0].efeito, (velho * -0.02 + novo * (0.04 - 0.1)) / (velho + novo));
 });
 
-test('efeitoDosPatches fica com o último patch do brawler e ignora patch futuro', () => {
+test('efeitoDosPatches guarda todos os patches do brawler, em ordem, e ignora patch futuro', () => {
   const agora = Date.parse('2026-10-17T12:00:00Z');
   const patches = [
-    { data: '2026-10-01', mudancas: [{ brawler: 'COLT', direcao: 'buff', tamanho: 'media' }] },
     { data: '2026-10-10', mudancas: [{ brawler: 'COLT', direcao: 'nerf', tamanho: 'media' }] },
+    { data: '2026-10-01', mudancas: [{ brawler: 'COLT', direcao: 'buff', tamanho: 'media' }] },
     { data: '2026-10-20', mudancas: [{ brawler: 'COLT', direcao: 'buff', tamanho: 'grande' }] },
   ];
   const e = efeitoDosPatches([], patches, agora, { nerf: { media: -0.025 }, buff: { media: 0.03, grande: 0.017 } });
-  assert.equal(e.get('COLT').dia, '2026-10-10');
-  perto(e.get('COLT').efeito, -0.025);
+  assert.deepEqual(e.get('COLT').map((p) => p.dia), ['2026-10-01', '2026-10-10']);
+  perto(e.get('COLT')[0].efeito, 0.03);
+  perto(e.get('COLT')[1].efeito, -0.025);
+});
+
+test('efeitoDosPatches mede cada patch em sequência, com o antes andando os efeitos anteriores', () => {
+  const agora = Date.parse('2026-10-12T12:00:00Z');
+  // Média do dia 0,5. Colt fica no nível da média até 05/10, 10 pontos acima até 10/10 e 4 acima depois.
+  const linhas = [
+    diaDe('COLT', '2026-10-03', 1000, 0.5), diaDe('BEA', '2026-10-03', 1000, 0.5),
+    diaDe('COLT', '2026-10-07', 1000, 0.6), diaDe('BEA', '2026-10-07', 1000, 0.4),
+    diaDe('COLT', '2026-10-12', 1000, 0.54), diaDe('BEA', '2026-10-12', 1000, 0.46),
+  ];
+  const patches = [
+    { data: '2026-10-05', mudancas: [{ brawler: 'COLT', direcao: 'buff', tamanho: 'media' }] },
+    { data: '2026-10-10', mudancas: [{ brawler: 'COLT', direcao: 'nerf', tamanho: 'media' }] },
+  ];
+  const e = efeitoDosPatches(linhas, patches, agora, { buff: { media: 0.03 }, nerf: { media: -0.025 } });
+  const w = (dias) => 0.5 ** (dias / 14);
+  // Primeiro patch: antes é o dia 3 (no nível 0), depois é só o dia 7 (+0,10), porque o dia 12 já é do segundo.
+  const velho1 = 0.1 * 1000 * w(9);
+  const e1 = (velho1 * 0.03 + 1000 * w(5) * 0.1) / (velho1 + 1000 * w(5));
+  perto(e.get('COLT')[0].efeito, e1);
+  // Segundo patch: o dia 3 anda o efeito do primeiro; o dia 7 fica como está.
+  const antes = (e1 * w(9) + 0.1 * w(5)) / (w(9) + w(5));
+  const velho2 = 0.1 * 1000 * (w(9) + w(5));
+  perto(e.get('COLT')[1].efeito, (velho2 * -0.025 + 1000 * (0.04 - antes)) / (velho2 + 1000));
 });
 
 test('forcaNaCascata dá a variância da força: ruído do mapa mais o que sobra do degrau de cima', () => {
@@ -266,7 +307,7 @@ test('diasDosBlocos divide o bloco em andamento só pelos dias que já passaram'
 test('diasDosBlocos com pesarPorIdade desloca só a parte do bloco de antes do patch', () => {
   const agora = Date.parse('2026-10-27T12:00:00Z');
   const linhas = diasDosBlocos([bloco('COLT', '2026-10-19', 1400, 0.6)], agora);
-  const r = pesarPorIdade(linhas, agora, new Map([['COLT', { dia: '2026-10-12', efeito: -0.1 }]]));
+  const r = pesarPorIdade(linhas, agora, new Map([['COLT', [{ dia: '2026-10-12', efeito: -0.1 }]]]));
   // Dias 5 a 11 andam -0,1, o dia 12 sai, dias 13 a 18 ficam.
   const w = (dia) => 0.5 ** ((agora - Date.parse(`${dia}T12:00:00Z`)) / 864e5 / 14);
   const dias = linhas.map((l) => l.day).filter((d) => d !== '2026-10-12');
@@ -290,7 +331,7 @@ test('efeitoDosPatches não mede no bloco que mistura antes e depois do patch', 
   const soma = (fim, n) => diasDosBlocos([bloco('X', fim, n, 0)], agora).reduce((s, l) => s + l.picks * w(l.day), 0);
   const velho = 0.1 * soma('2026-10-05', 1400);
   const novo = soma('2026-11-02', 900);
-  perto(e.get('COLT').efeito, (velho * -0.02 + novo * (0.04 - 0.1)) / (velho + novo));
+  perto(e.get('COLT')[0].efeito, (velho * -0.02 + novo * (0.04 - 0.1)) / (velho + novo));
 });
 
 test('duplasDeAliados junta os dois lados da dupla, como duplasDeTimes', () => {

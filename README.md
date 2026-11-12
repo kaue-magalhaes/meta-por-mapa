@@ -61,7 +61,7 @@ As opções estão no começo de `atualizar.mjs`. O padrão fica em `config.json
 
 Logo depois de um patch, quase todas as partidas do período são de antes dele, e a lista do ranqueado erra justamente nos brawlers alterados. Para corrigir isso, anote o patch em `patches`, no `config.json`: a data (dia do patch, em UTC) e, para cada brawler alterado, a direção (`nerf`, `buff` ou `misto`) e o tamanho (`pequena`, `media` ou `grande`), lidos nas notas.
 
-As partidas de antes do patch andam o efeito estimado dele, igual em todos os mapas, e o dia do patch sai. O Brawl Time Ninja dá as partidas em blocos de duas semanas, então elas são divididas igualmente pelos dias do bloco; o bloco que tem o patch no meio não entra na medida do efeito. O efeito começa no tamanho típico daquela mudança (`CHUTE_PATCH` em `calculo.mjs`) e vira o efeito medido conforme chegam os dias de depois. Patch que já saiu das 6 semanas pode ser apagado da lista.
+As partidas de antes do patch andam o efeito estimado dele, igual em todos os mapas, e o dia do patch sai. O Brawl Time Ninja dá as partidas em blocos de duas semanas, então elas são divididas igualmente pelos dias do bloco; o bloco que tem o patch no meio não entra na medida do efeito. O efeito começa no tamanho típico daquela mudança (`CHUTE_PATCH` em `calculo.mjs`) e vira o efeito medido conforme chegam os dias de depois. Brawler alterado em dois patches seguidos anda a soma dos dois. Cada efeito é medido só até o patch seguinte, então dois patches a menos de duas semanas um do outro ficam no tamanho típico até chegar um bloco inteiro depois do segundo. Patch que já saiu das 6 semanas pode ser apagado da lista.
 
 ## Perfil pela tag
 
