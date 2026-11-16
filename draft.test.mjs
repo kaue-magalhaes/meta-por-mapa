@@ -1,10 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { PESO_FORCA, SD_SEM_MARGEM, pesoNoDraft, confrontoLido, recomendar, comEmpate, leitura, maiorPerigo, quemGanhaDele } from './draft.mjs';
-
-// dados.json fica fora do git: sem ele, o caso real é pulado.
-const dados = await readFile(new URL('dados.json', import.meta.url), 'utf8').then(JSON.parse).catch(() => null);
 
 // Mapa de brinquedo. A ganha de E por uma ponta (+0,01) e perde pela outra (E contra A
 // +0,03, com a força de A de volta): pela conta da nota, A perde de E. B ganha de E e de F
@@ -27,8 +23,21 @@ const brinquedo = {
   },
 };
 
-test('motivo usa as duas pontas: Mister P ganha de Emz em Double Swoosh', { skip: !dados && 'sem dados.json' }, () => {
-  const m = dados.partes.ranqueado.mapas.find((x) => x.mapa === 'Double Swoosh');
+// Recorte do Double Swoosh (Arco duplo) no Ranqueado de 15/11/2026, fixo aqui para o teste
+// não depender do mapa estar na rotação. A linha do Mr. P contra a Emz é -0,053, e uma
+// ponta só dizia "contra Emz -5,3". Com a força de volta nas duas pontas, a conta dá
+// ((-0,053 + 0,0496) - (-0,082 + 0,0668)) / 2 = +0,0059.
+const arcoDuplo = {
+  brawlers: [
+    { nome: 'Emz', uso: 0.0544, sd: 0.0034 },
+    { nome: 'Mr. P', uso: 0.0227, sd: 0.0051 },
+  ],
+  forca: { 'Mr. P': 0.0668, Emz: 0.0496 },
+  tabela: { 'Mr. P': { Emz: -0.053 }, Emz: { 'Mr. P': -0.082 } },
+};
+
+test('motivo usa as duas pontas: Mister P ganha de Emz em Double Swoosh', () => {
+  const m = arcoDuplo;
   const r = recomendar(m, new Set(), ['Emz'], 200).find((x) => x.nome === 'Mr. P');
   assert.equal(r.motivo.tipo, 'ganha');
   assert.equal(r.motivo.contra, 'Emz');
