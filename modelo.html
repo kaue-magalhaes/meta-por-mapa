@@ -253,6 +253,99 @@ mark { background: var(--linha-forte); color: inherit; border-radius: 3px; }
 /* ---------- Os andares da página ---------- */
 .secao { margin: 28px var(--margem) 0; min-width: 0; }
 
+/* ---------- A ficha: Bane, Pegue e Se o inimigo pegar ----------
+   Três faixas de rostos. O rosto é sempre um botão com data-brawler: na página ele abre a
+   folha do brawler, e no Draft (Task 8) o mesmo bloco marca. Os números são da ficha, em
+   Lilita, e nunca passam de --t-titulo. */
+#ficha { display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; margin-top: 22px; }
+.faixa { min-width: 0; }
+.faixa-topo { display: flex; align-items: center; gap: 10px; }
+.faixa-topo h2 { font-stretch: 80%; text-transform: uppercase; letter-spacing: .04em; line-height: 1.1; }
+.faixa-sub { margin-top: 4px; font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); text-wrap: balance; }
+/* O "?" de cada faixa: pequeno no desenho, 44 px no toque. */
+.ajuda {
+  position: relative; flex: none; width: 26px; height: 26px; display: grid; place-items: center;
+  border-radius: 8px; border: 1.5px solid var(--linha-forte);
+  font-size: var(--t-pequeno); font-weight: 800; line-height: 1; color: var(--tinta-2);
+}
+.ajuda::after { content: ""; position: absolute; inset: -9px; }
+
+.rostos { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.rostos-pegue { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.rostos-bane { grid-template-columns: repeat(3, minmax(0, 104px)); gap: 10px; }
+/* Em coluna, com o número embaixo de tudo: nome que quebra em duas linhas não desalinha os números. */
+.rostos > li { display: flex; }
+.rosto {
+  width: 100%; min-height: var(--alvo); display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 0 0 4px; border-radius: 16px; text-align: center;
+}
+.rosto .pontos { margin-top: auto; padding-top: 2px; }
+.rosto-img { position: relative; width: 100%; }
+.rostos-bane .rosto-img { width: min(100%, 72px); }
+.rosto-img .img, .rosto-img .sem-img { width: 100%; height: auto; aspect-ratio: 1; border-radius: 22%; box-shadow: var(--sombra); }
+.rosto-img .sem-img { font-size: var(--t-titulo); }
+.rosto-nome { margin-top: 3px; max-width: 100%; font-size: var(--t-pequeno); font-weight: 700; line-height: 1.15; overflow-wrap: break-word; text-wrap: balance; }
+.rosto-uso { font-size: var(--t-pequeno); font-weight: 500; line-height: 1.2; color: var(--tinta-2); text-wrap: balance; }
+/* Selos sobre o canto do retrato: o cadeado do Bane e o "!" de incerto ou escondido. */
+.rosto-selo {
+  position: absolute; top: -5px; right: -5px; width: 24px; height: 24px; display: grid; place-items: center;
+  border-radius: 50%; background: var(--tinta); color: var(--papel-base); box-shadow: 0 0 0 2px var(--papel);
+  font-size: var(--t-pequeno); font-weight: 800; line-height: 1;
+}
+.rosto-selo svg { width: 13px; height: 13px; }
+.rostos-bane .rosto-img .img { filter: saturate(.8); }
+
+/* O número da ficha: "+7" acima da média, com sinal e cor de bom ou ruim. */
+.pontos { font: 400 var(--t-titulo)/1 var(--fonte-jogo); letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+.pontos.sobe { color: var(--bom); }
+.pontos.desce { color: var(--ruim); }
+
+/* A chave embaixo dos primeiros do Pegue que a conta não separa. */
+.empate { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: 8px; margin-top: 4px; }
+.empate-chave { grid-column: 1 / span var(--n); grid-row: 1; height: 10px; margin: 0 8%; border: 2px solid var(--linha-forte); border-top: 0; border-radius: 0 0 10px 10px; }
+.empate-texto {
+  grid-column: 1 / span var(--n); grid-row: 2; justify-self: center; margin-top: 2px;
+  font-size: var(--t-pequeno); font-weight: 700; line-height: 1.2; color: var(--tinta-2); white-space: nowrap;
+}
+.faixa-vazia { margin-top: 12px; color: var(--tinta-2); }
+
+/* Se o inimigo pegar: um cartão por inimigo provável, todos iguais. No celular empilham,
+   cada um com o inimigo em cima e as 3 respostas lado a lado. */
+.cartoes { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
+.cartao-inimigo {
+  min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-content: start;
+  padding: 6px 10px 10px; border-radius: var(--raio); background: var(--cartao); box-shadow: var(--sombra);
+}
+.inimigo-topo { width: 100%; min-height: 52px; display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 10px; border-radius: 10px; text-align: left; }
+.inimigo-topo .img, .inimigo-topo .sem-img { border-radius: 22%; }
+.inimigo-nome { display: grid; min-width: 0; line-height: 1.2; }
+.inimigo-nome b { font-weight: 800; overflow-wrap: break-word; }
+.inimigo-nome small { font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); }
+.resp-rot { align-self: center; font-size: var(--t-pequeno); font-weight: 700; color: var(--tinta-2); font-stretch: 80%; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+.respostas { grid-column: 1 / -1; list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.resposta {
+  width: 100%; min-height: var(--alvo); display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 7px; align-items: center;
+  padding: 4px; border-radius: 10px; background: var(--linha); text-align: left;
+}
+.resposta .img, .resposta .sem-img { grid-row: span 2; border-radius: 22%; }
+.resposta-nome { min-width: 0; font-size: var(--t-pequeno); font-weight: 700; line-height: 1.15; overflow-wrap: break-word; }
+.resposta .pontos { font-size: var(--t-corpo); }
+.resposta.nao-tenho .img, .resposta.nao-tenho .sem-img { filter: grayscale(1); opacity: .55; }
+.resposta.nao-tenho .resposta-nome { font-weight: 500; color: var(--tinta-2); }
+.cartao-inimigo .nada { grid-column: 1 / -1; margin-top: 6px; font-size: var(--t-pequeno); color: var(--tinta-2); }
+
+/* Compacto: o Pegue dentro do Draft (Task 8), com rostos menores. */
+.faixa-compacta .rostos-pegue { max-width: 330px; }
+.faixa-compacta .rosto-img { width: min(100%, 52px); }
+.faixa-compacta .pontos { font-size: var(--t-corpo); }
+
+@media (hover: hover) {
+  .rosto:hover .rosto-img { translate: 0 -3px; rotate: -2deg; }
+  .inimigo-topo:hover, .resposta:hover { background: var(--linha-forte); }
+  .inimigo-topo:hover { background: var(--linha); }
+  .ajuda:hover { color: var(--tinta); border-color: var(--tinta); }
+}
+
 /* ---------- Rodapé ---------- */
 .rodape {
   margin-top: 56px; padding: 24px var(--margem) calc(40px + env(safe-area-inset-bottom, 0px));
@@ -353,6 +446,7 @@ details.mais > summary .seta { margin-left: auto; }
   html { scroll-behavior: smooth; }
   :root { transition: --modo .45s ease; }
   .seta { transition: rotate .15s; }
+  .rosto-img { transition: translate .18s cubic-bezier(.3, 1.5, .5, 1), rotate .18s cubic-bezier(.3, 1.5, .5, 1); }
   .botao-draft { transition: translate .08s, box-shadow .08s; }
   .figurinha { transition: rotate .35s cubic-bezier(.3, 1.6, .5, 1), scale .35s cubic-bezier(.3, 1.6, .5, 1); }
   .capa:hover .figurinha { rotate: -1deg; scale: 1.03; }
@@ -373,6 +467,9 @@ details.mais > summary .seta { margin-left: auto; }
   .figurinha .mini-mapa, .figurinha .sem-img { width: 64px; height: 97px; }
   .interruptor { margin-left: 16px; margin-right: 16px; }
   .mapas { grid-template-columns: minmax(0, 1fr); }
+  /* As respostas ficam em pé: retrato em cima, nome e pontos embaixo, sem cortar o nome. */
+  .resposta { grid-template-columns: minmax(0, 1fr); justify-items: center; row-gap: 2px; padding: 6px 2px; text-align: center; }
+  .resposta .img, .resposta .sem-img { grid-row: auto; }
 }
 
 /* No celular, com o mapa na barra, o botão fica só "Trocar": o nome do mapa precisa do espaço. */
@@ -406,6 +503,19 @@ details.mais > summary .seta { margin-left: auto; }
   .interruptor { padding: 0 28px; }
   .andares { display: grid; grid-template-columns: minmax(0, 1fr) 360px; column-gap: 48px; align-items: start; }
   .andares > .secao { margin-left: 0; margin-right: 0; }
+  /* Ficha: Bane e Pegue lado a lado, os 5 cartões numa fileira embaixo. */
+  #ficha { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); column-gap: 56px; row-gap: 40px; }
+  .faixa-pegue, .faixa-inimigo { grid-column: 1 / -1; }
+  .faixa-bane + .faixa-pegue { grid-column: auto; }
+  .rostos-pegue, .empate { max-width: 640px; column-gap: 16px; }
+  .rostos-bane { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .rostos-bane .rosto-img { width: min(100%, 96px); }
+  .cartoes { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  .cartao-inimigo { grid-template-columns: minmax(0, 1fr); padding: 8px 12px 10px; }
+  .resp-rot { margin-top: 6px; }
+  .respostas { grid-template-columns: minmax(0, 1fr); gap: 2px; margin-top: 4px; }
+  .resposta { grid-template-columns: 32px minmax(0, 1fr) auto; column-gap: 10px; padding: 4px 6px 4px 0; background: none; }
+  .resposta .img, .resposta .sem-img { grid-row: auto; }
 
   .busca input:placeholder-shown ~ kbd { display: block; }
   .folha-topo { padding-top: 14px; }
@@ -456,18 +566,6 @@ details.mais > summary .seta { margin-left: auto; }
 .vazio { color: var(--muted); font-size: 0.86rem; }
 .nicho, .incerto, .escondido, .popular { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
 /* fim do LEGADO da Task 8 (peças comuns) */
-
-/* LEGADO: sai na Task 4 ("Pra escolher agora" e "Se o inimigo pegar", dentro de #ficha). */
-#ficha { display: grid; gap: 14px; align-items: start; }
-@media (min-width: 900px) { #ficha { grid-template-columns: 1fr 1fr; } }
-#agora .incerto, #agora .escondido { margin-left: 6px; }
-.fora { font-size: 0.84rem; color: var(--muted); }
-.fora b { color: var(--ink); font-weight: 500; }
-#inimigo li { display: grid; grid-template-columns: 5.5em minmax(0, 1fr); }
-#inimigo li > b { color: var(--muted); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
-#inimigo li > span { color: var(--ink); font-weight: 600; }
-#inimigo .nao-tenho { color: var(--muted); font-weight: 400; }
-/* fim do LEGADO da Task 4 */
 
 /* LEGADO: sai na Task 5 (tier list dentro de #todos e cartão do brawler dentro de #folhaBrawler). */
 #todos { display: grid; gap: 14px; }
@@ -551,6 +649,10 @@ details.mais > summary .seta { margin-left: auto; }
 .investir li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
 .investir li b { font-family: var(--font-display); font-weight: 400; font-size: 1.05rem; }
 .investir li span { color: var(--muted); font-size: 0.82rem; }
+/* "Fortes aqui que você não tem no máximo": morava em "Pra escolher agora" (Task 4). */
+.fora { font-size: 0.84rem; color: var(--muted); }
+.fora b { color: var(--ink); font-weight: 500; }
+.fora:empty { display: none; }
 .voce { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
 .voce input, .voce button {
   min-height: 44px; padding: 6px 10px; border-radius: 12px;
@@ -652,22 +754,8 @@ details.mais > summary .seta { margin-left: auto; }
     </button>
   </div>
 
-  <!-- A ficha do mapa: Bane, Pegue e Se o inimigo pegar (Task 4). -->
-  <section class="secao" id="ficha" tabindex="-1" aria-label="Ficha do mapa">
-    <!-- LEGADO: sai na Task 4 -->
-    <div class="bloco destaque agora">
-      <h3>Pra escolher agora</h3>
-      <ol class="picks ordenada num" id="agora"></ol>
-      <p id="agoraNota">Os 5 melhores que sobraram. Marque com o cadeado quem foi bloqueado e a lista se ajusta.</p>
-      <p class="fora" id="fora"></p>
-    </div>
-    <div class="bloco inimigo" id="blocoInimigo" hidden>
-      <h3>Se o inimigo pegar</h3>
-      <ul class="picks" id="inimigo"></ul>
-      <p>Os 5 mais escolhidos neste mapa e quem mais ganha de cada um. O cadeado tira bloqueado dos dois lados.</p>
-    </div>
-    <!-- fim do LEGADO da Task 4 -->
-  </section>
+  <!-- A ficha do mapa: Bane, Pegue e Se o inimigo pegar. Desenhada por desenharFicha(). -->
+  <section class="secao" id="ficha" tabindex="-1" aria-label="Ficha do mapa"></section>
 
   <!-- O modo Draft (Tasks 7 e 8). Até lá, o Draft de hoje fica aqui, no meio da página. -->
   <section class="secao" id="draftModo" aria-label="Draft">
@@ -747,6 +835,7 @@ details.mais > summary .seta { margin-left: auto; }
         <ul class="picks num" id="pouca"></ul>
         <p id="poucaNota"></p>
       </div>
+      <p class="fora" id="fora"></p>
       <div class="investir" id="investir" hidden>
         <h2>Vale maximizar</h2>
         <p class="sub">Brawlers que você ainda não tem no máximo, pela quantidade de mapas do ranqueado em que estão no tier S ou A.</p>
@@ -1564,9 +1653,10 @@ const seuForte = (nome) => (nome in sei ? sei[nome] : recorde(nome) >= corteDoFo
 // Os brawlers livres que a pessoa pode pegar (no máximo, quando há lista), pela nota,
 // com os fortes dela na frente. As 3 primeiras são as opções que o bloqueio protege:
 // até 03/11 ele protegia o 1º geral, que às vezes a pessoa nem tinha no máximo, e um
-// bloqueio do outro time no 1º desperdiçava o nosso.
-function suasEscolhas(m, fora) {
-  const minhas = recomendar(m, fora, partida.eles, Infinity).filter((r) => !temLista() || tenho(r.nome));
+// bloqueio do outro time no 1º desperdiçava o nosso. eles são os inimigos já escolhidos:
+// o Bane da ficha passa [] porque vale para o mapa, antes de qualquer escolha.
+function suasEscolhas(m, fora, eles = partida.eles) {
+  const minhas = recomendar(m, fora, eles, Infinity).filter((r) => !temLista() || tenho(r.nome));
   return [...minhas.filter((r) => seuForte(r.nome)), ...minhas.filter((r) => !seuForte(r.nome))];
 }
 
@@ -1772,7 +1862,7 @@ function novaPartida(mapa) {
 }
 
 // Toda mudança na partida passa por aqui: grava e redesenha o mapa inteiro, porque
-// bloqueio mexe na tier list, no "Pra escolher agora" e no draft.
+// bloqueio mexe na tier list e no draft.
 function mudouPartida() {
   salvarPartida();
   desenharMapa();
@@ -1807,6 +1897,109 @@ document.addEventListener('keydown', (e) => {
   e.preventDefault();
   trocarGrupo(grupo);
 });
+
+// ---------- A ficha do mapa: Bane, Pegue e Se o inimigo pegar ----------
+// A ficha responde "quem eu bano e quem eu pego neste mapa", antes de qualquer marcação.
+// Ela vale para o mapa e não muda com a partida em andamento: quem acompanha a partida é
+// o Draft. blocoBane e blocoPegue devolvem o HTML de uma faixa e o Draft (Task 8) reusa os
+// dois. Todo rosto é um botão com data-brawler; quem decide o que o toque faz é o lugar
+// onde o bloco está (na página, abre a folha do brawler).
+
+// O "?" de cada faixa. O texto no próprio lugar vem na Task 9; até lá ele abre "Como funciona".
+const ajuda = (chave, rotulo) =>
+  `<button class="ajuda" type="button" data-ajuda="${chave}" data-folha="folhaComo" aria-haspopup="dialog" aria-label="${rotulo}">?</button>`;
+const topoFaixa = (titulo, chave, rotulo, sub) =>
+  `<div class="faixa-topo"><h2>${esc(titulo)}</h2>${ajuda(chave, rotulo)}</div>${sub ? `<p class="faixa-sub">${sub}</p>` : ''}`;
+// Pontos de vitória com sinal e cor: "+7" verde, "−3" vermelho. x é a fração (0,07).
+// O que arredonda para zero fica sem cor: não é bom nem ruim.
+function pontos(x) {
+  const n = Math.round(Math.abs(x) * 100);
+  return `<span class="pontos num${n ? (x > 0 ? ' sobe' : ' desce') : ''}">${x >= 0 ? '+' : '−'}${n}</span>`;
+}
+// Um rosto: retrato, nome em português e o que vier embaixo (número ou parte dos times).
+const rosto = (nome, tamanho, embaixo = '', selo = '') =>
+  `<li><button class="rosto" type="button" data-brawler="${esc(nome)}"><span class="rosto-img">${retrato(nome, tamanho, true)}${selo}</span>`
+  + `<span class="rosto-nome">${esc(nomePt(nome))}</span>${embaixo}</button></li>`;
+// "em 16% dos times": a chance de o brawler estar num time de 3, como no Draft de hoje.
+const nosTimes = (uso) => `em ${pct(Math.min(1, 3 * uso), 0)} dos times`;
+
+// Bane: os 3 que a conta do bloqueio sugere, na ordem dela. A ordem junta o quanto o
+// brawler aparece com o quanto ele pesa contra as nossas 3 melhores opções; na tela fica
+// só a parte dos times, pequena, porque ela sozinha não explica a ordem. fora tira nomes
+// (o Draft passa os já marcados). Sem a força do mapa (Troféu) não há conta, nem faixa.
+function blocoBane(m, fora = new Set(), { titulo = 'Bane', sub = 'aparece muito e pesa contra os melhores daqui' } = {}) {
+  if (!m.forca) return '';
+  const opcoes = suasEscolhas(m, fora, []).slice(0, 3).map((r) => r.nome);
+  const bans = sugerirBloqueios(m, fora, opcoes);
+  if (!bans.length) return '';
+  const cadeado = `<span class="rosto-selo" aria-hidden="true">${CADEADO}</span>`;
+  return `<div class="faixa faixa-bane" data-faixa="bane">
+    ${topoFaixa(titulo, 'bane', 'Como o Bane é escolhido', sub)}
+    <ol class="rostos rostos-bane">${bans.map((b) => rosto(b.nome, 96, `<span class="rosto-uso">${nosTimes(b.uso)}</span>`, cadeado)).join('')}</ol>
+  </div>`;
+}
+
+// Pegue: os 5 de cima da tier list, com "+7" (vitória ajustada menos a média do mapa). Com
+// lista de quem a pessoa tem no máximo, só os dela, como fazia "Pra escolher agora". Os
+// primeiros que a margem da conta não separa ganham a chave de empate, pela mesma regra do
+// rascunho da Ficha. compacto é a forma menor que o Draft usa.
+function blocoPegue(m, { fora = new Set(), compacto = false } = {}) {
+  const top = m.brawlers.filter((b) => !fora.has(b.nome) && (!temLista() || tenho(b.nome))).slice(0, 5);
+  const sd = (b) => b.sd ?? SD_SEM_MARGEM;
+  let empatados = 1;
+  while (empatados < top.length && top[0].adj - top[empatados].adj < Math.hypot(sd(top[0]), sd(top[empatados]))) empatados++;
+  const selo = (b) => {
+    const texto = incerto(b, m) ? ['incerto', TEXTO_INCERTO] : escondido(b, m) ? ['escondido', TEXTO_ESCONDIDO] : null;
+    return texto ? `<span class="rosto-selo" title="${esc(texto[1])}">!<span class="sr"> ${texto[0]}</span></span>` : '';
+  };
+  const empate = empatados > 1
+    ? `<div class="empate" style="--n:${empatados}" aria-hidden="true"><span class="empate-chave"></span><span class="empate-texto">${empatados === 5 ? 'os 5 empatados' : `${empatados} empatados`}</span></div>
+       <p class="sr">Os ${empatados} primeiros estão empatados: a diferença entre eles é menor que a margem da conta.</p>`
+    : '';
+  const sub = `${temLista() ? 'só os que você tem no máximo, em ' : ''}pontos de vitória acima da média do mapa, que é ${pct(m.media)}`;
+  return `<div class="faixa faixa-pegue${compacto ? ' faixa-compacta' : ''}" data-faixa="pegue">
+    ${topoFaixa('Pegue', 'pegue', 'Como o Pegue é escolhido', sub)}
+    ${top.length
+      ? `<ol class="rostos rostos-pegue">${top.map((b) => rosto(b.nome, 120, pontos(b.adj - m.media), selo(b))).join('')}</ol>${empate}`
+      : '<p class="faixa-vazia">Nenhum brawler seu com partidas suficientes neste mapa.</p>'}
+  </div>`;
+}
+
+// Se o inimigo pegar: os 5 mais escolhidos do mapa, cada um com as 3 respostas do "Perde
+// para" dele e os pontos dessa ponta do confronto, a conta de hoje. Só no Ranqueado, que
+// tem os confrontos do mapa.
+function blocoInimigo(m) {
+  if (m.parte !== 'ranqueado' || !m.confrontos) return '';
+  // A resposta pode ir pra um colega, então quem a pessoa não tem no máximo só sai apagado.
+  const naoTenho = (nome) => temLista() && !tenho(nome);
+  const cartoes = [...m.brawlers].sort((a, b) => b.uso - a.uso).slice(0, 5).map((b) => {
+    const respostas = (m.confrontos[b.nome]?.ruim ?? []).slice(0, 3);
+    return `<li class="cartao-inimigo">
+      <button class="inimigo-topo" type="button" data-brawler="${esc(b.nome)}">${retrato(b.nome, 40)}<span class="inimigo-nome"><b>${esc(nomePt(b.nome))}</b><small>${nosTimes(b.uso)}</small></span></button>
+      <p class="resp-rot" aria-hidden="true">responda com</p>
+      ${respostas.length
+        ? `<ol class="respostas" aria-label="Respostas a ${esc(nomePt(b.nome))}">${respostas.map(([nome, efeito]) => `<li><button class="resposta${naoTenho(nome) ? ' nao-tenho' : ''}" type="button" data-brawler="${esc(nome)}">${retrato(nome, 32)}<span class="resposta-nome">${esc(nomePt(nome))}${naoTenho(nome) ? '<span class="sr"> (você não tem no máximo)</span>' : ''}</span>${pontos(-efeito)}</button></li>`).join('')}</ol>`
+        : '<p class="nada">Nada claro com as partidas que temos.</p>'}
+    </li>`;
+  }).join('');
+  return `<div class="faixa faixa-inimigo" data-faixa="inimigo">
+    ${topoFaixa('Se o inimigo pegar', 'inimigo', 'Como as respostas são escolhidas', 'os 5 mais escolhidos aqui e quem ganha deles')}
+    <ul class="cartoes">${cartoes}</ul>
+  </div>`;
+}
+
+// Redesenha só quando o mapa ou a lista da pessoa muda, nunca a cada toque: assim o rosto
+// tocado continua no lugar e recebe o foco de volta quando a folha fecha.
+function desenharFicha(m) {
+  document.getElementById('ficha').innerHTML = blocoBane(m) + blocoPegue(m) + blocoInimigo(m);
+}
+
+// A folha do brawler. Até a Task 5 refazê-la, mostra o cartão de hoje.
+function abrirBrawler(nome) {
+  selecionado = nome;
+  desenharMapa();
+  abrirFolha('folhaBrawler');
+}
 
 function desenharMapa() {
   const m = atual;
@@ -1848,29 +2041,7 @@ function desenharMapa() {
     return html;
   }).join('');
 
-  // No ranqueado ninguém repete brawler: quem já foi marcado na partida não serve mais.
-  const marcados = ranqueado ? foraDoDraft() : new Set();
-  const disponiveis = m.brawlers.filter((b) => !marcados.has(b.nome) && (!temLista() || tenho(b.nome)));
-  document.getElementById('agora').innerHTML = disponiveis.slice(0, 5).map((b) =>
-    `<li><b>${esc(b.nome)}${seloIncerto(b, m)}${seloEscondido(b, m)}</b><span class="${b.adj >= m.media ? 'pos' : 'neg'}">${pp(b.adj - m.media)}</span></li>`).join('')
-    || '<li class="vazio">Nenhum brawler seu com partidas suficientes neste mapa.</li>';
-  // A média é a régua dos pontos e fica junto deles. A Task 4 leva pro subtítulo do "Pegue".
-  const nota = `${temLista() ? 'Os 5 melhores entre os seus no máximo' : 'Os 5 melhores deste mapa'}, em pontos de vitória acima da média dele, que é ${pct(m.media)}.`;
-  document.getElementById('agoraNota').textContent = ranqueado
-    ? nota + ' Marque com o cadeado quem foi bloqueado e a lista se ajusta.'
-    : nota;
-  // Inimigo provável é quem mais se escolhe aqui; as respostas são o "Perde para" dele.
-  document.getElementById('blocoInimigo').hidden = !ranqueado || !m.confrontos;
-  if (ranqueado && m.confrontos) {
-    const livre = (nome) => !marcados.has(nome);
-    // Sem o selo MAX, que polui a linha: quem não está no máximo sai apagado, como na tier list.
-    const resposta = ([nome]) => temLista() && !tenho(nome) ? `<span class="nao-tenho">${esc(nome)}</span>` : esc(nome);
-    // O inimigo que já foi escolhido continua: as respostas a ele são a dica.
-    document.getElementById('inimigo').innerHTML = m.brawlers.filter((b) => livre(b.nome) || partida.eles.includes(b.nome)).sort((a, b) => b.uso - a.uso).slice(0, 5).map((b) => {
-      const r = (m.confrontos[b.nome]?.ruim ?? []).filter(([nome]) => livre(nome)).slice(0, 3);
-      return `<li><b>${esc(b.nome)}</b><span>${r.map(resposta).join(', ') || '<span class="vazio">nada claro</span>'}</span></li>`;
-    }).join('');
-  }
+  // Fica no estudo até a Task 6 levar pra perto de "Vale maximizar".
   const fortesFora = temLista() ? m.brawlers.filter((b) => !tenho(b.nome) && forte(b, m)).slice(0, 4) : [];
   document.getElementById('fora').innerHTML = fortesFora.length
     ? `Fortes aqui que você não tem no máximo: ${fortesFora.map((b) => `<b>${esc(b.nome)}</b>`).join(', ')}.`
@@ -1934,6 +2105,7 @@ function selecionar(m, mexerNoHash = true) {
   info();
   desenharCapa(m);
   desenharInvestir();
+  desenharFicha(m);
   desenharMapa();
   fecharFolha();
 }
@@ -1964,12 +2136,11 @@ document.addEventListener('click', (e) => {
   }
   // Até a Task 7 trocar por abrirDraft(): "Estou no draft" leva ao Draft de hoje.
   if (e.target.closest('#ligarDraft')) return document.getElementById('draftModo').scrollIntoView();
+  // Rosto da ficha: abre a folha do brawler. No modo Draft (Task 8), o mesmo rosto marca.
+  const rostoTocado = e.target.closest('[data-brawler]');
+  if (rostoTocado) return abrirBrawler(rostoTocado.dataset.brawler);
   const ver = e.target.closest('[data-ver]');
-  if (ver) {
-    selecionado = ver.dataset.ver;
-    desenharMapa();
-    return abrirFolha('folhaBrawler');
-  }
+  if (ver) return abrirBrawler(ver.dataset.ver);
   // Outra partida no mesmo mapa: bloqueios e escolhas são outros.
   if (e.target.id === 'draftNova') {
     novaPartida(atual.mapa);
@@ -2019,6 +2190,7 @@ document.addEventListener('change', (e) => {
   if (e.target.id === 'sei') {
     sei[selecionado] = e.target.checked;
     guardar.gravar('sei:' + (perfil?.tag ?? ''), sei);
+    desenharFicha(atual);
     desenharMapa();
   }
   if (e.target.id === 'soMeus') {
@@ -2037,6 +2209,7 @@ function mudouMeus() {
   info();
   desenharInvestir();
   document.getElementById('ferramentas').hidden = !temLista();
+  desenharFicha(atual);
   desenharMapa();
 }
 
