@@ -36,6 +36,11 @@ da ficha dele no [wiki do Brawl Stars](https://brawlstars.fandom.com) (`wiki.mjs
 geração busca de novo uma vez por semana, ou quando aparece um brawler novo, e guarda
 em `atributos.json`. Se o wiki falhar, ficam os números da última vez.
 
+Os nomes em português de mapas e modos e as imagens de mapas, modos e brawlers vêm
+do jogo, pela [BrawlAPI](https://brawlapi.com) e pelo CDN do Brawlify (`imagens.mjs`).
+Ficam guardados em `nomes.json` e `site/img/`, e só sai pedido quando aparece mapa ou
+brawler novo ou falta uma imagem.
+
 Um robô do GitHub Actions (`.github/workflows/aviso-site-parado.yml`) confere a
 cada hora a data das estatísticas e abre uma issue quando ela passa de 30 horas.
 

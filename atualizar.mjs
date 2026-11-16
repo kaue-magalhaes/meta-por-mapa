@@ -8,7 +8,8 @@
 // da API oficial, e os mapas da aba Especial, num pedido pequeno ao BTN.
 //
 // Uso: node atualizar.mjs [--parte ranqueado|trofeu] [--rank 16] [--blocos 2] [--limite N] [--so-pagina]
-//   --so-pagina  só refaz site/index.html com o dados.json que já existe, sem pedido nenhum
+//   --so-pagina  só refaz site/index.html com o dados.json que já existe, sem pedido ao BTN
+//                (só baixa nome ou imagem do jogo que ainda falte, ver imagens.mjs)
 //   --parte   coleta essa parte agora, mesmo com a coleta do dia feita; a outra fica como está
 //   --rank    faixa mínima do ranqueado (10 = Diamante I, 13 = Mítico I, 16 = Lendário I, 19 = Mestre I)
 //   --blocos  quantos blocos de duas semanas juntar (o site agrupa os dados assim)
@@ -20,6 +21,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM, mapasNoAr, especiaisNoAr } from './calculo.mjs';
 import { atributosDaSemana } from './wiki.mjs';
+import { atualizarNomesEImagens } from './imagens.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -301,7 +303,7 @@ async function mapasDoRanqueado() {
   if (ativos.length < 10) throw new Error(`só ${ativos.length} mapas no ranqueado: o site mudou o formato?`);
   const pos = (modo) => (ORDEM_RANQUEADO.includes(modo) ? ORDEM_RANQUEADO.indexOf(modo) : ORDEM_RANQUEADO.length);
   return ativos
-    .map((r) => ({ modo: r.mode, mapa: r.map }))
+    .map((r) => ({ modo: r.mode, mapa: r.map, id: Number(r.eventId) || undefined }))
     .sort((a, b) => pos(a.modo) - pos(b.modo) || a.modo.localeCompare(b.modo) || a.mapa.localeCompare(b.mapa));
 }
 
@@ -356,7 +358,7 @@ async function gerarRanqueado(desde, anterior) {
     juntar(confrontos, await pares('brawlerEnemies', 'enemy', mapas, fatiasPares));
   }
 
-  const saida = lista.map(({ modo, mapa }) => {
+  const saida = lista.map(({ modo, mapa, id }) => {
     const m = processarMapa(
       modo,
       mapa,
@@ -379,7 +381,7 @@ async function gerarRanqueado(desde, anterior) {
       },
     );
     console.log(`ranqueado · ${mapa}: ${m.partidas != null ? `${m.partidas} partidas` : `${m.total} escolhas`}${m.estimada ? ' (lista estimada pelo modo)' : ''}`);
-    return m;
+    return { ...m, id };
   });
   // Counters e duplas usam os outros mapas e a tier list, então só saem com tudo pronto.
   const confrontosCascata = confrontosEmCascata(saida.map((m) => ({ modo: m.modo, linhas: m.bruto.confrontos, forca: m.bruto.forca })));
@@ -417,6 +419,8 @@ async function gerarTrofeu(desde, rotacao) {
   ).filter((r) => r.trophyChange != null && Number(r.eventId) !== 0);
   const doModo = new Map();
   for (const r of porMapa) doModo.set(r.mode, (doModo.get(r.mode) ?? 0) + Number(r.picks));
+  // O id do mapa no jogo, pra imagem; mapa da rotação sem partida fica sem.
+  const idPorMapa = new Map(porMapa.map((r) => [`${r.mode}|${r.map}`, Number(r.eventId) || undefined]));
   const modos = [...doModo].sort((a, b) => b[1] - a[1]).map(([modo]) => modo);
   if (!modos.length) throw new Error('nenhum modo com variação de troféu: o site mudou o formato?');
   const mapas = porMapa
@@ -430,7 +434,7 @@ async function gerarTrofeu(desde, rotacao) {
   const lista = [...new Set([...mapas, ...naRotacao])]
     .map((k) => {
       const [modo, mapa] = k.split('|');
-      return { modo, mapa, rotacao: naRotacao.includes(k) };
+      return { modo, mapa, id: idPorMapa.get(k), rotacao: naRotacao.includes(k) };
     })
     .slice(0, LIMITE);
   console.log(`troféu: ${lista.length} mapas em ${modos.length} modos; na rotação: ${naRotacao.map((k) => k.split('|')[1]).join(', ') || 'nenhum'}`);
@@ -455,7 +459,7 @@ async function gerarTrofeu(desde, rotacao) {
     if (!ehShowdown(modo)) confrontos.set(modo, await consulta('brawlerEnemies', ['brawler', 'enemy'], ['picks', 'winRate'], fatias));
   }
 
-  const saida = lista.map(({ modo, mapa, rotacao }) => {
+  const saida = lista.map(({ modo, mapa, id, rotacao }) => {
     const m = processarMapa(
       modo,
       mapa,
@@ -474,7 +478,7 @@ async function gerarTrofeu(desde, rotacao) {
       },
     );
     console.log(`troféu · ${modo} · ${mapa}: ${m.partidas != null ? `${m.partidas} partidas` : `${m.total} escolhas`}${rotacao ? ' (na rotação)' : ''}${m.estimada ? ' (lista estimada pelo modo)' : ''}`);
-    return { ...m, rotacao };
+    return { ...m, id, rotacao };
   });
 
   return {
@@ -491,6 +495,9 @@ async function main() {
   // A parte que não foi pedida continua como estava. Arquivo do formato antigo não tem partes.
   const anterior = await readFile(new URL('dados.json', dir), 'utf8').then(JSON.parse).catch(() => null);
   const partes = { ...anterior?.partes };
+  // Nomes e imagens saem da lista de mapas da última vez: mapa novo da coleta de agora
+  // ganha nome e imagem na rodada seguinte.
+  const nomes = await nomesEImagens(anterior?.partes);
   const daApi = await rotacaoOficial().catch((e) => {
     console.warn(`rotação da API oficial falhou: ${e.message}`);
     return null;
@@ -529,9 +536,7 @@ async function main() {
 
   // Alcance, vida e recarga de todo brawler que aparece nos dados, pra leitura da
   // partida no Draft. Vêm do wiki uma vez por semana; sem eles a tabela sai com traços.
-  const nomes = [...new Set(Object.values(partes).flatMap((p) =>
-    p.mapas.flatMap((m) => [...m.brawlers.map((b) => b.nome), ...Object.keys(m.forca ?? {})])))].sort();
-  const atributos = await atributosDaSemana(new URL('atributos.json', dir), nomes);
+  const atributos = await atributosDaSemana(new URL('atributos.json', dir), brawlersDe(partes));
 
   const dados = {
     geradoEm: new Date().toISOString(),
@@ -540,6 +545,8 @@ async function main() {
     // Endereço da Worker que busca o perfil pela tag. Sem ele, a página esconde o campo.
     worker: config.worker ?? null,
     atributos: atributos && { geradoEm: atributos.geradoEm, brawlers: atributos.brawlers },
+    // Nome em português e id da imagem de cada mapa, modo e brawler (imagens.mjs).
+    nomes,
     partes,
   };
   const json = JSON.stringify(dados);
@@ -549,6 +556,12 @@ async function main() {
   await writeFile(new URL('site/estado.json', dir), JSON.stringify({ publicadoEm: dados.geradoEm, estatisticasEm }));
   console.log(`ok: site/index.html gerado (${(json.length / 1e6).toFixed(2)} MB de dados, ${pedidosBtn} pedidos ao BTN)`);
 }
+
+// Mapas e brawlers que aparecem nos dados. partes pode faltar, na primeira rodada.
+const mapasDe = (partes) => Object.values(partes ?? {}).flatMap((p) => p.mapas.map(({ modo, mapa, id }) => ({ modo, mapa, id })));
+const brawlersDe = (partes) => [...new Set(Object.values(partes ?? {}).flatMap((p) =>
+  p.mapas.flatMap((m) => [...m.brawlers.map((b) => b.nome), ...Object.keys(m.forca ?? {})])))].sort();
+const nomesEImagens = (partes) => atualizarNomesEImagens(dir, mapasDe(partes), brawlersDe(partes));
 
 // A página é o modelo.html com as contas do Draft (draft.mjs, sem os export, pra rodar
 // como script comum) e os dados no lugar das marcas. A troca usa função porque o texto
@@ -563,9 +576,13 @@ async function montarPagina(dados) {
 }
 
 // --so-pagina refaz o site/index.html com o dados.json que já existe, sem pedido ao BTN
-// nem ao wiki: serve pra ver mudança no modelo.html ou no draft.mjs.
+// nem ao wiki: serve pra ver mudança no modelo.html ou no draft.mjs. Os nomes e as
+// imagens do jogo entram também, e o dados.json é regravado com eles.
 async function soPagina() {
-  await montarPagina(JSON.parse(await readFile(new URL('dados.json', dir), 'utf8')));
+  const dados = JSON.parse(await readFile(new URL('dados.json', dir), 'utf8'));
+  dados.nomes = await nomesEImagens(dados.partes);
+  await writeFile(new URL('dados.json', dir), JSON.stringify(dados));
+  await montarPagina(dados);
   console.log('ok: site/index.html refeito com o dados.json');
 }
 
