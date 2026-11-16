@@ -1642,11 +1642,12 @@ document.addEventListener('keydown', (e) => {
 
 // A recomendação só precisa de quem o inimigo pegou. Bloqueios só tiram nomes da lista,
 // e o nosso time tira nomes e dá a chance de vitória. Cada time escolhe 3, e são até 6
-// bloqueios.
+// bloqueios. cheio é a frase de quando o grupo não tem mais vaga, que o Draft e a folha do
+// brawler mostram: uma frase inteira por grupo, porque o título sozinho não concorda.
 const GRUPOS = {
-  eles: { titulo: 'Inimigos', max: 3 },
-  nos: { titulo: 'Nosso time', max: 3 },
-  bloqueios: { titulo: 'Bloqueados', max: 6 },
+  eles: { titulo: 'Inimigos', max: 3, cheio: 'O time inimigo já está completo.' },
+  nos: { titulo: 'Nosso time', max: 3, cheio: 'Nosso time já está completo.' },
+  bloqueios: { titulo: 'Bloqueados', max: 6, get cheio() { return `Os ${this.max} bloqueios já estão marcados.`; } },
 };
 const foraDoDraft = () => new Set([...partida.bloqueios, ...partida.eles, ...partida.nos]);
 // Todo brawler que aparece em alguma parte do site. Só o ranqueado não basta: brawler com
@@ -1777,7 +1778,7 @@ function desenharDica(m) {
   document.getElementById('draftDica').textContent = !texto
     ? ''
     : cheio()
-      ? `${GRUPOS[partida.marcando].titulo} já está completo.`
+      ? GRUPOS[partida.marcando].cheio
       : !achados.length
         ? 'Nenhum brawler livre com esse nome.'
         : `Enter marca ${achados[0]}${achados.length > 1 ? ` (também: ${achados.slice(1, 4).join(', ')})` : ''}.`;
@@ -2232,7 +2233,7 @@ function mandarProDraft(grupo, nome) {
   if (!partida[grupo].includes(nome)) {
     if (partida[grupo].length >= GRUPOS[grupo].max) {
       const aviso = document.getElementById('folhaBrawlerOnde');
-      if (aviso) aviso.textContent = `${GRUPOS[grupo].titulo} já está completo.`;
+      if (aviso) aviso.textContent = GRUPOS[grupo].cheio;
       return;
     }
     for (const g of Object.keys(GRUPOS)) if (g !== grupo && partida[g].includes(nome)) mudar(g, nome, false);
