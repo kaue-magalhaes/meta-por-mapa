@@ -23,8 +23,14 @@ export const NOME_PT = { 'Surge': 'Wattson', 'Gene': 'Eugênio', 'Crow': 'Corvo'
 // A BrawlAPI escreve "Belles Rock" e "Out In The Open"; o BTN, "Belle's Rock" e "Out in the Open".
 const chave = (nome) => nome.toLowerCase().replaceAll('&', 'and').replace(/[^a-z0-9]/g, '');
 
-// "PIQUE-GEMA" vira "Pique-Gema", e "ZONA ESTRATÉGICA", "Zona Estratégica".
-const primeiraMaiuscula = (texto) => texto.replace(/[^\s-]+/g, (parte) => parte[0] + parte.slice(1).toLowerCase());
+// "PIQUE-GEMA" vira "Pique-Gema", e "COLECIONADOR DE ALMAS", "Colecionador de Almas":
+// a palavra pequena fica em minúscula, menos no começo.
+const MINUSCULAS = new Set(['de', 'da', 'do', 'das', 'dos', 'ao', 'aos', 'à', 'às', 'e', 'em', 'no', 'na', 'nos', 'nas', 'a', 'o', 'com', 'por', 'para']);
+const primeiraMaiuscula = (texto) =>
+  texto.replace(/[^\s-]+/g, (parte, posicao) => {
+    const minuscula = parte.toLowerCase();
+    return posicao > 0 && MINUSCULAS.has(minuscula) ? minuscula : parte[0] + minuscula.slice(1);
+  });
 
 // mapa: { modo, mapa, id? }, com o id que veio do BTN. maps: a lista de /v1/maps.
 // O mesmo mapa tem vários ids (Double Swoosh: 15000115, 15000665 e 15001320, a versão do

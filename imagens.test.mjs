@@ -26,6 +26,8 @@ const gmv = {
   KingOfHill: { id: 48000017, Name: 'KingOfHill', TID: 'TID_GAME_MODE_17' },
   Showdown: { id: 48000006, Name: 'Showdown', TID: 'TID_GAME_MODE_6' },
   DuoShowdown: { id: 48000009, Name: 'DuoShowdown', TID: 'TID_GAME_MODE_9' },
+  KillConfirmed: { id: 48000040, Name: 'KillConfirmed', TID: 'TID_GAME_MODE_40' },
+  TreasureHunt: { id: 48000056, Name: 'TreasureHunt', TID: 'TID_GAME_MODE_56' },
 };
 const pt = {
   TID_GOLDRUSH_25: { TID: 'TID_GOLDRUSH_25', PT: 'Arco duplo' },
@@ -35,6 +37,8 @@ const pt = {
   TID_GAME_MODE_17: { TID: 'TID_GAME_MODE_17', PT: 'ZONA ESTRATÉGICA' },
   TID_GAME_MODE_6: { TID: 'TID_GAME_MODE_6', PT: 'COMBATE SOLITÁRIO' },
   TID_GAME_MODE_9: { TID: 'TID_GAME_MODE_9', PT: 'COMBATE DUPLO' },
+  TID_GAME_MODE_40: { TID: 'TID_GAME_MODE_40', PT: 'COLECIONADOR DE ALMAS' },
+  TID_GAME_MODE_56: { TID: 'TID_GAME_MODE_56', PT: 'CAÇA AO TESOURO' },
 };
 const brawlers = [
   { id: 16000038, name: 'Surge' },
@@ -85,6 +89,14 @@ test('montarTabela acha o modo pelo nome interno e, sem ele, pelo modo do mapa',
   assert.deepEqual(tabela.modos.soloShowdown, { pt: 'Combate Solitário', icone: 48000006 });
   assert.deepEqual(tabela.modos.hotZone, { pt: 'Zona Estratégica', icone: 48000017 });
   assert.equal(tabela.modos.bounty, undefined);
+});
+
+test('montarTabela deixa a preposição do nome do modo em minúscula', () => {
+  const doSite = ['killConfirmed', 'treasureHunt', 'gemGrab'].map((modo) => ({ modo, mapa: 'Mapa Novo' }));
+  const { modos } = montarTabela(api, doSite, []);
+  assert.equal(modos.killConfirmed.pt, 'Colecionador de Almas');
+  assert.equal(modos.treasureHunt.pt, 'Caça ao Tesouro');
+  assert.equal(modos.gemGrab.pt, 'Pique-Gema');
 });
 
 test('montarTabela deixa de fora o mapa que a BrawlAPI não conhece', () => {
