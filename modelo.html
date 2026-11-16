@@ -255,7 +255,7 @@ mark { background: var(--linha-forte); color: inherit; border-radius: 3px; }
 
 /* ---------- A ficha: Bane, Pegue e Se o inimigo pegar ----------
    Três faixas de rostos. O rosto é sempre um botão com data-brawler: na página ele abre a
-   folha do brawler, e no Draft (Task 8) o mesmo bloco marca. Os números são da ficha, em
+   folha do brawler, e no modo Draft o rosto do Bane marca o bloqueio. Os números são da ficha, em
    Lilita, e nunca passam de --t-titulo. */
 #ficha { display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; margin-top: 22px; }
 .faixa { min-width: 0; }
@@ -334,8 +334,8 @@ mark { background: var(--linha-forte); color: inherit; border-radius: 3px; }
 .resposta.nao-tenho .resposta-nome { font-weight: 500; color: var(--tinta-2); }
 .cartao-inimigo .nada { grid-column: 1 / -1; margin-top: 6px; font-size: var(--t-pequeno); color: var(--tinta-2); }
 
-/* Compacto: o Pegue dentro do Draft (Task 8), com rostos menores. */
-.faixa-compacta .rostos-pegue { max-width: 330px; }
+/* Compacto: o Pegue dentro do modo Draft, com rostos menores. */
+.faixa-compacta .rostos-pegue, .faixa-compacta .empate-pegue { max-width: 360px; column-gap: 8px; }
 .faixa-compacta .rosto-img { width: min(100%, 52px); }
 .faixa-compacta .pontos { font-size: var(--t-corpo); }
 
@@ -626,14 +626,86 @@ body.em-draft > .pular, body.em-draft > .barra-fixa, body.em-draft > main > :not
 /* A legenda do teclado só aparece onde há teclado: na tela larga. */
 .dm-teclas { display: none; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); }
 .dm-teclas kbd { margin-right: 4px; padding: 1px 7px; border: 1.5px solid var(--linha-forte); border-radius: 6px; font: 700 var(--t-pequeno) var(--fonte); color: var(--tinta); }
-.dm-resposta { min-width: 0; }
+.dm-resposta { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; }
+
+/* A resposta da vez (#draftResposta) muda com a etapa. No bloqueio ela reusa as faixas da
+   ficha (Bane e Pegue). Na escolha e no plano tem as peças daqui: as opções com o botão
+   "Pegar", a linha do maior perigo e "Chance e alcance". Na resposta os nomes quebram a linha,
+   nunca são cortados. */
+.dm-resposta .faixa + .faixa { margin-top: 14px; }
+.dm-resposta .rostos-bane { grid-template-columns: repeat(3, minmax(0, 104px)); }
+.dm-resposta .rostos-bane .rosto-img { width: min(100%, 64px); }
+.faixa-nota, .dm-nota { font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); text-wrap: pretty; }
+.faixa-nota { margin-top: 10px; }
+.dm-opcoes, .dm-plano { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.dm-opcao { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; }
+/* O retrato, o nome e uma linha de texto: o botão inteiro abre a folha do brawler. */
+.dm-quem {
+  width: 100%; min-height: 52px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 10px;
+  padding: 4px 6px 4px 0; border-radius: 12px; text-align: left;
+}
+.dm-quem .img, .dm-quem .sem-img { border-radius: 22%; box-shadow: var(--sombra); }
+.dm-opcao-texto { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; line-height: 1.25; }
+.dm-opcao-nome { font-weight: 700; overflow-wrap: break-word; }
+.dm-opcao-motivo { font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); text-wrap: pretty; }
+.dm-quem.nao-tenho .img, .dm-quem.nao-tenho .sem-img { filter: grayscale(1); opacity: .55; }
+.dm-quem.nao-tenho .dm-opcao-nome { font-weight: 500; color: var(--tinta-2); }
+/* Selo: pílula, rótulo que não se toca. O raio é metade da altura de uma linha: o selo
+   comprido que quebra em duas ("seu recorde: 700 troféus") vira uma caixa, não um ovo. */
+.dm-selos { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.dm-selo { padding: 0 8px; border-radius: 11px; border: 1.5px solid var(--linha-forte); font-size: var(--t-pequeno); font-weight: 700; line-height: 1.4; }
+/* "Pegar": cheio, na cor do modo, só na escolha principal; nas outras, de borda. */
+.dm-pegar { min-width: 64px; min-height: var(--alvo); padding: 0 12px; border-radius: 12px; border: 1.5px solid var(--linha-forte); font-weight: 800; }
+.dm-opcao.principal { padding: 6px 10px 6px 8px; border: 2px solid var(--modo-tinta); border-radius: 16px; background: var(--cartao); box-shadow: var(--sombra); }
+.dm-opcao.principal .dm-opcao-nome { font-size: var(--t-titulo); font-weight: 800; line-height: 1.15; }
+.dm-opcao.principal .dm-pegar {
+  min-height: 48px; padding: 0 16px; border: 0; background: var(--capa); color: #fff;
+  box-shadow: 0 3px 0 color-mix(in oklab, var(--capa) 55%, black);
+}
+.dm-opcao.principal .dm-pegar:active { translate: 0 2px; box-shadow: 0 1px 0 color-mix(in oklab, var(--capa) 55%, black); }
+/* O botão que abre uma parte da resposta ("Mais 2 opções", "Chance e alcance"). */
+.dm-abre {
+  justify-self: start; display: inline-flex; align-items: center; gap: 8px; min-height: var(--alvo); padding: 0 14px 0 16px;
+  border-radius: 12px; border: 1.5px solid var(--linha-forte); font-weight: 700;
+}
+.dm-abre .seta { rotate: 90deg; }
+.dm-abre[aria-expanded="true"] .seta { rotate: -90deg; }
+/* O maior perigo e quem ganha dele. */
+.dm-perigo { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: start; padding-top: 10px; border-top: 1px solid var(--linha-forte); }
+.dm-perigo > .img, .dm-perigo > .sem-img { margin-top: 2px; border-radius: 22%; box-shadow: var(--sombra); }
+.dm-perigo-quem b { font-weight: 800; }
+.dm-ganham { list-style: none; margin: 0 0 0 -6px; padding: 0; display: flex; flex-wrap: wrap; gap: 0 2px; }
+.dm-chip {
+  min-height: var(--alvo); display: inline-flex; align-items: center; gap: 6px; padding: 0 8px 0 6px; border-radius: 10px;
+  font-size: var(--t-pequeno); font-weight: 700; text-align: left;
+}
+.dm-chip .img, .dm-chip .sem-img { border-radius: 22%; }
+.dm-fortes, .dm-chance { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.dm-fortes { padding-top: 10px; border-top: 1px solid var(--linha-forte); }
+.dm-fortes h3, .dm-chance h3 { font-size: var(--t-pequeno); font-stretch: 80%; text-transform: uppercase; letter-spacing: .06em; }
+.dm-chance h3 { margin-top: 8px; }
+.dm-chance-num { text-wrap: pretty; }
+.dm-chance-num b { margin-right: 2px; font-size: var(--t-titulo); font-weight: 800; }
+/* A tabela de quem está marcado. O nome quebra a linha; os números não. */
+.dm-tabela { width: 100%; margin-top: 4px; border-collapse: collapse; font-size: var(--t-pequeno); }
+.dm-tabela th, .dm-tabela td { padding: 6px 0 6px 6px; text-align: right; vertical-align: top; font-weight: 500; line-height: 1.25; }
+.dm-tabela td { font-variant-numeric: tabular-nums; }
+.dm-tabela th:first-child { padding-left: 0; text-align: left; overflow-wrap: break-word; }
+.dm-tabela thead th { vertical-align: bottom; font-weight: 600; font-stretch: 80%; color: var(--tinta-2); }
+.dm-tabela th small { display: block; font-size: inherit; font-weight: 500; font-stretch: 80%; white-space: nowrap; }
+.dm-tabela tbody th[scope="row"] { font-weight: 700; }
+.dm-tabela th[scope="rowgroup"] { padding-top: 12px; border-bottom: 1px solid var(--linha-forte); font-weight: 800; font-stretch: 80%; text-transform: uppercase; letter-spacing: .05em; }
+.dm-tabela tbody tr + tr + tr > * { border-top: 1px solid var(--linha); }
+.dm-tabela abbr { text-decoration: none; }
 
 @media (hover: hover) {
   .dm-acao:hover { background: rgb(0 0 0 / .36); }
   .dm-sair:hover { background: #ece8f3; }
   .dm-rot:hover { color: var(--tinta); }
   .dm-grupo.ativo .dm-rot:hover { color: var(--acao-tinta); }
-  .dm-peca:not(:disabled):hover { background: color-mix(in oklab, var(--modo) 12%, transparent); }
+  .dm-peca:not(:disabled):hover, .dm-quem:hover, .dm-chip:hover { background: color-mix(in oklab, var(--modo) 12%, transparent); }
+  .dm-pegar:hover, .dm-abre:hover { border-color: var(--tinta); }
+  .dm-opcao.principal .dm-pegar:hover { filter: brightness(1.1); }
   .dm-vaga.cheia:hover .img, .dm-vaga.cheia:hover .sem-img { translate: 0 -2px; }
 }
 
@@ -738,7 +810,7 @@ details.mais > summary .seta { margin-left: auto; }
   :root { transition: --modo .45s ease; }
   .seta { transition: rotate .15s; }
   .rosto-img { transition: translate .18s cubic-bezier(.3, 1.5, .5, 1), rotate .18s cubic-bezier(.3, 1.5, .5, 1); }
-  .botao-draft { transition: translate .08s, box-shadow .08s; }
+  .botao-draft, .dm-pegar { transition: translate .08s, box-shadow .08s; }
   .figurinha { transition: rotate .35s cubic-bezier(.3, 1.6, .5, 1), scale .35s cubic-bezier(.3, 1.6, .5, 1); }
   .capa:hover .figurinha { rotate: -1deg; scale: 1.03; }
   .figurinha { animation: colar .5s cubic-bezier(.3, 1.4, .5, 1) both; }
@@ -778,6 +850,10 @@ details.mais > summary .seta { margin-left: auto; }
   .dm-grade-topo { grid-template-columns: minmax(0, 1fr) minmax(0, 132px); }
   .dm-vaga-nome, .dm-peca-nome { font-stretch: 75%; letter-spacing: -.01em; }
   .dm-resto { display: none; }
+  /* A escolha principal encolhe o retrato, para o nome e o motivo terem onde quebrar. */
+  .dm-opcao.principal { padding-left: 6px; padding-right: 6px; }
+  .dm-opcao.principal .img, .dm-opcao.principal .sem-img { width: 48px; height: 48px; }
+  .dm-opcao.principal .dm-pegar { padding: 0 10px; }
 }
 
 /* No celular, com o mapa na barra, o botão fica só "Trocar": o nome do mapa precisa do espaço. */
@@ -888,47 +964,6 @@ details.mais > summary .seta { margin-left: auto; }
   --font-display: var(--fonte); --font-body: var(--fonte);
 }
 
-/* LEGADO: sai na Task 8 (peças comuns aos blocos das Tasks 4 a 8: cartão, lista, selos). */
-.sub { color: var(--muted); font-size: 0.88rem; }
-.bloco { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; }
-.bloco.destaque { border: 2px solid var(--accent); }
-.bloco p { margin: 0; color: var(--muted); font-size: 0.84rem; }
-.picks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.picks li { display: flex; justify-content: space-between; gap: 10px; font-size: 0.92rem; }
-.picks li b { font-weight: 600; }
-.picks li span { color: var(--muted); }
-.picks .pos { color: var(--good); }
-.picks .neg { color: var(--bad); }
-.picks.ordenada { counter-reset: n; }
-.picks.ordenada li::before { counter-increment: n; content: counter(n); font-family: var(--font-display); color: var(--muted); width: 1.2em; }
-.picks.ordenada li b { flex: 1; }
-.picks.ordenada li.vazio::before { content: none; }
-.vazio { color: var(--muted); font-size: 0.86rem; }
-.nicho, .incerto, .escondido, .popular { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
-/* fim do LEGADO da Task 8 (peças comuns) */
-
-/* LEGADO: sai na Task 8 (as respostas do Draft de hoje, dentro de #draftResposta: recomendação,
-   bloqueio, chance e leitura). */
-.desbloq { text-decoration: underline; }
-.draft-legenda { margin: 0; color: var(--muted); font-size: 0.85rem; }
-.draft-chance b { font-size: 1.15rem; }
-#draftLeitura { margin: 12px 0; }
-.leitura-rolagem { overflow-x: auto; }
-.leitura { width: 100%; border-collapse: collapse; font-size: 0.86rem; margin-top: 8px; }
-/* Nome e recarga quebram linha, pra tabela caber em 375 px; os números não. */
-.leitura th, .leitura td { padding: 3px 4px; text-align: right; }
-.leitura td:nth-child(2), .leitura td:nth-child(3), .leitura td:nth-child(4) { white-space: nowrap; }
-.leitura th:first-child, .leitura td:first-child { text-align: left; }
-.leitura th { color: var(--muted); font-weight: 500; }
-.leitura tr.eles td:first-child { color: var(--bad); }
-.leitura .perigo { display: block; font-size: 0.75rem; color: var(--bad); }
-/* Selo de quem a pessoa mais jogou, e a barra dos empatados com o 1º. */
-.forte { white-space: nowrap; font-size: 0.66rem; font-weight: 400; color: var(--good); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-left: 6px; flex: none; }
-#draftRecomenda li.empate { box-shadow: inset 3px 0 0 var(--accent); padding-left: 6px; }
-#draftRecomenda .nao-tenho { color: var(--muted); font-weight: 400; }
-#draftRecomenda .escondido, #seusLista .escondido { margin-left: 6px; }
-/* fim do LEGADO da Task 8 (respostas do Draft) */
-
 /* LEGADO: sai na Task 9 (o guia de hoje, dentro de #folhaComo). */
 .guia { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 28px; }
 .guia div { display: grid; gap: 4px; max-width: 62ch; }
@@ -1001,33 +1036,8 @@ details.mais > summary .seta { margin-left: auto; }
         </div>
         <p class="sr" id="draftAviso" aria-live="polite"></p>
       </div>
-      <!-- A resposta da vez. A Task 8 desenha aqui; até lá, fica a resposta de hoje. -->
-      <section class="dm-resposta" id="draftResposta" aria-label="Resposta da vez">
-        <!-- LEGADO: sai na Task 8 -->
-        <div class="bloco draft">
-          <div id="draftBloqueio" hidden>
-            <h4>Pra bloquear</h4>
-            <ol class="picks ordenada" id="bloqueioLista"></ol>
-            <p class="draft-legenda" id="bloqueioNota"></p>
-          </div>
-          <h4>Pra nossa próxima escolha</h4>
-          <p class="draft-legenda" id="draftEmpate"></p>
-          <ol class="picks ordenada" id="draftRecomenda"></ol>
-          <div id="draftSeus" hidden>
-            <h4>Dos seus fortes</h4>
-            <ul class="picks" id="seusLista"></ul>
-            <p class="draft-legenda">Fora dos 5 de cima. Quem joga bem com o brawler muitas vezes compensa os pontos.</p>
-          </div>
-          <p class="draft-chance" id="draftChance"></p>
-          <div id="draftLeitura" hidden>
-            <h4>Leitura da partida</h4>
-            <ul class="picks" id="leituraLinhas"></ul>
-            <div class="leitura-rolagem"><table class="leitura" id="leituraTabela"></table></div>
-            <p class="draft-legenda" id="leituraNota"></p>
-          </div>
-        </div>
-        <!-- fim do LEGADO da Task 8 -->
-      </section>
+      <!-- A resposta da vez, desenhada por desenharResposta(): muda com a etapa da partida. -->
+      <section class="dm-resposta" id="draftResposta" aria-label="Resposta da vez"></section>
     </div>
   </section>
 
@@ -1190,8 +1200,8 @@ details.mais > summary .seta { margin-left: auto; }
       </div>
       <div id="guiaDraft" hidden>
         <h3>Draft</h3>
-        <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O botão "Estou no draft" liga o modo Draft em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um toque nos mais escolhidos do mapa ou digitando o nome em "Outro"; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. Com pelo menos um brawler de cada lado, a leitura da partida diz quem cada um do nosso time caça e evita, pelos mesmos confrontos, e compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.</p>
-        <p>Antes das escolhas, "Pra bloquear" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra as suas 3 melhores opções. As opções são os seus fortes que você tem no máximo, os melhores no mapa primeiro, completados pelos outros que você tem no máximo. Proteger três evita que um bloqueio do outro time numa delas desperdice o seu. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. "Seu forte" é quem você marcou com "Sei jogar" no cartão do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza. Nos modos de objetivo (Pique-Gema, Futebol, Roubo e Zona Estratégica), com um brawler de alcance longo no nosso time (<span id="guiaAlcanceLongo"></span> quadrados ou mais, pelo wiki), os outros de alcance longo ganham o aviso "já temos um de alcance longo". A ordem também não muda: nas partidas do Lendário pra cima, time com dois ou mais deles nesses modos fez uns 1,5 ponto abaixo do esperado. Em Caça-Estrelas e Nocaute isso não acontece, e o aviso não aparece.</p>
+        <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O botão "Estou no draft" liga o modo Draft em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um toque nos mais escolhidos do mapa ou digitando o nome em "Outro"; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, "Chance e alcance" mostra a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. Com pelo menos um brawler de cada lado, a leitura da partida diz quem cada um do nosso time caça e evita, pelos mesmos confrontos, e compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.</p>
+        <p>Antes das escolhas, "Bane um destes" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra as suas 3 melhores opções. As opções são os seus fortes que você tem no máximo, os melhores no mapa primeiro, completados pelos outros que você tem no máximo. Proteger três evita que um bloqueio do outro time numa delas desperdice o seu. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. "Seu forte" é quem você marcou com "Sei jogar" no cartão do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza. Nos modos de objetivo (Pique-Gema, Futebol, Roubo e Zona Estratégica), com um brawler de alcance longo no nosso time (<span id="guiaAlcanceLongo"></span> quadrados ou mais, pelo wiki), os outros de alcance longo ganham o aviso "já temos um de alcance longo". A ordem também não muda: nas partidas do Lendário pra cima, time com dois ou mais deles nesses modos fez uns 1,5 ponto abaixo do esperado. Em Caça-Estrelas e Nocaute isso não acontece, e o aviso não aparece.</p>
       </div>
       <div id="guiaTeclado" hidden>
         <h3>Draft: toque e teclado</h3>
@@ -1356,7 +1366,6 @@ const USO_ESCONDIDO = 0.01;
 const TEXTO_ESCONDIDO = `Ganha como um S e quase ninguém escolhe aqui (menos de ${pct(USO_ESCONDIDO, 0)} das escolhas). Parte da vitória pode ser a mão de quem treina ele: se você não joga com ele, treine antes de levar à ranqueada.`;
 const escondido = (b, m) => m.parte === 'ranqueado' && tierDe(b.adj - m.media) === 'S'
   && b.uso < USO_ESCONDIDO && !incerto(b, m);
-const seloEscondido = (b, m) => (escondido(b, m) ? `<span class="escondido" title="${TEXTO_ESCONDIDO}">escondido</span>` : '');
 
 // Só no ranqueado. Popular: entre os mais escolhidos do mapa inteiro e abaixo da média.
 // O top não muda com "só os meus", bloqueio ou Draft: é um fato do mapa.
@@ -1905,54 +1914,6 @@ function ehLongo(nome) {
 }
 document.getElementById('guiaAlcanceLongo').textContent = ALCANCE_LONGO;
 
-// Porcentagem crua, sem selo de favorito: em 90% das partidas a chance ficou entre 37% e
-// 64%, e quem joga pesa tanto quanto o draft.
-function desenharChance(m) {
-  const { nos, eles } = partida;
-  const caixa = document.getElementById('draftChance');
-  if (!nos.length) {
-    caixa.textContent = 'Marque o nosso time pra ver a chance de vitória.';
-    return;
-  }
-  const com = nos.length === 3 && eles.length === 3 ? 'com os dois times completos' : `com ${nos.length} de 3 nossos e ${eles.length} de 3 deles`;
-  caixa.innerHTML = `Chance do nosso time: <b>${Math.round(100 * chanceDoTime(m, nos, eles))}%</b> (${com}). O draft muda poucos pontos, quem joga decide o resto.`;
-}
-
-// "caça Tick (+4,4) · evita Griff (−2,9)" pra um brawler nosso contra os inimigos marcados.
-function leituraDe(m, x, eles) {
-  const { caca, evita, semDado } = leitura(m, x, eles);
-  if (semDado) return 'sem dado de confronto';
-  const partes = [caca && `caça ${esc(caca[0])} (${pp(caca[1])})`, evita && `evita ${esc(evita[0])} (${pp(evita[1])})`].filter(Boolean);
-  return partes.join(' · ') || 'nada claro';
-}
-
-// Aparece com pelo menos um de cada lado. A tabela junta os seis com a posição no mapa
-// e os números do wiki, e marca o maior perigo.
-function desenharLeitura(m) {
-  const { nos, eles } = partida;
-  const caixa = document.getElementById('draftLeitura');
-  caixa.hidden = !nos.length || !eles.length;
-  if (caixa.hidden) return;
-  document.getElementById('leituraLinhas').innerHTML = nos
-    .map((x) => `<li><b>${esc(x)}</b><span>${leituraDe(m, x, eles)}</span></li>`).join('');
-  const perigo = maiorPerigo(m, eles);
-  const posicao = new Map(m.brawlers.map((b, i) => [b.nome, i + 1]));
-  const atributos = DADOS.atributos?.brawlers ?? {};
-  const num = (v) => (v == null ? '—' : String(v).replace('.', ','));
-  const linha = (n, lado) => {
-    const a = atributos[n] ?? {};
-    return `<tr class="${lado}"><td>${esc(n)}${n === perigo ? '<span class="perigo">maior perigo</span>' : ''}</td>`
-      + `<td>${posicao.has(n) ? `${posicao.get(n)}º` : '—'}</td><td>${num(a.alcance)}</td><td>${num(a.vida)}</td><td>${a.recarga ?? '—'}</td></tr>`;
-  };
-  document.getElementById('leituraTabela').innerHTML =
-    '<tr><th>Brawler</th><th>No mapa</th><th>Alcance</th><th>Vida</th><th>Recarga</th></tr>'
-    + nos.map((n) => linha(n, 'nos')).join('') + eles.map((n) => linha(n, 'eles')).join('');
-  const quando = DADOS.atributos && new Date(DADOS.atributos.geradoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-  document.getElementById('leituraNota').textContent = quando
-    ? `Em vermelho, o outro time. Alcance em quadrados. Números do wiki do Brawl Stars de ${quando}; a vida é a do nível 1, e todos sobem na mesma proporção.`
-    : 'Em vermelho, o outro time. Sem os números do wiki nesta geração.';
-}
-
 // ---------- Modo Draft: a mesa ----------
 // "Estou no draft" liga um modo de tela cheia: abrirDraft() esconde o resto da página
 // (body.em-draft) e fecharDraft() traz de volta, no ponto em que a pessoa estava. De cima para
@@ -2001,11 +1962,14 @@ function desfazer() {
   return ultimo;
 }
 
-// Outra partida, no mesmo mapa ou em outro: tudo do zero, com o campo vazio.
+// Outra partida, no mesmo mapa ou em outro: tudo do zero, com o campo vazio e a resposta
+// da vez fechada ("Mais 2 opções" e "Chance e alcance").
 function novaPartida(mapa) {
   partida = partidaVazia(mapa);
   salvarPartida();
   caixaDraft.value = '';
+  maisAbertas = false;
+  chanceAberta = false;
 }
 
 // Toda mudança na partida passa por aqui: grava e redesenha o modo Draft. A ficha e a tier
@@ -2261,92 +2225,11 @@ document.getElementById('draftTeclas').innerHTML = [
   ['Enter', 'marca o primeiro achado'], ['Backspace', 'desfaz'], ['Esc', 'sai'],
 ].map(([tecla, faz]) => `<span><kbd>${tecla}</kbd>${faz}</span>`).join('');
 
-// ---------- Modo Draft: a resposta de hoje ----------
-// LEGADO: sai na Task 8, que desenha a resposta da vez em #draftResposta. Até lá fica a de
-// hoje: o bloqueio sugerido, as 5 recomendações, os seus fortes, a chance e a leitura.
-
-// Os fortes da pessoa fora dos 5 recomendados, livres e no máximo, com quanto o time
-// perde de chance em relação ao melhor que ela pode pegar, pela mesma conta da chance.
-// Caso do Edgar em Parallel Plays (03/11): maior recorde do Kauê, 48º no mapa, 45%
-// contra 54% da Amber, e ele ganhou por 2 a 0. A pessoa vê o preço e decide.
-function desenharSeusFortes(m, lista, escolhas, nome, selo) {
-  const { nos, eles } = partida;
-  const naLista = new Set(lista.map((r) => r.nome));
-  const fortes = nos.length < 3 ? escolhas.filter((r) => seuForte(r.nome) && !naLista.has(r.nome)).slice(0, 3) : [];
-  document.getElementById('draftSeus').hidden = !fortes.length;
-  if (!fortes.length) return;
-  const melhor = escolhas.reduce((a, b) => (b.nota > a.nota ? b : a)).nome;
-  const base = chanceDoTime(m, [...nos, melhor], eles);
-  const custo = (n) => {
-    const pontos = Math.round(100 * (base - chanceDoTime(m, [...nos, n], eles)));
-    return pontos > 0 ? `${pontos} ${pontos === 1 ? 'ponto' : 'pontos'} a menos que ${esc(melhor)}` : `mesma chance que ${esc(melhor)}`;
-  };
-  document.getElementById('seusLista').innerHTML = fortes.map((r) =>
-    `<li><b>${nome(r.nome)}${selo(r.nome)}</b><span>${r.pos ? `${r.pos}º no mapa` : 'pouco jogado aqui'} · ${custo(r.nome)}</span></li>`).join('');
-}
-
-function desenharResposta(m) {
-  const fora = foraDoDraft();
-  // Sem posição, o brawler tem partidas de menos pra entrar na tier list do mapa, e a
-  // força dele vem quase toda do modo. Até 27/10 o texto era "poucas partidas no mapa",
-  // que parecia o motivo da recomendação. Depois vem o confronto que explica a nota;
-  // o que arredonda pra 0,0 ponto não diz nada e fica de fora.
-  const confronto = ({ tipo, contra, valor }) => {
-    if (tipo === 'sem') return '';
-    const n = Math.abs(100 * valor).toFixed(1);
-    if (Number(n) === 0) return '';
-    const pontos = `${n.replace('.', ',')} ${Number(n) <= 1 ? 'ponto' : 'pontos'}`;
-    return tipo === 'ganha' ? ` · ganha ${pontos} de ${esc(contra)}` : ` · forte aqui, mesmo perdendo ${pontos} para ${esc(contra)}`;
-  };
-  const motivo = (r) => `${r.pos ? `${r.pos}º no mapa` : 'pouco jogado aqui, vale a força no modo'}${confronto(r.motivo)}`;
-  // A recomendação pode ir pra um colega, então quem a pessoa não tem no máximo só sai apagado.
-  // O nome é botão, como os da grade: o recomendado nem sempre está lá em cima, e às
-  // vezes a pessoa quer bloquear justo ele.
-  const nome = (n) => {
-    const apagado = temLista() && !tenho(n) ? ' nao-tenho' : '';
-    return cheio()
-      ? `<span class="${apagado}">${esc(n)}</span>`
-      : `<button class="desbloq${apagado}" type="button" data-marcar="${esc(n)}">${esc(n)}</button>`;
-  };
-  const { lista, empatados } = comEmpate(recomendar(m, fora, partida.eles), { seuForte, recorde });
-  const temTank = partida.nos.some(ehTank);
-  const temLongo = MODOS_OBJETIVO.has(m.modo) && partida.nos.some(ehLongo);
-  const selo = (n) => {
-    const b = m.brawlers.find((x) => x.nome === n);
-    return (b ? seloEscondido(b, m) : '') + (seuForte(n) ? '<span class="forte">seu forte</span>' : '');
-  };
-  const extra = (r, i) => (i < empatados && empatados > 1 && recorde(r.nome) ? ` · seu recorde ${recorde(r.nome).toLocaleString('pt-BR')}` : '')
-    + (temTank && ehTank(r.nome) ? ' · já temos um tank' : '')
-    + (temLongo && ehLongo(r.nome) ? ' · já temos um de alcance longo' : '');
-  document.getElementById('draftRecomenda').innerHTML = lista
-    .map((r, i) => `<li${i < empatados && empatados > 1 ? ' class="empate"' : ''}><b>${nome(r.nome)}${selo(r.nome)}</b><span>${motivo(r)}${extra(r, i)}</span></li>`).join('')
-    || '<li class="vazio">Ninguém livre com partidas suficientes.</li>';
-  document.getElementById('draftEmpate').textContent = empatados > 1
-    ? `Os ${empatados} primeiros estão empatados: a diferença entre eles é menor que a margem da conta. ${temForte() ? 'Entre eles, vêm antes os seus fortes.' : 'Digite sua tag em "Sua tag" pra pôr antes quem você mais jogou.'}`
-    : '';
-  const escolhas = suasEscolhas(m, fora);
-  desenharSeusFortes(m, lista, escolhas, nome, selo);
-  // Bloqueio sugerido só antes das escolhas: no jogo, os bloqueios vêm primeiro.
-  const caixaBloq = document.getElementById('draftBloqueio');
-  const opcoes = escolhas.slice(0, 3).map((r) => r.nome);
-  const bloqs = !partida.eles.length && !partida.nos.length && partida.bloqueios.length < GRUPOS.bloqueios.max
-    ? sugerirBloqueios(m, fora, opcoes) : [];
-  caixaBloq.hidden = !bloqs.length;
-  document.getElementById('bloqueioLista').innerHTML = bloqs.map((b) =>
-    `<li><b><button class="desbloq" type="button" data-bloquear="${esc(b.nome)}">${esc(b.nome)}</button></b>`
-    + `<span>em ${pct(Math.min(1, 3 * b.uso), 0)} dos times · ${pp(m.forca[b.nome] ?? 0)}${b.contra ? ` · contra ${esc(b.contra[0])} ${pp(b.contra[1])}` : ''}</span></li>`).join('');
-  document.getElementById('bloqueioNota').textContent = opcoes.length
-    ? `Quem mais aparece aqui e mais ajudaria o outro time contra ${temLista() || temForte() ? 'as suas opções' : 'as nossas 3 melhores opções'}: ${opcoes.join(', ')}. Clicar bloqueia.`
-    : '';
-  desenharChance(m);
-  desenharLeitura(m);
-}
-
 // ---------- A ficha do mapa: Bane, Pegue e Se o inimigo pegar ----------
 // A ficha responde "quem eu bano e quem eu pego neste mapa", antes de qualquer marcação.
 // Ela vale para o mapa e não muda com a partida em andamento: quem acompanha a partida é
-// o Draft. blocoBane e blocoPegue devolvem o HTML de uma faixa e o Draft (Task 8) reusa os
-// dois. Todo rosto é um botão com data-brawler; quem decide o que o toque faz é o lugar
+// o Draft. blocoBane e blocoPegue devolvem o HTML de uma faixa, e a resposta da vez do modo
+// Draft reusa os dois. Todo rosto é um botão com data-brawler; quem decide o que o toque faz é o lugar
 // onde o bloco está (na página, abre a folha do brawler).
 
 // O "?" de cada faixa. O texto no próprio lugar vem na Task 9; até lá ele abre "Como funciona".
@@ -2374,16 +2257,24 @@ const subBane = () => `aparece muito e pesa contra ${temLista() || temForte() ? 
 // brawler aparece com o quanto ele pesa contra as nossas 3 melhores opções; na tela fica
 // só a parte dos times, pequena, porque ela sozinha não explica a ordem. fora tira nomes
 // (o Draft passa os já marcados). Sem a força do mapa (Troféu) não há conta, nem faixa.
-function blocoBane(m, fora = new Set(), { titulo = 'Bane', sub = subBane() } = {}) {
+// noDraft é a forma do modo Draft, onde o toque no rosto bloqueia: o título manda tocar, o
+// subtítulo é o motivo do primeiro (quanto ele aparece e de qual opção nossa mais ganha, pelo
+// confrontoLido) e uma nota diz quais opções a ordem protege.
+function blocoBane(m, { fora = new Set(), noDraft = false } = {}) {
   if (!m.forca) return '';
   const opcoes = suasEscolhas(m, fora, []).slice(0, 3).map((r) => r.nome);
   const bans = sugerirBloqueios(m, fora, opcoes);
   if (!bans.length) return '';
-  const cadeado = `<span class="rosto-selo" aria-hidden="true">${CADEADO}</span>`;
-  return `<div class="faixa faixa-bane" data-faixa="bane">
-    ${topoFaixa(titulo, 'bane', 'Como o Bane é escolhido', sub)}
-    <ol class="rostos rostos-bane">${bans.map((b) => rosto(b.nome, 96, `<span class="rosto-uso">${nosTimes(b.uso)}</span>`, cadeado)).join('')}</ol>
-  </div>`;
+  // No modo Draft o rosto bloqueia em vez de abrir a folha: o leitor de tela ouve "Bloquear Emz".
+  const cadeado = `<span class="rosto-selo" aria-hidden="true">${CADEADO}</span>${noDraft ? '<span class="sr">Bloquear </span>' : ''}`;
+  const rostos = `<ol class="rostos rostos-bane">${bans.map((b) => rosto(b.nome, 96, `<span class="rosto-uso">${nosTimes(b.uso)}</span>`, cadeado)).join('')}</ol>`;
+  if (!noDraft) return `<div class="faixa faixa-bane" data-faixa="bane">${topoFaixa('Bane', 'bane', 'Como o Bane é escolhido', subBane())}${rostos}</div>`;
+  const [{ nome, uso, contra }] = bans;
+  const pontos = contra && contra[1] > 0 ? pontosDeConfronto(contra[1]) : null;
+  const motivo = `${esc(nomePt(nome))} aparece ${nosTimes(uso)}${pontos ? ` e ganha ${pontos} de ${esc(nomePt(contra[0]))}` : ''}. Toque num rosto para bloquear.`;
+  const nota = opcoes.length
+    ? `<p class="faixa-nota">A ordem protege ${temLista() || temForte() ? 'as suas opções' : 'as melhores opções daqui'}: ${emLista(opcoes)}.</p>` : '';
+  return `<div class="faixa faixa-bane" data-faixa="bane">${topoFaixa('Bane um destes', 'bane', 'Como o Bane é escolhido', motivo)}${rostos}${nota}</div>`;
 }
 
 // Pegue: os 5 de cima da tier list, com "+7" (vitória ajustada menos a média do mapa). Com
@@ -2439,6 +2330,239 @@ function blocoInimigo(m) {
 // tocado continua no lugar e recebe o foco de volta quando a folha fecha.
 function desenharFicha(m) {
   document.getElementById('ficha').innerHTML = blocoBane(m) + blocoPegue(m) + blocoInimigo(m);
+}
+
+// ---------- Modo Draft: a resposta da vez ----------
+// O que #draftResposta mostra muda com a etapa da partida, na ordem do jogo:
+// - bloqueio (ninguém escolhido ainda): o Bane, em que o toque já bloqueia, e o Pegue da
+//   ficha, compacto. Com os 6 bloqueios marcados, só o Pegue;
+// - escolha (a partir do primeiro inimigo ou do primeiro nosso): "Melhor agora" com o motivo
+//   e o botão "Pegar", duas alternativas, mais duas a um toque, a linha do maior perigo e os
+//   fortes da pessoa;
+// - pronto (nosso time com 3): o plano da partida.
+// "Chance e alcance" abre embaixo, dentro do próprio modo, nas duas últimas.
+//
+// Todo número de confronto daqui vem do confrontoLido (pelo motivo de recomendar, por leitura
+// e por quemGanhaDele), a conta que ordena a recomendação: a tela não desmente a própria
+// escolha. Sai com uma casa, e o que arredonda para 0,0 não aparece.
+const etapaDoDraft = () => (partida.nos.length >= GRUPOS.nos.max ? 'pronto'
+  : partida.eles.length || partida.nos.length ? 'escolha' : 'bloqueio');
+// O que a pessoa abriu na resposta continua aberto enquanto a partida muda. A partida nova
+// fecha os dois (novaPartida).
+let maisAbertas = false;
+let chanceAberta = false;
+
+// Pontos de um confronto, sem sinal: "2,0 pontos", "0,6 ponto". null quando arredonda para 0,0.
+function pontosDeConfronto(valor) {
+  const n = Math.abs(100 * valor).toFixed(1);
+  return Number(n) ? `${n.replace('.', ',')} ${Number(n) <= 1 ? 'ponto' : 'pontos'}` : null;
+}
+// O mesmo confronto com sinal e cor, para quem caça, quem evita e quem ganha do perigo: "+4,4".
+const confrontoComSinal = (valor) => `<span class="num ${valor >= 0 ? 'sobe' : 'desce'}">${pp(valor)}</span>`;
+// "Bolt, Mister P e Bo".
+const emLista = (nomes) => new Intl.ListFormat('pt-BR', { type: 'conjunction' }).format(nomes.map((n) => esc(nomePt(n))));
+
+// O motivo ao lado de uma escolha. r é um item de recomendar(). Sem posição, o brawler tem
+// partidas de menos pra entrar na tier list do mapa, e a força dele vem quase toda do modo.
+// Até 27/10 o texto era "poucas partidas no mapa", que parecia o motivo da recomendação.
+// Depois vem o confronto que explica a nota, escrito a favor. Quem não tem posição e perde
+// fica só com a primeira parte: "forte aqui" ao lado de "pouco jogado aqui" se desmentia.
+function motivoDaEscolha({ pos, motivo }) {
+  const onde = pos ? `${pos}º no mapa` : 'pouco jogado aqui, vale a força no modo';
+  const pontos = motivo.tipo === 'sem' ? null : pontosDeConfronto(motivo.valor);
+  if (!pontos) return onde;
+  const contra = esc(nomePt(motivo.contra));
+  if (motivo.tipo === 'ganha') return `${onde} · ganha ${pontos} de ${contra}`;
+  return pos ? `${onde} · forte aqui, mesmo perdendo ${pontos} para ${contra}` : onde;
+}
+
+const selo = (texto, titulo = '') => `<span class="dm-selo"${titulo ? ` title="${esc(titulo)}"` : ''}>${texto}</span>`;
+// O retrato, o nome e uma linha de texto de um brawler, num botão que abre a folha dele.
+const quem = (nome, texto, { tamanho = 44, selos = '', apagado = false } = {}) =>
+  `<button class="dm-quem${apagado ? ' nao-tenho' : ''}" type="button" data-brawler="${esc(nome)}">${retrato(nome, tamanho, true)}`
+  + `<span class="dm-opcao-texto"><b class="dm-opcao-nome">${esc(nomePt(nome))}</b>${apagado ? '<span class="sr"> (você não tem no máximo)</span>' : ''} `
+  + `<span class="dm-opcao-motivo">${texto}</span>${selos ? ` <span class="dm-selos">${selos}</span>` : ''}</span></button>`;
+// Uma opção de escolha: o retrato e o nome abrem a folha do brawler, e "Pegar" põe no nosso
+// time, seja qual for o grupo da vez. A recomendação pode ir pra um colega, então quem a
+// pessoa não tem no máximo só sai apagado.
+const opcao = (nome, texto, selos = '', principal = false) =>
+  `<li class="dm-opcao${principal ? ' principal' : ''}" data-opcao="${esc(nome)}">`
+  + quem(nome, texto, { tamanho: principal ? 64 : 44, selos, apagado: temLista() && !tenho(nome) })
+  + `<button class="dm-pegar" type="button" data-pegar="${esc(nome)}" aria-label="Pegar ${esc(nomePt(nome))} para o nosso time">Pegar</button></li>`;
+
+// Os fortes da pessoa fora dos 5 recomendados, livres e no máximo, com quanto o time perde
+// de chance em relação ao melhor que ela pode pegar, pela mesma conta da chance. Caso do
+// Edgar em Parallel Plays (03/11): maior recorde do Kauê, 48º no mapa, 45% contra 54% da
+// Amber, e ele ganhou por 2 a 0. A pessoa vê o preço e decide.
+function blocoSeusFortes(m, lista, escolhas, selos) {
+  const { nos, eles } = partida;
+  const naLista = new Set(lista.map((r) => r.nome));
+  const fortes = escolhas.filter((r) => seuForte(r.nome) && !naLista.has(r.nome)).slice(0, 3);
+  if (!fortes.length) return '';
+  const melhor = escolhas.reduce((a, b) => (b.nota > a.nota ? b : a)).nome;
+  const base = chanceDoTime(m, [...nos, melhor], eles);
+  const custo = (n) => {
+    const pontos = Math.round(100 * (base - chanceDoTime(m, [...nos, n], eles)));
+    return pontos > 0 ? `${pontos} ${pontos === 1 ? 'ponto' : 'pontos'} de chance a menos que ${esc(nomePt(melhor))}` : `mesma chance que ${esc(nomePt(melhor))}`;
+  };
+  return `<section class="dm-fortes" id="draftFortes" aria-labelledby="draftFortesTitulo">
+    <h3 id="draftFortesTitulo">Dos seus fortes</h3>
+    <ol class="dm-opcoes">${fortes.map((r) => opcao(r.nome, `${r.pos ? `${r.pos}º no mapa` : 'pouco jogado aqui'} · ${custo(r.nome)}`, selos(r))).join('')}</ol>
+    <p class="dm-nota">Fora dos 5 de cima. Quem joga bem com o brawler muitas vezes compensa os pontos.</p>
+  </section>`;
+}
+
+// A linha do maior perigo: o inimigo mais forte no mapa, só com 2 ou mais marcados, e quem
+// ganha dele. Na escolha, os livres que mais ganham, para pegar. Com o nosso time completo,
+// quem dos nossos mais ganha: aí os livres não servem mais ao plano.
+function blocoPerigo(m) {
+  const perigo = maiorPerigo(m, partida.eles);
+  if (!perigo) return '';
+  const pronto = etapaDoDraft() === 'pronto';
+  const fora = pronto ? new Set(Object.keys(m.forca).filter((n) => !partida.nos.includes(n))) : foraDoDraft();
+  const ganham = quemGanhaDele(m, perigo, fora, pronto ? 1 : 3).filter(([, v]) => pontosDeConfronto(v));
+  const chips = ganham.map(([n, v]) =>
+    `<li><button class="dm-chip" type="button" data-brawler="${esc(n)}">${retrato(n, 28, true)}<span>${esc(nomePt(n))}</span> ${confrontoComSinal(v)}</button></li>`).join('');
+  const rotulo = pronto ? 'Dos nossos, quem mais ganha dele' : 'Quem ganha dele';
+  return `<div class="dm-perigo" id="draftPerigo" data-perigo="${esc(perigo)}">${retrato(perigo, 36, true)}
+    <div><p class="dm-perigo-quem">Maior perigo: <b>${esc(nomePt(perigo))}</b></p>
+    ${ganham.length
+      ? `<p class="dm-nota" id="draftPerigoRotulo">${rotulo}, em pontos de vitória:</p><ul class="dm-ganham" aria-labelledby="draftPerigoRotulo">${chips}</ul>`
+      : `<p class="dm-nota">${pronto ? 'Dos nossos, ninguém ganha dele no confronto direto.' : 'Ninguém livre ganha dele no confronto direto.'}</p>`}</div>
+  </div>`;
+}
+
+// "caça Tick +4,4 · evita Griff −2,9" pra um brawler nosso contra os inimigos marcados.
+function cacaEEvita(m, x) {
+  const { caca, evita, semDado } = leitura(m, x, partida.eles);
+  if (semDado) return 'sem dado de confronto';
+  const parte = (verbo, par) => par && `${verbo} ${esc(nomePt(par[0]))} ${confrontoComSinal(par[1])}`;
+  return [parte('caça', caca), parte('evita', evita)].filter(Boolean).join(' · ') || 'nada claro';
+}
+// O que cada um nosso caça e evita, uma linha por brawler, com a unidade dos números embaixo.
+const listaDeLeitura = (m, id) => `<ol class="dm-plano" id="${id}">${partida.nos.map((x) =>
+  `<li data-nosso="${esc(x)}">${quem(x, cacaEEvita(m, x))}</li>`).join('')}</ol>
+  <p class="dm-nota">Os números são pontos de vitória no confronto direto.</p>`;
+
+// "Chance e alcance": a chance do nosso time e a tabela de posição, alcance, vida e recarga
+// de quem está marcado, com os números do wiki. Fica a um toque, depois da recomendação: a
+// chance resume o draft, mas grande e na frente convidava a desistir da partida.
+function blocoChance(m) {
+  const { nos, eles } = partida;
+  const max = GRUPOS.nos.max;
+  // Porcentagem crua, sem selo de favorito: em 90% das partidas a chance ficou entre 37% e
+  // 64%, e quem joga pesa tanto quanto o draft.
+  const com = nos.length === max && eles.length === max ? 'com os dois times completos' : `com ${nos.length} de ${max} nossos e ${eles.length} de ${max} deles`;
+  const chance = nos.length
+    ? `<p class="dm-chance-num"><b class="num">${Math.round(100 * chanceDoTime(m, nos, eles))}%</b> de chance do nosso time, ${com}.</p>
+       <p class="dm-nota">O draft muda poucos pontos, quem joga decide o resto.</p>`
+    : '<p class="dm-chance-num">Marque o nosso time para ver a chance de vitória.</p>';
+  // Com o time completo, a leitura já está na frente, no plano da partida.
+  const lida = etapaDoDraft() === 'escolha' && nos.length && eles.length
+    ? `<h3>Leitura por brawler</h3>${listaDeLeitura(m, 'draftLeitura')}` : '';
+  const perigo = maiorPerigo(m, eles);
+  const posicao = new Map(m.brawlers.map((b, i) => [b.nome, i + 1]));
+  const atributos = DADOS.atributos?.brawlers ?? {};
+  const SEM = '<abbr title="sem dado">n/d</abbr>';
+  const linha = (n) => {
+    const a = atributos[n] ?? {};
+    return `<tr><th scope="row">${esc(nomePt(n))}${n === perigo ? ' <small>maior perigo</small>' : ''}</th>`
+      + `<td>${posicao.has(n) ? `${posicao.get(n)}º` : SEM}</td><td>${a.alcance == null ? SEM : String(a.alcance).replace('.', ',')}</td>`
+      + `<td>${a.vida == null ? SEM : milhar(a.vida)}</td><td>${a.recarga ? esc(a.recarga) : SEM}</td></tr>`;
+  };
+  const time = (g) => (partida[g].length
+    ? `<tbody><tr><th scope="rowgroup" colspan="5">${GRUPOS[g].titulo}</th></tr>${partida[g].map(linha).join('')}</tbody>` : '');
+  const quando = DADOS.atributos && new Date(DADOS.atributos.geradoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  return `<button class="dm-abre" type="button" id="draftChanceBotao" aria-expanded="${chanceAberta}" aria-controls="draftChance"><span>Chance e alcance</span>${SETA}</button>
+    <div class="dm-chance" id="draftChance"${chanceAberta ? '' : ' hidden'}>
+      ${chance}${lida}
+      <table class="dm-tabela" id="draftTabela">
+        <caption class="sr">Posição no mapa, alcance, vida e recarga de quem está marcado</caption>
+        <thead><tr><th scope="col">Brawler</th><th scope="col">No mapa</th><th scope="col">Alcance <small>(quadrados)</small></th><th scope="col">Vida</th><th scope="col">Recarga</th></tr></thead>
+        ${time('nos')}${time('eles')}
+      </table>
+      <p class="dm-nota">${quando
+        ? `Números do wiki do Brawl Stars de ${quando}. A vida é a do nível 1, e todos sobem na mesma proporção.`
+        : 'Sem os números do wiki nesta geração.'}</p>
+    </div>`;
+}
+
+// Etapa Bloqueio: o Bane e o Pegue da ficha, sem os já marcados.
+function respostaBloqueio(m) {
+  const fora = foraDoDraft();
+  return (cheio('bloqueios') ? '' : blocoBane(m, { fora, noDraft: true })) + blocoPegue(m, { fora, compacto: true });
+}
+
+// Quantas opções ficam à vista: a principal e duas alternativas. As outras abrem no botão.
+const OPCOES_A_VISTA = 3;
+const textoMais = (n) => (maisAbertas ? 'Menos opções' : `Mais ${n} ${n === 1 ? 'opção' : 'opções'}`);
+
+// Etapa Escolha: os 5 que mais sobem a chance do nosso time. O primeiro vai grande, com o
+// botão cheio; os dois seguintes, menores; o 4º e o 5º ficam atrás de "Mais 2 opções", porque
+// nem todo jogador tem cada brawler.
+function respostaEscolha(m) {
+  const fora = foraDoDraft();
+  const { lista, empatados } = comEmpate(recomendar(m, fora, partida.eles), { seuForte, recorde });
+  const temTank = partida.nos.some(ehTank);
+  const temLongo = MODOS_OBJETIVO.has(m.modo) && partida.nos.some(ehLongo);
+  const porQue = `A diferença entre os ${empatados} primeiros é menor que a margem da conta.${temForte() ? ' Entre eles, vêm antes os seus fortes.' : ''}`;
+  const selosDoBrawler = (r) => {
+    const b = m.brawlers.find((x) => x.nome === r.nome);
+    return (b && escondido(b, m) ? selo('escondido', TEXTO_ESCONDIDO) : '') + (seuForte(r.nome) ? selo('seu forte') : '');
+  };
+  const selos = (r, i) => {
+    const empatado = i < empatados && empatados > 1;
+    const empate = !empatado ? '' : selo(i ? 'empatado' : empatados === 2 ? `empatado com ${esc(nomePt(lista[1].nome))}` : `${empatados} empatados`, porQue);
+    return empate + selosDoBrawler(r)
+      + (empatado && recorde(r.nome) ? selo(`seu recorde: ${milhar(recorde(r.nome))} troféus`) : '')
+      + (temTank && ehTank(r.nome) ? selo('já temos um tank') : '')
+      + (temLongo && ehLongo(r.nome) ? selo('já temos um de alcance longo') : '');
+  };
+  const linha = (r, i) => opcao(r.nome, motivoDaEscolha(r), selos(r, i), i === 0);
+  const resto = lista.slice(OPCOES_A_VISTA);
+  const opcoes = lista.length
+    ? `<ol class="dm-opcoes" id="draftOpcoes">${lista.slice(0, OPCOES_A_VISTA).map(linha).join('')}</ol>${resto.length
+      ? `<button class="dm-abre" type="button" id="draftMais" aria-expanded="${maisAbertas}" aria-controls="draftMaisLista" data-quantas="${resto.length}"><span class="dm-abre-texto">${textoMais(resto.length)}</span>${SETA}</button>
+         <ol class="dm-opcoes" id="draftMaisLista" start="${OPCOES_A_VISTA + 1}"${maisAbertas ? '' : ' hidden'}>${resto.map((r, i) => linha(r, i + OPCOES_A_VISTA)).join('')}</ol>`
+      : ''}`
+    : '<p class="faixa-vazia">Ninguém livre com partidas suficientes.</p>';
+  return topoFaixa('Melhor agora', 'escolha', 'Como a escolha é feita') + opcoes
+    + blocoPerigo(m) + blocoSeusFortes(m, lista, suasEscolhas(m, fora), selosDoBrawler) + blocoChance(m);
+}
+
+// Etapa Pronto: o plano da partida, com o que cada um nosso caça e evita e o maior perigo.
+function respostaPronto(m) {
+  const plano = partida.eles.length
+    ? listaDeLeitura(m, 'draftPlano')
+    : '<p class="faixa-vazia">Marque quem o inimigo pegou para ver quem cada um caça e evita.</p>';
+  return topoFaixa('Plano da partida', 'plano', 'Como ler o plano da partida') + plano + blocoPerigo(m) + blocoChance(m);
+}
+
+const RESPOSTA_DA_ETAPA = { bloqueio: respostaBloqueio, escolha: respostaEscolha, pronto: respostaPronto };
+function desenharResposta(m) {
+  const caixa = document.getElementById('draftResposta');
+  const etapa = etapaDoDraft();
+  caixa.dataset.etapa = etapa;
+  caixa.innerHTML = RESPOSTA_DA_ETAPA[etapa](m);
+}
+
+// "Mais 2 opções" e "Chance e alcance" abrem e fecham sem redesenhar a resposta: o botão fica
+// no lugar e com o foco. O que abre fora da tela é trazido para dentro dela.
+function alternarParte(botao, aberta) {
+  const parte = document.getElementById(botao.getAttribute('aria-controls'));
+  botao.setAttribute('aria-expanded', aberta);
+  parte.hidden = !aberta;
+  if (aberta) parte.scrollIntoView({ block: 'nearest' });
+}
+function alternarMais() {
+  const botao = document.getElementById('draftMais');
+  maisAbertas = !maisAbertas;
+  alternarParte(botao, maisAbertas);
+  botao.querySelector('.dm-abre-texto').textContent = textoMais(Number(botao.dataset.quantas));
+}
+function alternarChance() {
+  chanceAberta = !chanceAberta;
+  alternarParte(document.getElementById('draftChanceBotao'), chanceAberta);
 }
 
 // ---------- Todos neste mapa: a tier list ----------
@@ -2548,7 +2672,8 @@ document.getElementById('folhaBrawler').addEventListener('close', (e) => {
   const visivel = (el) => el.getClientRects().length;
   const noBloco = iguaisEm(q.regiao, q.nome).filter(visivel);
   const alvo = noBloco[q.i] ?? noBloco[0] ?? iguaisEm('main', q.nome).find(visivel);
-  (alvo ?? document.getElementById('ficha')).focus({ preventScroll: true });
+  // Sem o brawler à vista, o foco vai para o topo de onde a pessoa está: a ficha ou o modo Draft.
+  (alvo ?? document.getElementById(draftAberto() ? 'draftTitulo' : 'ficha')).focus({ preventScroll: true });
 });
 
 // Onde o brawler está na partida em andamento, para a folha avisar.
@@ -2843,9 +2968,11 @@ document.addEventListener('click', (e) => {
   }
   if (e.target.closest('#ligarDraft')) return abrirDraft();
   if (e.target.closest('#draftSair')) return fecharDraft();
-  // Rosto da ficha, linha da tier list ou counter da folha: abre a folha do brawler (o
-  // counter troca o brawler na folha aberta). No modo Draft (Task 8), o rosto marca.
+  // Rosto da ficha, linha da tier list, opção do Draft ou counter da folha: abre a folha do
+  // brawler (o counter troca o brawler na folha aberta). A exceção é o Bane do modo Draft: lá
+  // o rosto marca o bloqueio, seja qual for o grupo da vez.
   const rostoTocado = e.target.closest('[data-brawler]');
+  if (rostoTocado?.closest('#draftResposta [data-faixa="bane"]')) return marcarNoDraft(rostoTocado.dataset.brawler, rostoTocado, 'bloqueios');
   if (rostoTocado) return abrirBrawler(rostoTocado.dataset.brawler);
   if (e.target.closest('#verBC')) return alternarBC();
   // "Bloquear", "Inimigo" e "Nosso" da folha do brawler.
@@ -2859,12 +2986,14 @@ document.addEventListener('click', (e) => {
     avisar('Partida nova, sem ninguém marcado.');
     return focoNaMesa('#draftNova');
   }
-  // Uma peça da grade (ou um nome da resposta) vai para o grupo da vez.
+  // Uma peça da grade vai para o grupo da vez.
   const marca = e.target.closest('[data-marcar]');
   if (marca) return marcarNoDraft(marca.dataset.marcar, marca);
-  // O bloqueio sugerido vai sempre pros bloqueios, seja qual for o grupo da vez.
-  const bloquear = e.target.closest('[data-bloquear]');
-  if (bloquear) return marcarNoDraft(bloquear.dataset.bloquear, bloquear, 'bloqueios');
+  // "Pegar" põe a opção no nosso time, e o retrato dela é que voa até a vaga.
+  const pega = e.target.closest('[data-pegar]');
+  if (pega) return marcarNoDraft(pega.dataset.pegar, pega.closest('li'), 'nos');
+  if (e.target.closest('#draftMais')) return alternarMais();
+  if (e.target.closest('#draftChanceBotao')) return alternarChance();
   // Tocar numa vaga cheia tira o brawler dela.
   const desmarca = e.target.closest('[data-desmarcar]');
   if (desmarca) {
