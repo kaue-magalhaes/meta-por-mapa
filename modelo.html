@@ -1201,48 +1201,9 @@ function acharNomes(texto, m, fora) {
   return [...livres.filter(comeca), ...livres.filter((n) => !comeca(n))];
 }
 
-// Pesos da regressão logística ajustada em 2026-10-20 com 33.221 partidas do Ranqueado
-// (Mítico a Mestre), que acertou 56,5% delas. A força pesa quase 4 vezes o confronto
-// porque o número de confronto tem mais ruído.
-const PESO_FORCA = 3.88;
-const PESO_CONFRONTO = 1.04;
-
-// Quanto um brawler soma na nota do time dele contra esses inimigos: a força no mapa e,
-// pra cada inimigo, a linha dele contra o inimigo menos a do inimigo contra ele. O
-// confronto entra com a força do inimigo de volta, porque a tabela já a desconta.
-// Brawler fora do mapa e confronto sem número contam zero.
-function pesoNoDraft(m) {
-  const f = (n) => m.forca[n] ?? 0;
-  const contra = (x, e) => (m.tabela?.[x]?.[e] == null ? 0 : m.tabela[x][e] + f(e));
-  return (x, inimigos) => PESO_FORCA * f(x) + PESO_CONFRONTO * inimigos.reduce((s, e) => s + contra(x, e) - contra(e, x), 0);
-}
-
-// Os brawlers livres que mais sobem a chance do nosso time, pela mesma conta dela. Antes
-// de 2026-10-20 a força e o confronto somavam com o mesmo peso, e o 1º da lista podia
-// baixar a chance. O próprio time não entra: em 2026-10-17 a dupla quase não rendeu além
-// da força dos dois. pesou é o confronto de maior efeito, pro motivo ao lado do nome.
-// São 5 porque nem todo colega tem cada um. Entra todo brawler com força, não só os da
-// tier list: em mapa novo ela tem dois ou três nomes.
-function recomendar(m, fora, inimigos, quantos = 5) {
-  const peso = pesoNoDraft(m);
-  const posicao = new Map(m.brawlers.map((b, i) => [b.nome, i + 1]));
-  const sd = new Map(m.brawlers.map((b) => [b.nome, b.sd]));
-  return Object.keys(m.forca)
-    .filter((nome) => !fora.has(nome))
-    .map((nome) => {
-      const contra = inimigos.map((e) => [e, m.tabela?.[nome]?.[e] ?? 0]);
-      const pesou = contra.reduce((a, c) => (Math.abs(c[1]) > Math.abs(a?.[1] ?? 0) ? c : a), null);
-      return { nome, pos: posicao.get(nome), nota: peso(nome, inimigos), pesou, sd: sd.get(nome) ?? SD_SEM_MARGEM };
-    })
-    .sort((a, b) => b.nota - a.nota)
-    .slice(0, quantos);
-}
-
-// Empate: a conta não separa nomes com diferença de nota menor que a margem da força (o
-// sd da tier list, o mesmo do selo "incerto"). Brawler sem sd, com poucas partidas no
-// mapa, usa 0,03, acima de todo sd medido em 2026-11-02 (o maior era 0,024). Nos mapas do
-// ranqueado de 02/11, o grupo empatado com o 1º teve de 1 a 4 nomes.
-const SD_SEM_MARGEM = 0.03;
+// As contas do Draft (nota, recomendação, empate, bloqueio, chance e leitura) vêm do
+// draft.mjs, que o atualizar.mjs cola no lugar desta marca.
+/*__DRAFT__*/
 
 // O recorde de troféus com o brawler de quem buscou a tag: mede quanto a pessoa jogou
 // com ele, no troféu e não no ranqueado, mas é o que existe hoje. "Seu forte" é o quarto
@@ -1256,15 +1217,6 @@ function corteDoForte() {
 
 // Forte pra pessoa: "Sei jogar" marcado na mão ou, sem marcação, recorde no quarto de cima.
 const seuForte = (nome) => (nome in sei ? sei[nome] : recorde(nome) >= corteDoForte());
-
-// Põe o grupo empatado com o 1º na frente: primeiro os fortes da pessoa, depois o maior
-// recorde. Sem perfil nem marcação, fica a ordem da nota.
-function comEmpate(lista) {
-  let n = 1;
-  while (n < lista.length && lista[0].nota - lista[n].nota < PESO_FORCA * Math.hypot(lista[0].sd, lista[n].sd)) n++;
-  const grupo = lista.slice(0, n).sort((a, b) => seuForte(b.nome) - seuForte(a.nome) || recorde(b.nome) - recorde(a.nome) || b.nota - a.nota);
-  return { lista: [...grupo, ...lista.slice(n)], empatados: Math.min(n, lista.length) };
-}
 
 // Os brawlers livres que a pessoa pode pegar (no máximo, quando há lista), pela nota,
 // com os fortes dela na frente. As 3 primeiras são as opções que o bloqueio protege:
@@ -1295,34 +1247,6 @@ function ehLongo(nome) {
 }
 document.getElementById('guiaAlcanceLongo').textContent = ALCANCE_LONGO;
 
-// Antes das escolhas, quem bloquear: o uso no mapa vezes o quanto o brawler soma pro
-// outro time, pela conta do Draft, na média contra as nossas opções, pra protegê-las.
-// Com 3 opções, um bloqueio do outro time numa delas não desperdiça o nosso. Quem
-// ninguém escolhe aqui ou soma zero fica de fora, porque bloqueá-lo gasta a vaga à toa.
-// contra é o confronto mais forte dele contra uma das opções, pra linha na tela.
-function sugerirBloqueios(m, fora, opcoes, quantos = 3) {
-  const peso = pesoNoDraft(m);
-  return m.brawlers
-    .filter((b) => b.uso > 0 && !fora.has(b.nome) && !opcoes.includes(b.nome))
-    .map((b) => {
-      const soma = opcoes.length ? opcoes.reduce((s, o) => s + peso(b.nome, [o]), 0) / opcoes.length : peso(b.nome, []);
-      const contra = opcoes.map((o) => [o, confrontoLido(m, b.nome, o)]).filter(([, v]) => v != null)
-        .reduce((a, c) => (c[1] > (a?.[1] ?? -Infinity) ? c : a), null);
-      return { nome: b.nome, uso: b.uso, soma, contra };
-    })
-    .filter((b) => b.soma > 0)
-    .sort((a, b) => b.uso * b.soma - a.uso * a.soma)
-    .slice(0, quantos);
-}
-
-// Chance de vitória do nosso time, com o que estiver marcado. Os confrontos dos dois
-// lados já entram pelo peso dos nossos, então do lado deles fica só a força.
-function chanceDoTime(m, nos, eles) {
-  const peso = pesoNoDraft(m);
-  const nota = nos.reduce((s, a) => s + peso(a, eles), 0) - eles.reduce((s, e) => s + peso(e, []), 0);
-  return 1 / (1 + Math.exp(-nota));
-}
-
 // Porcentagem crua, sem selo de favorito: em 90% das partidas a chance ficou entre 37% e
 // 64%, e quem joga pesa tanto quanto o draft.
 function desenharChance(m) {
@@ -1336,37 +1260,16 @@ function desenharChance(m) {
   caixa.innerHTML = `Chance do nosso time: <b>${Math.round(100 * chanceDoTime(m, nos, eles))}%</b> (${com}). O draft muda poucos pontos, quem joga decide o resto.`;
 }
 
-// Corte de 1,5 ponto pra caçar ou evitar: perto dos 10% de confrontos mais fortes
-// (1,9 ponto, medido em 2026-11-01). Abaixo disso a linha diz "nada claro".
-const CORTE_LEITURA = 0.015;
-
-// Confronto de x contra e na leitura da partida: a média das linhas que existem no
-// mapa, a de x contra e e a de e contra x com o sinal trocado, cada uma com a força do
-// adversário de volta, como no pesoNoDraft. A chance conta a linha que falta como zero;
-// aqui isso esconderia par forte que só tem número de um lado, como o Griff contra o
-// Mortis no Layer Cake. null quando nenhuma das duas existe.
-function confrontoLido(m, x, e) {
-  const f = (n) => m.forca[n] ?? 0;
-  const linha = (a, b) => (m.tabela?.[a]?.[b] == null ? null : m.tabela[a][b] + f(b));
-  const ida = linha(x, e);
-  const volta = linha(e, x);
-  const lados = [ida, volta == null ? null : -volta].filter((v) => v != null);
-  return lados.length ? lados.reduce((s, v) => s + v, 0) / lados.length : null;
-}
-
 // "caça Tick (+4,4) · evita Griff (−2,9)" pra um brawler nosso contra os inimigos marcados.
 function leituraDe(m, x, eles) {
-  const lidos = eles.map((e) => [e, confrontoLido(m, x, e)]).filter(([, v]) => v != null);
-  if (!lidos.length) return 'sem dado de confronto';
-  const caca = lidos.filter(([, v]) => v >= CORTE_LEITURA).sort((a, b) => b[1] - a[1])[0];
-  const evita = lidos.filter(([, v]) => v <= -CORTE_LEITURA).sort((a, b) => a[1] - b[1])[0];
+  const { caca, evita, semDado } = leitura(m, x, eles);
+  if (semDado) return 'sem dado de confronto';
   const partes = [caca && `caça ${esc(caca[0])} (${pp(caca[1])})`, evita && `evita ${esc(evita[0])} (${pp(evita[1])})`].filter(Boolean);
   return partes.join(' · ') || 'nada claro';
 }
 
 // Aparece com pelo menos um de cada lado. A tabela junta os seis com a posição no mapa
-// e os números do wiki; o maior perigo é o inimigo mais forte no mapa, e só aparece com
-// dois ou mais inimigos, senão seria sempre o único.
+// e os números do wiki, e marca o maior perigo.
 function desenharLeitura(m) {
   const { nos, eles } = partida;
   const caixa = document.getElementById('draftLeitura');
@@ -1374,7 +1277,7 @@ function desenharLeitura(m) {
   if (caixa.hidden) return;
   document.getElementById('leituraLinhas').innerHTML = nos
     .map((x) => `<li><b>${esc(x)}</b><span>${leituraDe(m, x, eles)}</span></li>`).join('');
-  const perigo = eles.length > 1 ? eles.reduce((a, b) => ((m.forca[b] ?? 0) > (m.forca[a] ?? 0) ? b : a)) : null;
+  const perigo = maiorPerigo(m, eles);
   const posicao = new Map(m.brawlers.map((b, i) => [b.nome, i + 1]));
   const atributos = DADOS.atributos?.brawlers ?? {};
   const num = (v) => (v == null ? '—' : String(v).replace('.', ','));
@@ -1448,8 +1351,16 @@ function desenharDraft(m) {
     .join('') || 'Nada marcado ainda. Sem inimigo marcado, a lista é a dos mais fortes do mapa.';
   // Sem posição, o brawler tem partidas de menos pra entrar na tier list do mapa, e a
   // força dele vem quase toda do modo. Até 27/10 o texto era "poucas partidas no mapa",
-  // que parecia o motivo da recomendação.
-  const motivo = ({ pos, pesou }) => `${pos ? `${pos}º no mapa` : 'pouco jogado aqui, vale a força no modo'}${pesou && pesou[1] ? ` · contra ${esc(pesou[0])} ${pp(pesou[1])}` : ''}`;
+  // que parecia o motivo da recomendação. Depois vem o confronto que explica a nota;
+  // o que arredonda pra 0,0 ponto não diz nada e fica de fora.
+  const confronto = ({ tipo, contra, valor }) => {
+    if (tipo === 'sem') return '';
+    const n = Math.abs(100 * valor).toFixed(1);
+    if (Number(n) === 0) return '';
+    const pontos = `${n.replace('.', ',')} ${Number(n) <= 1 ? 'ponto' : 'pontos'}`;
+    return tipo === 'ganha' ? ` · ganha ${pontos} de ${esc(contra)}` : ` · forte aqui, mesmo perdendo ${pontos} para ${esc(contra)}`;
+  };
+  const motivo = (r) => `${r.pos ? `${r.pos}º no mapa` : 'pouco jogado aqui, vale a força no modo'}${confronto(r.motivo)}`;
   // A recomendação pode ir pra um colega, então quem a pessoa não tem no máximo só sai apagado.
   // O nome é botão, como os da grade: o recomendado nem sempre está lá em cima, e às
   // vezes a pessoa quer bloquear justo ele.
@@ -1459,7 +1370,7 @@ function desenharDraft(m) {
       ? `<span class="${apagado}">${esc(n)}</span>`
       : `<button class="desbloq${apagado}" type="button" data-marcar="${esc(n)}">${esc(n)}</button>`;
   };
-  const { lista, empatados } = comEmpate(recomendar(m, fora, partida.eles));
+  const { lista, empatados } = comEmpate(recomendar(m, fora, partida.eles), { seuForte, recorde });
   const comForte = !!perfil?.recordes || Object.values(sei).some(Boolean);
   const temTank = partida.nos.some(ehTank);
   const temLongo = MODOS_OBJETIVO.has(m.modo) && partida.nos.some(ehLongo);

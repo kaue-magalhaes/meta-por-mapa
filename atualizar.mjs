@@ -7,7 +7,8 @@
 // (pedido do dono do site). Nas outras rodadas mudam só a rotação, que vem
 // da API oficial, e os mapas da aba Especial, num pedido pequeno ao BTN.
 //
-// Uso: node atualizar.mjs [--parte ranqueado|trofeu] [--rank 16] [--blocos 2] [--limite N]
+// Uso: node atualizar.mjs [--parte ranqueado|trofeu] [--rank 16] [--blocos 2] [--limite N] [--so-pagina]
+//   --so-pagina  só refaz site/index.html com o dados.json que já existe, sem pedido nenhum
 //   --parte   coleta essa parte agora, mesmo com a coleta do dia feita; a outra fica como está
 //   --rank    faixa mínima do ranqueado (10 = Diamante I, 13 = Mítico I, 16 = Lendário I, 19 = Mestre I)
 //   --blocos  quantos blocos de duas semanas juntar (o site agrupa os dados assim)
@@ -543,15 +544,32 @@ async function main() {
   };
   const json = JSON.stringify(dados);
   await writeFile(new URL('dados.json', dir), json);
-  const modelo = await readFile(new URL('modelo.html', dir), 'utf8');
-  await mkdir(new URL('site/', dir), { recursive: true });
-  await writeFile(new URL('site/index.html', dir), modelo.replace('/*__DADOS__*/null', json));
+  await montarPagina(dados);
   const estatisticasEm = Object.values(partes).map((p) => p.geradoEm).sort()[0];
   await writeFile(new URL('site/estado.json', dir), JSON.stringify({ publicadoEm: dados.geradoEm, estatisticasEm }));
   console.log(`ok: site/index.html gerado (${(json.length / 1e6).toFixed(2)} MB de dados, ${pedidosBtn} pedidos ao BTN)`);
 }
 
-main().catch((e) => {
+// A página é o modelo.html com as contas do Draft (draft.mjs, sem os export, pra rodar
+// como script comum) e os dados no lugar das marcas. A troca usa função porque o texto
+// trocado pode ter $, que o replace com texto leria como padrão.
+async function montarPagina(dados) {
+  const [modelo, draft] = await Promise.all(['modelo.html', 'draft.mjs'].map((f) => readFile(new URL(f, dir), 'utf8')));
+  const pagina = modelo
+    .replace('/*__DRAFT__*/', () => draft.replace(/^export /gm, ''))
+    .replace('/*__DADOS__*/null', () => JSON.stringify(dados));
+  await mkdir(new URL('site/', dir), { recursive: true });
+  await writeFile(new URL('site/index.html', dir), pagina);
+}
+
+// --so-pagina refaz o site/index.html com o dados.json que já existe, sem pedido ao BTN
+// nem ao wiki: serve pra ver mudança no modelo.html ou no draft.mjs.
+async function soPagina() {
+  await montarPagina(JSON.parse(await readFile(new URL('dados.json', dir), 'utf8')));
+  console.log('ok: site/index.html refeito com o dados.json');
+}
+
+(process.argv.includes('--so-pagina') ? soPagina : main)().catch((e) => {
   console.error('falhou:', e.message);
   process.exit(1);
 });
