@@ -2111,6 +2111,14 @@ const modoLembrado = () => { try { return sessionStorage.getItem('draft') === '1
 // draft" devolve os dois.
 let antesDoDraft = null;
 
+// O "voltar" do celular sai do modo, não do site. Abrir o modo põe uma entrada no histórico,
+// com o mesmo endereço e o estado { draft: true }, e o voltar (popstate, lá embaixo) fecha o
+// modo. "Sair" e Esc voltam essa entrada (sairDoDraft), para o histórico não acumular uma
+// entrada por abertura. Depois de um F5 a entrada já está lá, e o modo reaberto não põe outra.
+const naEntradaDoDraft = () => history.state?.draft === true;
+// O voltar que sairDoDraft pediu e que ainda não chegou ao popstate.
+let saindoDoDraft = false;
+
 function abrirDraft() {
   if (!temDraft(atual)) return;
   // A folha fecha antes de tudo: o <dialog> devolve o foco a quem a abriu (a linha da tier
@@ -2123,6 +2131,7 @@ function abrirDraft() {
     document.body.classList.add('em-draft');
     modoDraft.hidden = false;
     lembrarModo(true);
+    if (!naEntradaDoDraft()) history.pushState({ draft: true }, '');
     scrollTo({ top: 0, behavior: 'instant' });
   }
   // Quem chega com o grupo da vez já cheio (marcado pela folha do brawler) recebe a vez seguinte.
@@ -2147,6 +2156,13 @@ function fecharDraft() {
   (foco?.isConnected && foco.getClientRects().length ? foco : document.getElementById('ligarDraft')).focus({ preventScroll: true });
 }
 
+// Sair pela mão (botão, Esc, mapa sem Draft): fecha na hora e volta a entrada do modo.
+function sairDoDraft() {
+  const voltar = draftAberto() && naEntradaDoDraft();
+  fecharDraft();
+  if (voltar) { saindoDoDraft = true; history.back(); }
+}
+
 caixaDraft.addEventListener('input', () => desenharGrade(atual));
 // Enter marca o primeiro achado, que é a primeira peça da grade enquanto há texto no campo.
 caixaDraft.addEventListener('keydown', (e) => {
@@ -2165,7 +2181,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     e.preventDefault();
     // O primeiro Esc limpa o campo, como na busca de mapa; com ele vazio, sai do modo.
-    if (!caixaDraft.value) return fecharDraft();
+    if (!caixaDraft.value) return sairDoDraft();
     caixaDraft.value = '';
     desenharGrade(atual);
   } else if (e.key === 'Backspace' && !caixaDraft.value) {
@@ -3098,14 +3114,15 @@ function selecionar(m, mexerNoHash = true) {
   if (m.parte === 'ranqueado' && m.mapa !== partida.mapa) novaPartida(m.mapa);
   atual = m;
   guardar.gravar('mapa', chave(m));
-  if (mexerNoHash) history.replaceState(null, '', '#' + chave(m));
+  // Com o modo aberto, a entrada continua sendo a do modo: o voltar ainda sai dele.
+  if (mexerNoHash) history.replaceState(draftAberto() ? history.state : null, '', '#' + chave(m));
   info();
   desenharCapa(m);
   desenharFicha(m);
   desenharLista(m);
   desenharEstudo(m);
   // Mapa sem Draft (Troféu) aberto com o modo ligado: o modo desliga antes de desenhar.
-  if (!temDraft(m)) fecharDraft();
+  if (!temDraft(m)) sairDoDraft();
   desenharDraft(atual);
   fecharFolha();
 }
@@ -3141,7 +3158,7 @@ document.addEventListener('click', (e) => {
     return scrollTo({ top: 0, behavior: 'instant' });
   }
   if (e.target.closest('#ligarDraft')) return abrirDraft();
-  if (e.target.closest('#draftSair')) return fecharDraft();
+  if (e.target.closest('#draftSair')) return sairDoDraft();
   // Rosto da ficha, linha da tier list, opção do Draft ou counter da folha: abre a folha do
   // brawler (o counter troca o brawler na folha aberta). A exceção é o Bane do modo Draft: lá
   // o rosto marca o bloqueio, seja qual for o grupo da vez.
@@ -3249,6 +3266,17 @@ const porChave = (k) => TODOS.find((m) => chave(m) === k)
 window.addEventListener('hashchange', () => {
   const m = porChave(decodeURIComponent(location.hash.slice(1)));
   if (m && m !== atual) selecionar(m);
+});
+// Voltar da entrada do modo Draft: pelo gesto do celular (o modo ainda aberto) ou pelo
+// sairDoDraft. A entrada de antes do modo tem o endereço do mapa daquela hora; se o mapa
+// mudou com o modo aberto, o endereço volta a ser o do mapa na tela, e o hashchange que vem
+// depois não troca o mapa de volta.
+window.addEventListener('popstate', () => {
+  if (!saindoDoDraft && (!draftAberto() || naEntradaDoDraft())) return;
+  saindoDoDraft = false;
+  const m = porChave(decodeURIComponent(location.hash.slice(1)));
+  if (m && m !== atual) history.replaceState(null, '', '#' + chave(atual));
+  fecharDraft();
 });
 selecionar(porChave(location.hash.slice(1)) ?? porChave(guardar.ler('mapa', null)) ?? primeiroDa(Object.keys(DADOS.partes)[0]), false);
 // Quem recarregou a página no meio do draft volta para o modo, com a partida guardada.
