@@ -2307,8 +2307,10 @@ function desenharMapa() {
 
 const DUPLAS_ABERTAS = 4;
 const estudoVazio = (texto) => `<p class="estudo-vazio">${texto}</p>`;
+// "Vale maximizar" aceita foco: é para onde ele volta quando a folha do perfil fecha e o botão
+// "Pôr minha tag", que a abriu, sumiu no redesenho.
 const blocoEstudo = (chave, titulo, ajudaDele, sub, corpo) =>
-  `<section class="estudo-bloco" data-estudo="${chave}" aria-label="${esc(titulo)}">
+  `<section class="estudo-bloco" data-estudo="${chave}" aria-label="${esc(titulo)}"${chave === 'maximizar' ? ' tabindex="-1"' : ''}>
     <h3>${esc(titulo)}${ajudaDele ?? ''}</h3>${sub ? `<p class="estudo-sub">${sub}</p>` : ''}${corpo}
   </section>`;
 // Uma linha de brawler que abre a folha dele: retrato, nome, o texto pequeno e o número.
@@ -2416,6 +2418,17 @@ function desenharEstudo(m) {
 
 // ---------- Folha "Seu perfil" ----------
 // O formulário é o de hoje (buscarPerfil e semPerfil). Embaixo, qual perfil vale agora.
+
+// O <dialog> devolve o foco a quem abriu a folha. Aberta por "Pôr minha tag", a busca que dá
+// certo destranca "Vale maximizar" e o botão some: o foco cairia no body. Aí ele vai para o
+// próprio bloco, sem rolar a página. O selo da barra nunca some, e quem fechou pondo o foco
+// noutro lugar fica lá.
+document.getElementById('folhaPerfil').addEventListener('close', (e) => {
+  const ativo = document.activeElement;
+  if (ativo && ativo !== document.body && !e.target.contains(ativo)) return;
+  const alvo = document.querySelector('#estudo [data-estudo="maximizar"]') ?? document.getElementById('abrirPerfil');
+  alvo.focus({ preventScroll: true });
+});
 function desenharPerfil() {
   const estado = document.getElementById('perfilEstado');
   estado.innerHTML = perfil
