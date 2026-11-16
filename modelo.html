@@ -453,6 +453,80 @@ mark { background: var(--linha-forte); color: inherit; border-radius: 3px; }
   .bw-draft-botoes button:hover { background: var(--modo-tinta); }
 }
 
+/* ---------- Para estudar: duplas, quem rende mais aqui, pouca amostra e vale maximizar ----------
+   Sem moldura: os blocos se separam por espaço e título. Moldura só no "Mais duplas", que abre,
+   e no "Vale maximizar" trancado, em que o tracejado diz que falta a tag da pessoa. */
+.estudo-bloco { margin-top: 28px; }
+.estudo-bloco > h3 { display: flex; align-items: center; gap: 10px; min-height: 26px; }
+.estudo-sub { margin-top: 2px; font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); text-wrap: pretty; }
+.estudo-vazio { margin-top: 6px; color: var(--tinta-2); text-wrap: pretty; }
+.mini-rot { margin: 18px 0 2px; font-size: var(--t-pequeno); font-weight: 800; font-stretch: 80%; text-transform: uppercase; letter-spacing: .06em; }
+.estudo-lista { list-style: none; margin: 6px 0 0; padding: 0; }
+.estudo-lista > li + li { border-top: 1px solid var(--linha); }
+/* Dupla: os dois retratos encostados, os nomes, e a vitória como número forte, sem cor:
+   ela não tem sinal, é a vitória e não a diferença. */
+.dupla { min-height: 56px; display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; column-gap: 12px; align-items: center; padding: 6px 0; }
+.par { position: relative; width: 62px; height: 36px; }
+.par > :last-child { position: absolute; left: 26px; top: 0; }
+.par .img, .par .sem-img { border-radius: 22%; box-shadow: 0 0 0 2px var(--papel); }
+.dupla-nome, .esp-nome { min-width: 0; display: grid; line-height: 1.2; }
+.dupla-nome b, .esp-nome b { font-weight: 700; overflow-wrap: anywhere; }
+.dupla-nome small, .esp-nome small { margin-top: 2px; font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); }
+.dupla-num { justify-self: end; display: grid; justify-items: end; line-height: 1.1; }
+.dupla-num small { margin-top: 2px; font-size: var(--t-pequeno); font-weight: 600; color: var(--tinta-2); white-space: nowrap; }
+.dupla-vit, .esp-num { justify-self: end; text-align: right; font-size: var(--t-titulo); font-weight: 800; letter-spacing: -.01em; line-height: 1.1; }
+.esp-num small { display: block; font-size: var(--t-pequeno); font-weight: 600; letter-spacing: 0; color: var(--tinta-2); }
+/* Brawler do estudo: a linha inteira abre a folha, como na tier list. */
+.esp {
+  width: 100%; min-height: 56px; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; column-gap: 12px; align-items: center;
+  padding: 6px 8px 6px 0; border-radius: 12px; text-align: left;
+}
+#maisDuplas, #valeMapas { margin-top: 10px; }
+.vale-mapas { margin: 8px 0 0; display: grid; gap: 10px; }
+.vale-mapas dt { font-weight: 700; }
+.vale-mapas dd { margin: 2px 0 0; font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); text-wrap: pretty; }
+/* Os fortes deste mapa que faltam na conta: rostos pequenos, até 4 numa fileira. */
+.rostos-mini { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.rosto-mini { width: 100%; min-height: var(--alvo); display: grid; justify-items: center; align-content: start; gap: 4px; padding: 4px 0 6px; border-radius: 12px; text-align: center; }
+.rosto-mini .img, .rosto-mini .sem-img { border-radius: 22%; box-shadow: var(--sombra); }
+.rosto-mini > span:last-child { max-width: 100%; font-size: var(--t-pequeno); font-weight: 700; line-height: 1.15; overflow-wrap: break-word; }
+.trancado { margin-top: 10px; display: grid; gap: 12px; justify-items: start; padding: 16px; border-radius: var(--raio); border: 1.5px dashed var(--linha-forte); }
+.trancado p { font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); text-wrap: pretty; }
+/* Botão escuro (a tinta, o segundo depois do amarelo) e o de borda, para o que desfaz. */
+.botao-sec, .botao-borda {
+  min-height: var(--alvo); padding: 0 16px; border-radius: 12px; font-weight: 800; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.botao-sec { background: var(--tinta); color: var(--papel-base); box-shadow: 0 3px 0 var(--linha-forte); }
+.botao-sec:active { translate: 0 2px; box-shadow: 0 1px 0 var(--linha-forte); }
+.botao-borda { border: 1.5px solid var(--linha-forte); }
+
+/* ---------- Folha "Seu perfil" ---------- */
+.perfil-intro { color: var(--tinta-2); text-wrap: pretty; }
+.tag-form { margin-top: 18px; display: grid; gap: 4px; }
+.tag-form label { font-weight: 800; }
+.tag-dica { font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); }
+.tag-linha { margin-top: 6px; display: flex; gap: 8px; }
+.tag-linha input {
+  flex: 1; min-width: 0; min-height: 48px; padding: 0 14px; border-radius: 12px;
+  border: 1.5px solid var(--linha-forte); background: var(--cartao); text-transform: uppercase; letter-spacing: .03em;
+}
+.tag-linha input::placeholder { color: var(--tinta-2); opacity: 1; }
+.tag-linha input:focus-visible { outline-offset: 0; }
+.tag-linha .botao-sec { min-height: 48px; }
+.aviso-perfil { margin-top: 6px; font-size: var(--t-pequeno); font-weight: 600; text-wrap: pretty; }
+/* Vazio, some da tela mas fica para o leitor de tela anunciar quando o texto chegar. */
+.aviso-perfil:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; }
+.perfil-estado { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--linha); display: grid; gap: 10px; justify-items: start; }
+.perfil-estado p { text-wrap: pretty; }
+.perfil-estado small { display: block; margin-top: 4px; font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); }
+
+@media (hover: hover) {
+  .esp:hover, .rosto-mini:hover { background: color-mix(in oklab, var(--modo) 10%, transparent); }
+  .botao-sec:hover { background: var(--modo-tinta); }
+  .botao-borda:hover { border-color: var(--tinta); }
+}
+
 /* ---------- Rodapé ---------- */
 .rodape {
   margin-top: 56px; padding: 24px var(--margem) calc(40px + env(safe-area-inset-bottom, 0px));
@@ -693,29 +767,6 @@ details.mais > summary .seta { margin-left: auto; }
 .nicho, .incerto, .escondido, .popular { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
 /* fim do LEGADO da Task 8 (peças comuns) */
 
-/* LEGADO: sai na Task 6 (blocos de estudo dentro de #estudo e a busca da tag dentro de #folhaPerfil). */
-#estudo { display: grid; gap: 14px; }
-.investir { display: grid; gap: 10px; }
-.investir ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
-.investir li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
-.investir li b { font-family: var(--font-display); font-weight: 400; font-size: 1.05rem; }
-.investir li span { color: var(--muted); font-size: 0.82rem; }
-/* "Fortes aqui que você não tem no máximo": morava em "Pra escolher agora" (Task 4). */
-.fora { font-size: 0.84rem; color: var(--muted); }
-.fora b { color: var(--ink); font-weight: 500; }
-.fora:empty { display: none; }
-.voce { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
-.voce input, .voce button {
-  min-height: 44px; padding: 6px 10px; border-radius: 12px;
-  border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 500;
-}
-.voce input { width: 10.5em; text-transform: uppercase; }
-.aviso-perfil { font-weight: 500; font-size: 0.85rem; flex-basis: 100%; }
-/* Vazio, some da tela mas fica pro leitor de tela anunciar quando o texto chegar.
-   Absoluto pra não ocupar lugar no flex nem ganhar o gap. */
-.aviso-perfil:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-/* fim do LEGADO da Task 6 */
-
 /* LEGADO: sai na Task 7 (a mesa do Draft de hoje, dentro de #draftModo). */
 /* Sem Draft (Troféu), o lugar dele não deixa um vão na página. */
 #draftModo:has(> #draft[hidden]) { display: none; }
@@ -869,34 +920,14 @@ details.mais > summary .seta { margin-left: auto; }
       <div id="lista"></div>
     </section>
 
-    <!-- "Para estudar": duplas, quem rende mais aqui, pouca amostra e vale maximizar (Task 6). -->
-    <section class="secao" id="estudo" aria-label="Para estudar">
-      <!-- LEGADO: sai na Task 6 -->
-      <div class="bloco">
-        <h3>Especialistas</h3>
-        <ul class="picks num" id="especialistas"></ul>
-        <p>Rendem neste mapa mais do que no próprio modo, com diferença grande demais pra ser sorte.</p>
+    <!-- "Para estudar": duplas, quem rende mais aqui, pouca amostra e vale maximizar. -->
+    <section class="secao" id="estudo" aria-labelledby="estudoTitulo">
+      <div class="andar-topo">
+        <div class="andar-titulo"><h2 id="estudoTitulo">Para estudar</h2></div>
+        <p class="andar-sub">Sem pressa, entre uma partida e outra.</p>
       </div>
-      <div class="bloco">
-        <h3>Duplas que ganham</h3>
-        <ul class="picks num" id="duplasBoas"></ul>
-      </div>
-      <div class="bloco">
-        <h3>Duplas que perdem</h3>
-        <ul class="picks num" id="duplasRuins"></ul>
-      </div>
-      <div class="bloco">
-        <h3>Pouca amostra, de olho</h3>
-        <ul class="picks num" id="pouca"></ul>
-        <p id="poucaNota"></p>
-      </div>
-      <p class="fora" id="fora"></p>
-      <div class="investir" id="investir" hidden>
-        <h2>Vale maximizar</h2>
-        <p class="sub">Brawlers que você ainda não tem no máximo, pela quantidade de mapas do ranqueado em que estão no tier S ou A.</p>
-        <ol id="investirLista"></ol>
-      </div>
-      <!-- fim do LEGADO da Task 6 -->
+      <!-- Os blocos, desenhados por desenharEstudo(). -->
+      <div id="estudoBlocos"></div>
     </section>
   </div>
 </main>
@@ -957,14 +988,19 @@ details.mais > summary .seta { margin-left: auto; }
     </button>
   </div>
   <div class="folha-corpo" id="folhaPerfilCorpo">
-    <!-- LEGADO: sai na Task 6 -->
-    <form class="voce" id="voce" hidden>
+    <p class="perfil-intro">Com a sua tag, a página marca quem você tem no máximo e põe na frente quem você mais joga.</p>
+    <!-- O campo só existe quando a página foi gerada com o endereço da Worker. -->
+    <form class="tag-form" id="voce" hidden>
       <label for="tag">Sua tag</label>
-      <input id="tag" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="#2PU0YL92J" maxlength="20" aria-describedby="avisoPerfil">
-      <button type="submit">Buscar</button>
-      <span class="aviso-perfil" id="avisoPerfil" role="status"></span>
+      <p class="tag-dica" id="tagDica">Ela fica no seu perfil do jogo, embaixo do nome.</p>
+      <div class="tag-linha">
+        <input id="tag" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="#2PU0YL92J" maxlength="20" enterkeyhint="search" aria-describedby="tagDica avisoPerfil">
+        <button class="botao-sec" type="submit">Buscar</button>
+      </div>
+      <p class="aviso-perfil" id="avisoPerfil" role="status"></p>
     </form>
-    <!-- fim do LEGADO da Task 6 -->
+    <!-- Qual perfil vale agora, desenhado por desenharPerfil(). -->
+    <div class="perfil-estado" id="perfilEstado" aria-live="polite"></div>
   </div>
 </dialog>
 
@@ -2254,28 +2290,6 @@ function desenharMapa() {
   const m = atual;
   const ranqueado = m.parte === 'ranqueado';
 
-  // Fica no estudo até a Task 6 levar pra perto de "Vale maximizar".
-  const fortesFora = temLista() ? m.brawlers.filter((b) => !tenho(b.nome) && forte(b, m)).slice(0, 4) : [];
-  document.getElementById('fora').innerHTML = fortesFora.length
-    ? `Fortes aqui que você não tem no máximo: ${fortesFora.map((b) => `<b>${esc(b.nome)}</b>`).join(', ')}.`
-    : '';
-
-  document.getElementById('especialistas').innerHTML = m.especialistas.map((e) =>
-    `<li><b>${esc(e.nome)}</b><span><span class="pos">${pp(e.delta)}</span> · ${pct(e.wr, 0)} aqui, ${pct(e.wrModo, 0)} no modo</span></li>`).join('')
-    || '<li class="vazio">Ninguém rende aqui muito acima do próprio modo.</li>';
-
-  // No ranqueado a lista vem ordenada pela vitória estimada (adj); a real fica ao lado.
-  const dupla = (d) => {
-    const v = d.adj ?? d.wr;
-    return `<li><b>${esc(d.par[0])} + ${esc(d.par[1])}</b><span><span class="${v >= m.media ? 'pos' : 'neg'}">${pct(v)}</span>${d.adj != null ? ` · ${pct(d.wr)} real` : ''} · ${d.n}</span></li>`;
-  };
-  document.getElementById('duplasBoas').innerHTML = m.melhoresDuplas.map(dupla).join('') || '<li class="vazio">Sem dupla com partidas suficientes.</li>';
-  document.getElementById('duplasRuins').innerHTML = m.pioresDuplas.map(dupla).join('') || '<li class="vazio">Sem dupla com partidas suficientes.</li>';
-  document.getElementById('pouca').innerHTML = m.poucaAmostra.map((b) =>
-    `<li><b>${esc(b.nome)}</b><span><span class="pos">${pct(b.wr, 0)}</span> · ${b.n} partidas</span></li>`).join('') || '<li class="vazio">Ninguém se destacou com pouca amostra.</li>';
-  document.getElementById('poucaNota').textContent = ranqueado
-    ? 'Ganham bem acima da média, mas com poucas partidas. Pode ser sorte, ou brawler forte que quase sempre é bloqueado.'
-    : 'Ganham bem acima da média, mas com poucas partidas. Pode ser sorte.';
   document.getElementById('guiaBloqueio').hidden = !ranqueado;
   document.getElementById('guiaNicho').hidden = ranqueado;
   document.getElementById('guiaIncerto').hidden = !ranqueado;
@@ -2286,24 +2300,128 @@ function desenharMapa() {
   desenharDraft(m);
 }
 
-// Só no ranqueado: a pergunta é onde gastar recurso pensando no draft.
-function desenharInvestir() {
-  const secao = document.getElementById('investir');
-  const ranqueado = DADOS.partes.ranqueado;
-  secao.hidden = !temLista() || !ranqueado || atual.parte !== 'ranqueado';
-  if (secao.hidden) return;
-  const conta = {};
-  for (const m of ranqueado.mapas) {
-    for (const b of m.brawlers) {
-      if (tenho(b.nome) || !forte(b, m)) continue;
-      (conta[b.nome] ??= []).push(m.mapa);
-    }
+// ---------- Para estudar ----------
+// O que serve entre uma partida e outra: duplas, quem rende mais aqui que no modo, pouca
+// amostra e onde gastar recurso ("Vale maximizar"). Os números são os de hoje, só com rótulo.
+// Vale para o mapa e a lista da pessoa: redesenha quando um dos dois muda.
+
+const DUPLAS_ABERTAS = 4;
+const estudoVazio = (texto) => `<p class="estudo-vazio">${texto}</p>`;
+const blocoEstudo = (chave, titulo, ajudaDele, sub, corpo) =>
+  `<section class="estudo-bloco" data-estudo="${chave}" aria-label="${esc(titulo)}">
+    <h3>${esc(titulo)}${ajudaDele ?? ''}</h3>${sub ? `<p class="estudo-sub">${sub}</p>` : ''}${corpo}
+  </section>`;
+// Uma linha de brawler que abre a folha dele: retrato, nome, o texto pequeno e o número.
+const linhaEstudo = (nome, sub, num, classeNum = '') =>
+  `<li><button class="esp" type="button" data-brawler="${esc(nome)}">${retrato(nome, 36)}`
+  + `<span class="esp-nome"><b>${esc(nomePt(nome))}</b><small class="esp-sub">${sub}</small></span>`
+  + `<span class="esp-num num${classeNum}">${num}</span></button></li>`;
+
+// Duplas: a vitória estimada (no Ranqueado; no Troféu é a real, do modo inteiro), as partidas
+// e, no Ranqueado, a vitória sem ajuste. As 4 primeiras que ganham ficam abertas.
+function blocoDuplas(m) {
+  const dupla = (d) => {
+    const v = d.adj ?? d.wr;
+    return `<li class="dupla" data-par="${esc(d.par.join('+'))}">
+      <span class="par" aria-hidden="true">${retrato(d.par[0], 36)}${retrato(d.par[1], 36)}</span>
+      <span class="dupla-nome"><b>${esc(nomePt(d.par[0]))} + ${esc(nomePt(d.par[1]))}</b><small>${milhar(Math.round(d.n))} partidas juntos</small></span>
+      <span class="dupla-num"><span class="dupla-vit num">${Math.round(v * 100)}%</span><span class="sr"> de vitória</span>${d.adj != null ? `<small class="num">real ${Math.round(d.wr * 100)}%</small>` : ''}</span>
+    </li>`;
+  };
+  const lista = (ds) => `<ul class="estudo-lista">${ds.map(dupla).join('')}</ul>`;
+  const boas = m.melhoresDuplas;
+  const resto = boas.slice(DUPLAS_ABERTAS);
+  const ruins = m.pioresDuplas;
+  const mais = resto.length || ruins.length
+    ? `<details class="mais" id="maisDuplas">
+        <summary><span>${resto.length ? 'Mais duplas e as que perdem' : 'Duplas que perdem'}</span>${SETA}</summary>
+        ${resto.length ? lista(resto) : ''}
+        <div data-lista="perdem"><h4 class="mini-rot">Duplas que perdem</h4>${ruins.length ? lista(ruins) : estudoVazio('Sem dupla com partidas suficientes.')}</div>
+      </details>`
+    : '';
+  const sub = m.parte === 'ranqueado' ? 'vitória estimada da dupla neste mapa e, embaixo, a real, sem ajuste' : 'vitória da dupla no modo inteiro';
+  return blocoEstudo('duplas', 'Duplas que ganham', ajuda('duplas', 'Como as duplas são escolhidas'), sub,
+    (boas.length ? lista(boas.slice(0, DUPLAS_ABERTAS)) : estudoVazio('Sem dupla com partidas suficientes.')) + mais);
+}
+
+// Rendem mais aqui (os especialistas de hoje): "48% aqui, 46% no modo" e a diferença em pontos
+// de vitória, com uma casa como hoje. Inteira, ela desmentia as duas porcentagens em 1 de cada
+// 4 linhas ("51% aqui, 49% no modo, +1").
+function blocoRendem(m) {
+  const linhas = m.especialistas.map((e) => linhaEstudo(e.nome,
+    `${Math.round(e.wr * 100)}% aqui, ${Math.round(e.wrModo * 100)}% no modo`, pp(e.delta), e.delta > 0 ? ' sobe' : e.delta < 0 ? ' desce' : ''));
+  return blocoEstudo('rendem', 'Rendem mais aqui', ajuda('especialistas', 'Quem rende mais aqui'), 'pontos de vitória acima do próprio modo',
+    linhas.length ? `<ul class="estudo-lista">${linhas.join('')}</ul>` : estudoVazio('Ninguém rende aqui muito acima do próprio modo.'));
+}
+
+// Pouca amostra: ganham bem acima da média com poucas partidas. Vazia, fica a frase, sem moldura.
+function blocoPouca(m) {
+  if (!m.poucaAmostra.length) return blocoEstudo('pouca', 'Pouca amostra', null, '', estudoVazio('Ninguém com poucas partidas ganhou bem acima da média neste mapa.'));
+  const sub = m.parte === 'ranqueado'
+    ? 'Ganham bem acima da média, mas com poucas partidas. Pode ser sorte, ou brawler forte que quase sempre é bloqueado.'
+    : 'Ganham bem acima da média, mas com poucas partidas. Pode ser sorte.';
+  const linhas = m.poucaAmostra.map((b) => linhaEstudo(b.nome, `${milhar(Math.round(b.n))} partidas`, `${Math.round(b.wr * 100)}%<span class="sr"> de vitória</span>`));
+  return blocoEstudo('pouca', 'Pouca amostra', null, sub, `<ul class="estudo-lista">${linhas.join('')}</ul>`);
+}
+
+// Vale maximizar: onde gastar recurso. Sem lista de quem a pessoa tem no máximo, fica trancado
+// com "Pôr minha tag". Com lista: os que ela não tem no máximo e estão no S ou A em mais mapas do
+// Ranqueado (a pergunta é o draft, então só no Ranqueado), e os fortes deste mapa que faltam
+// na conta, que até a Task 4 moravam em "Pra escolher agora".
+function blocoMaximizar(m) {
+  const ranqueado = m.parte === 'ranqueado' && DADOS.partes.ranqueado;
+  const ajudaPerfil = DADOS.worker ? ajuda('perfil', 'Como o perfil funciona') : null;
+  if (!temLista()) {
+    const texto = DADOS.worker
+      ? (ranqueado
+        ? 'Com a sua tag, aqui aparecem os brawlers que você ainda não tem no máximo e que são fortes em mais mapas do Ranqueado. Também os fortes deste mapa que faltam na sua conta.'
+        : 'Com a sua tag, aqui aparecem os fortes deste mapa que você ainda não tem no máximo.')
+      : 'Marque "Tenho no máximo" na folha de cada brawler e aqui aparecem os fortes que faltam na sua conta.';
+    return blocoEstudo('maximizar', 'Vale maximizar', ajudaPerfil, '', `<div class="trancado"><p>${texto}</p>${DADOS.worker
+      ? '<button class="botao-sec" type="button" data-folha="folhaPerfil" aria-haspopup="dialog">Pôr minha tag</button>' : ''}</div>`);
   }
-  document.getElementById('investirLista').innerHTML = Object.entries(conta)
-    .sort((a, b) => b[1].length - a[1].length)
-    .slice(0, 8)
-    .map(([nome, mapas]) => `<li><b>${esc(nome)}</b><span>${mapas.length} ${mapas.length === 1 ? 'mapa' : 'mapas'}: ${mapas.map(esc).join(', ')}</span></li>`)
-    .join('');
+  let vale = '';
+  if (ranqueado) {
+    const conta = {};
+    for (const mapa of ranqueado.mapas) {
+      for (const b of mapa.brawlers) if (!tenho(b.nome) && forte(b, mapa)) (conta[b.nome] ??= []).push(mapa);
+    }
+    const top = Object.entries(conta).sort((a, b) => b[1].length - a[1].length).slice(0, 8);
+    const linhas = top.map(([nome, mapas]) => linhaEstudo(nome, mapas.includes(m) ? 'S ou A, inclusive aqui' : 'S ou A em outros mapas',
+      `${mapas.length}<small> ${mapas.length === 1 ? 'mapa' : 'mapas'}</small>`));
+    // Os nomes dos mapas de cada um ficam a um toque: abertos, viravam uma parede de texto.
+    const quais = `<details class="mais" id="valeMapas"><summary><span>Em quais mapas</span>${SETA}</summary>
+      <dl class="vale-mapas">${top.map(([nome, mapas]) => `<div><dt>${esc(nomePt(nome))}</dt><dd>${mapas.map((x) => esc(mapaPt(x))).join(', ')}</dd></div>`).join('')}</dl></details>`;
+    vale = `<div data-lista="vale">${linhas.length
+      ? `<ul class="estudo-lista">${linhas.join('')}</ul>${quais}`
+      : estudoVazio('Você já tem no máximo todos os fortes do Ranqueado.')}</div>`;
+  }
+  const faltam = m.brawlers.filter((b) => !tenho(b.nome) && forte(b, m)).slice(0, 4);
+  const aqui = `<div data-lista="faltam-aqui"><h4 class="mini-rot">Fortes aqui que você não tem no máximo</h4>${faltam.length
+    ? `<ul class="rostos-mini">${faltam.map((b) => `<li><button class="rosto-mini" type="button" data-brawler="${esc(b.nome)}">${retrato(b.nome, 52)}<span>${esc(nomePt(b.nome))}</span></button></li>`).join('')}</ul>`
+    : estudoVazio('Você tem no máximo todos os fortes deste mapa.')}</div>`;
+  const sub = ranqueado ? 'quem você ainda não tem no máximo, por quantos mapas do Ranqueado ele está no tier S ou A' : '';
+  return blocoEstudo('maximizar', 'Vale maximizar', ajudaPerfil, sub, vale + aqui);
+}
+
+function desenharEstudo(m) {
+  const caixa = document.getElementById('estudoBlocos');
+  // O que estava aberto continua aberto quando a lista da pessoa muda no mesmo mapa.
+  const mesmo = caixa.dataset.mapa === chave(m);
+  const abertos = mesmo ? [...caixa.querySelectorAll('details[open]')].map((d) => d.id) : [];
+  caixa.dataset.mapa = chave(m);
+  caixa.innerHTML = blocoDuplas(m) + blocoRendem(m) + blocoPouca(m) + blocoMaximizar(m);
+  for (const id of abertos) { const d = document.getElementById(id); if (d) d.open = true; }
+}
+
+// ---------- Folha "Seu perfil" ----------
+// O formulário é o de hoje (buscarPerfil e semPerfil). Embaixo, qual perfil vale agora.
+function desenharPerfil() {
+  const estado = document.getElementById('perfilEstado');
+  estado.innerHTML = perfil
+    ? `<p>Usando o perfil <b>${esc(perfil.nome)}</b> (#${esc(perfil.tag)}), com ${meus.size} no máximo.<small>O que você marcar na mão em "Tenho no máximo", na folha de cada brawler, fica guardado junto.</small></p>
+       <button class="botao-borda" type="button" id="tirarPerfil">Tirar a tag</button>`
+    : `<p>${temLista() ? `Sem tag, com ${meus.size} ${meus.size === 1 ? 'marcado' : 'marcados'} na mão.` : 'Sem tag.'}<small>Dá para marcar na mão também: "Tenho no máximo", na folha de cada brawler.</small></p>`;
 }
 
 function selecionar(m, mexerNoHash = true) {
@@ -2315,9 +2433,9 @@ function selecionar(m, mexerNoHash = true) {
   if (mexerNoHash) history.replaceState(null, '', '#' + chave(m));
   info();
   desenharCapa(m);
-  desenharInvestir();
   desenharFicha(m);
   desenharLista(m);
+  desenharEstudo(m);
   desenharMapa();
   fecharFolha();
 }
@@ -2415,13 +2533,25 @@ document.getElementById('voce').addEventListener('submit', (e) => {
   const texto = document.getElementById('tag').value;
   texto.trim() ? buscarPerfil(texto, false) : semPerfil();
 });
+// "Tirar a tag": o mesmo que esvaziar o campo e buscar, como hoje. O botão some com o
+// redesenho, então o foco vai para o campo.
+document.getElementById('perfilEstado').addEventListener('click', (e) => {
+  if (!e.target.closest('#tirarPerfil')) return;
+  const campo = document.getElementById('tag');
+  campo.value = '';
+  semPerfil();
+  if (!document.getElementById('voce').hidden) campo.focus();
+});
 
+// Quem a pessoa tem no máximo mudou (perfil buscado ou tirado, "Tenho no máximo" na folha):
+// tudo o que depende da lista é redesenhado.
 function mudouMeus() {
   info();
-  desenharInvestir();
+  desenharPerfil();
   document.getElementById('filtroMeus').hidden = !temLista();
   desenharFicha(atual);
   desenharLista(atual);
+  desenharEstudo(atual);
   desenharMapa();
 }
 
@@ -2435,8 +2565,9 @@ if (DADOS.worker) {
   if (tag) {
     document.getElementById('tag').value = `#${tag}`;
     buscarPerfil(tag, true);
-  }
+  } else if (perfil) document.getElementById('tag').value = `#${perfil.tag}`;
 }
+desenharPerfil();
 document.getElementById('filtroMeus').hidden = !temLista();
 document.getElementById('soMeus').checked = guardar.ler('soMeus', false);
 // Links antigos (#hideout) e o mapa lembrado antes das partes apontam pro ranqueado pelo nome.
