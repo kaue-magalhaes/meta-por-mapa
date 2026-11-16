@@ -527,6 +527,116 @@ mark { background: var(--linha-forte); color: inherit; border-radius: 3px; }
   .botao-borda:hover { border-color: var(--tinta); }
 }
 
+/* ---------- Modo Draft: a mesa de tela cheia ----------
+   "Estou no draft" esconde o resto da página (body.em-draft) e deixa só o modo: a barra baixa
+   do mapa, as vagas, a grade dos mais escolhidos e, embaixo, a resposta da vez. Tudo o que fica
+   acima da resposta tem altura fixa, com a vaga cheia ou vazia: a grade não sai do lugar entre
+   um toque e outro. O amarelo do modo é o grupo da vez.
+   --colunas-grade vezes --linhas-grade é quantos brawlers a grade mostra: o script lê daqui. */
+body.em-draft > .pular, body.em-draft > .barra-fixa, body.em-draft > main > :not(#draftModo), body.em-draft > .rodape { display: none; }
+.modo-draft { --vaga: 52px; --vaga-time: 52px; --peca: 48px; --colunas-grade: 6; --linhas-grade: 2; min-height: 100dvh; }
+/* A barra do mapa: a capa em miniatura, na cor do modo. */
+.dm-barra {
+  position: sticky; top: 0; z-index: 30; height: var(--barra-alt);
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 max(var(--margem), env(safe-area-inset-right, 0px)) 0 max(var(--margem), env(safe-area-inset-left, 0px));
+  color: #fff; background: var(--capa);
+}
+.dm-mini { flex: none; padding: 2px; border-radius: 6px; background: #fff; rotate: -4deg; box-shadow: 0 2px 0 rgb(0 0 0 / .22); }
+.dm-mini .mini-mapa { border-radius: 4px; }
+.dm-nome {
+  flex: 1; min-width: 0; margin-left: 4px; outline: none;
+  font: 400 var(--t-titulo)/1.2 var(--fonte-jogo); letter-spacing: .005em; text-shadow: 0 2px 0 rgb(0 0 0 / .28);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dm-nome small { display: none; margin-left: 6px; font: 600 var(--t-pequeno)/1 var(--fonte); letter-spacing: 0; text-shadow: none; }
+.dm-acao {
+  flex: none; min-width: var(--alvo); min-height: var(--alvo); padding: 0 12px; border-radius: 12px;
+  font-size: var(--t-pequeno); font-weight: 700; white-space: nowrap; background: rgb(0 0 0 / .22);
+}
+.dm-sair { background: #fff; color: #1c1924; }
+/* No celular o nome do mapa precisa do espaço: o botão de sair fica só "Sair". */
+.dm-resto-sair { display: none; }
+.dm-barra :focus-visible { outline-color: #fff; }
+
+.dm-corpo {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; max-width: var(--largura); margin: 0 auto;
+  padding: 10px var(--margem) calc(32px + env(safe-area-inset-bottom, 0px));
+}
+.dm-mesa { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.dm-vagas { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.dm-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+/* Um grupo de vagas (bloqueios, nosso time, inimigo). O da vez tem a borda amarela, com a
+   beirada dura do botão amarelo embaixo, para aparecer também no tema claro. */
+.dm-grupo { min-width: 0; padding: 4px 6px 6px; border: 2px solid transparent; border-radius: 16px; background: var(--cartao); box-shadow: var(--sombra); }
+.dm-grupo.ativo { border-color: var(--acao); box-shadow: 0 3px 0 var(--acao-base); }
+.dm-times .dm-grupo { --vaga: var(--vaga-time); }
+/* O rótulo é o botão que muda a vez na mão. Baixo no desenho, 44 px no toque: o ::after sobe
+   pelo espaço entre os grupos, onde não há outro botão. */
+.dm-rot {
+  position: relative; display: inline-flex; align-items: center; height: 30px; padding: 0 8px; border-radius: 8px;
+  font-size: var(--t-pequeno); font-weight: 800; font-stretch: 80%; text-transform: uppercase; letter-spacing: .05em;
+  white-space: nowrap; color: var(--tinta-2);
+}
+.dm-rot::after { content: ""; position: absolute; top: -14px; right: 0; bottom: 0; left: 0; }
+.dm-grupo.ativo .dm-rot { background: var(--acao); color: var(--acao-tinta); }
+.dm-casas { list-style: none; margin: 2px 0 0; padding: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, var(--vaga))); justify-content: space-between; gap: 6px; }
+/* A vaga: o quadrado do retrato e, nos times, o nome embaixo. A linha do nome existe mesmo
+   vazia, para a vaga ter a mesma altura cheia ou não. */
+.dm-vaga { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 2px; border-radius: 12px; }
+.dm-vaga-casa { position: relative; width: 100%; aspect-ratio: 1; display: grid; place-items: center; border-radius: 22%; }
+.dm-vaga.vazia .dm-vaga-casa { border: 2px dashed var(--linha-forte); font-size: var(--t-pequeno); font-weight: 700; color: var(--tinta-2); }
+.dm-vaga .img, .dm-vaga .sem-img { width: 100%; height: auto; aspect-ratio: 1; border-radius: 22%; box-shadow: var(--sombra); }
+.dm-vaga-nome, .dm-peca-nome {
+  max-width: 100%; height: 18px; font-size: var(--t-pequeno); font-weight: 700; font-stretch: 78%; line-height: 18px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* O "x" no canto diz que tocar na vaga cheia tira o brawler dela. */
+.dm-tira {
+  position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; display: grid; place-items: center;
+  border-radius: 50%; background: #1c1924; color: #fff; box-shadow: 0 0 0 2px var(--cartao);
+}
+.dm-tira svg { width: 8px; height: 8px; }
+/* Enquanto o retrato voa até a vaga, ela espera vazia. */
+.dm-vaga.esperando .dm-vaga-casa { visibility: hidden; }
+.dm-voando { position: fixed; z-index: 60; pointer-events: none; }
+.dm-voando .img, .dm-voando .sem-img { width: 100%; height: 100%; border-radius: 22%; box-shadow: 0 6px 0 rgb(0 0 0 / .25); }
+
+/* A grade: a frase que diz para onde vai o toque, o campo "Outro" e os rostos. A altura é a
+   de --linhas-grade fileiras mesmo quando a busca acha menos. */
+.dm-grade { min-width: 0; }
+.dm-grade-topo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 150px); gap: 8px; align-items: center; min-height: var(--alvo); }
+.dm-dica { font-size: var(--t-pequeno); font-weight: 700; line-height: 1.2; text-wrap: balance; }
+.dm-outro { position: relative; display: block; }
+.dm-outro svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 16px; height: 16px; color: var(--tinta-2); pointer-events: none; }
+.dm-outro input { width: 100%; height: var(--alvo); padding: 0 8px 0 34px; border: 1.5px solid var(--linha-forte); border-radius: 12px; background: var(--cartao); }
+.dm-outro input::placeholder { color: var(--tinta-2); opacity: 1; }
+.dm-outro input:focus-visible { outline-offset: 0; }
+.dm-pecas {
+  --peca-alt: calc(var(--peca) + 26px);
+  list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(var(--colunas-grade), minmax(0, 1fr));
+  grid-auto-rows: var(--peca-alt); gap: 4px 6px; align-content: start;
+  height: calc(var(--linhas-grade) * var(--peca-alt) + (var(--linhas-grade) - 1) * 4px);
+}
+.dm-peca { width: 100%; height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: start; gap: 2px; padding-top: 3px; border-radius: 12px; }
+.dm-peca .img, .dm-peca .sem-img { width: var(--peca); height: var(--peca); border-radius: 22%; box-shadow: var(--sombra); }
+/* O primeiro achado da busca, que o Enter marca. */
+.dm-peca.achado { background: var(--cartao); box-shadow: inset 0 0 0 2px var(--tinta); }
+.dm-peca:disabled { opacity: .45; cursor: default; }
+/* A legenda do teclado só aparece onde há teclado: na tela larga. */
+.dm-teclas { display: none; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); }
+.dm-teclas kbd { margin-right: 4px; padding: 1px 7px; border: 1.5px solid var(--linha-forte); border-radius: 6px; font: 700 var(--t-pequeno) var(--fonte); color: var(--tinta); }
+.dm-resposta { min-width: 0; }
+
+@media (hover: hover) {
+  .dm-acao:hover { background: rgb(0 0 0 / .36); }
+  .dm-sair:hover { background: #ece8f3; }
+  .dm-rot:hover { color: var(--tinta); }
+  .dm-grupo.ativo .dm-rot:hover { color: var(--acao-tinta); }
+  .dm-peca:not(:disabled):hover { background: color-mix(in oklab, var(--modo) 12%, transparent); }
+  .dm-vaga.cheia:hover .img, .dm-vaga.cheia:hover .sem-img { translate: 0 -2px; }
+}
+
 /* ---------- Rodapé ---------- */
 .rodape {
   margin-top: 56px; padding: 24px var(--margem) calc(40px + env(safe-area-inset-bottom, 0px));
@@ -632,12 +742,16 @@ details.mais > summary .seta { margin-left: auto; }
   .figurinha { transition: rotate .35s cubic-bezier(.3, 1.6, .5, 1), scale .35s cubic-bezier(.3, 1.6, .5, 1); }
   .capa:hover .figurinha { rotate: -1deg; scale: 1.03; }
   .figurinha { animation: colar .5s cubic-bezier(.3, 1.4, .5, 1) both; }
+  /* O retrato que chegou voando quica na vaga. O voo é do script (voar), também com transform. */
+  .dm-vaga.pousou .dm-vaga-casa { animation: pousar .24s cubic-bezier(.3, 1.5, .5, 1); }
+  .dm-vaga .img, .dm-vaga .sem-img { transition: translate .12s; }
   dialog.folha[open] { animation: subir .26s cubic-bezier(.2, .9, .3, 1); }
   dialog.folha[open]::backdrop { animation: aparecer .2s ease; }
   @keyframes colar { from { rotate: -14deg; scale: .7; opacity: 0; } }
   @keyframes subir { from { translate: 0 100%; } }
   @keyframes aparecer { from { opacity: 0; } }
   @keyframes do-lado { from { translate: 100% 0; } }
+  @keyframes pousar { from { transform: scale(1.2); } 60% { transform: scale(.93); } }
 }
 
 /* ---------- Telas estreitas (320 px) ---------- */
@@ -653,6 +767,17 @@ details.mais > summary .seta { margin-left: auto; }
   .resposta .img, .resposta .sem-img { grid-row: auto; }
   /* Na folha do brawler, o retrato encolhe para o nome e a posição caberem ao lado. */
   .bw-retrato .img, .bw-retrato .sem-img { width: 64px; height: 64px; }
+  /* No modo Draft, as margens encolhem para as 6 vagas de bloqueio e as 3 de cada time
+     continuarem com 44 px de toque. Os botões da barra ficam com a primeira palavra. */
+  .modo-draft { --peca: 44px; }
+  .dm-corpo { padding-left: 8px; padding-right: 8px; }
+  .dm-grupo { padding-left: 2px; padding-right: 2px; }
+  .dm-casas { gap: 4px; }
+  .dm-times { gap: 6px; }
+  .dm-pecas { column-gap: 4px; }
+  .dm-grade-topo { grid-template-columns: minmax(0, 1fr) minmax(0, 132px); }
+  .dm-vaga-nome, .dm-peca-nome { font-stretch: 75%; letter-spacing: -.01em; }
+  .dm-resto { display: none; }
 }
 
 /* No celular, com o mapa na barra, o botão fica só "Trocar": o nome do mapa precisa do espaço. */
@@ -662,6 +787,7 @@ details.mais > summary .seta { margin-left: auto; }
 
 /* ---------- Telas maiores ---------- */
 @media (min-width: 560px) {
+  .dm-resto-sair { display: inline; }
   .perfil span { display: block; }
   .perfil { border: 1.5px dashed var(--linha-forte); }
   .perfil.com-perfil { border-style: solid; }
@@ -715,6 +841,20 @@ details.mais > summary .seta { margin-left: auto; }
   .linha-trof { display: grid; justify-items: end; font-weight: 800; line-height: 1.2; }
   .linha-trof small { font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); }
 
+  /* Modo Draft no PC: a mesa à esquerda e a resposta da vez à direita, as duas sem rolar. */
+  .modo-draft { --vaga: 56px; --vaga-time: 80px; --peca: 56px; --colunas-grade: 8; --linhas-grade: 3; }
+  .dm-barra { padding-left: max(var(--margem), calc((100vw - var(--largura)) / 2)); padding-right: max(var(--margem), calc((100vw - var(--largura)) / 2)); }
+  .dm-nome small { display: inline; }
+  .dm-corpo { grid-template-columns: minmax(0, 1fr) clamp(320px, 38%, 440px); column-gap: 40px; align-items: start; padding-top: 20px; }
+  .dm-mesa { gap: 16px; }
+  .dm-vagas { gap: 12px; }
+  .dm-times { gap: 12px; }
+  .dm-grupo { padding: 6px 10px 10px; }
+  .dm-casas { justify-content: start; gap: 8px; }
+  .dm-teclas { display: flex; }
+  .dm-grade-topo { grid-template-columns: minmax(0, 1fr) 240px; }
+  .dm-pecas { column-gap: 8px; }
+
   .busca input:placeholder-shown ~ kbd { display: block; }
   .folha-topo { padding-top: 14px; }
   .folha-topo::before { display: none; }
@@ -767,33 +907,8 @@ details.mais > summary .seta { margin-left: auto; }
 .nicho, .incerto, .escondido, .popular { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
 /* fim do LEGADO da Task 8 (peças comuns) */
 
-/* LEGADO: sai na Task 7 (a mesa do Draft de hoje, dentro de #draftModo). */
-/* Sem Draft (Troféu), o lugar dele não deixa um vão na página. */
-#draftModo:has(> #draft[hidden]) { display: none; }
-.draft h4 { margin: 0; }
-.draft-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-.draft-topo #draftNova { margin-left: auto; }
-.segmento { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 2px; }
-.segmento button {
-  border-radius: 9px; padding: 8px 16px; min-height: 40px;
-  font-weight: 600; font-size: 0.9rem; color: var(--muted);
-}
-.segmento button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-/* Tecla de atalho de cada grupo, como o "/" da busca; some no celular, que não tem teclado. */
-.draft-topo .segmento kbd { font: 500 0.72rem var(--font-body); opacity: 0.6; border: 1px solid currentColor; border-radius: 5px; padding: 0 5px; margin-left: 6px; }
-@media (hover: none) { .draft-topo .segmento kbd { display: none; } }
-.limpar { justify-self: start; font: 500 0.82rem var(--font-body); color: var(--muted); text-decoration: underline; }
-.draft-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5em, 1fr)); gap: 6px; }
-.draft-grade button { font: 600 0.9rem var(--font-body); min-height: 40px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.draft-grade button:hover { border-color: var(--accent); }
-.draft-marcados { display: flex; flex-wrap: wrap; gap: 4px 18px; }
-.draft-marcados .eles { color: var(--bad); }
-.draft-marcados .nos { color: var(--good); }
-.draft-caixa { display: flex; align-items: center; gap: 10px; font-weight: 600; }
-.draft-caixa input { flex: 1; min-width: 0; font: 1rem var(--font-body); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); }
-/* fim do LEGADO da Task 7 */
-
-/* LEGADO: sai na Task 8 (as respostas do Draft de hoje: recomendação, bloqueio, chance e leitura). */
+/* LEGADO: sai na Task 8 (as respostas do Draft de hoje, dentro de #draftResposta: recomendação,
+   bloqueio, chance e leitura). */
 .desbloq { text-decoration: underline; }
 .draft-legenda { margin: 0; color: var(--muted); font-size: 0.85rem; }
 .draft-chance b { font-size: 1.15rem; }
@@ -859,50 +974,61 @@ details.mais > summary .seta { margin-left: auto; }
   <!-- A ficha do mapa: Bane, Pegue e Se o inimigo pegar. Desenhada por desenharFicha(). -->
   <section class="secao" id="ficha" tabindex="-1" aria-label="Ficha do mapa"></section>
 
-  <!-- O modo Draft (Tasks 7 e 8). Até lá, o Draft de hoje fica aqui, no meio da página. -->
-  <section class="secao" id="draftModo" aria-label="Draft">
-    <!-- LEGADO: sai nas Tasks 7 e 8 -->
-    <section class="bloco destaque draft" id="draft" hidden>
-      <div class="draft-topo">
-        <h3 id="draftTitulo" tabindex="-1">Draft</h3>
-        <div class="segmento" role="group" aria-label="O que marcar">
-          <button type="button" data-marcando="eles" aria-pressed="false" aria-keyshortcuts="1">Inimigo<kbd>1</kbd></button>
-          <button type="button" data-marcando="nos" aria-pressed="false" aria-keyshortcuts="2">Nosso time<kbd>2</kbd></button>
-          <button type="button" data-marcando="bloqueios" aria-pressed="true" aria-keyshortcuts="3">Bloqueio<kbd>3</kbd></button>
+  <!-- O modo Draft: tela cheia, com o resto da página escondido. Abre por abrirDraft() e fecha
+       por fecharDraft(). As vagas e a grade são desenhadas por desenharVagas() e desenharGrade(). -->
+  <section class="modo-draft" id="draftModo" aria-labelledby="draftTitulo" hidden>
+    <header class="dm-barra">
+      <span class="dm-mini" id="draftMini"></span>
+      <h2 class="dm-nome" id="draftTitulo" tabindex="-1"></h2>
+      <button class="dm-acao" type="button" id="draftNova">Nova<span class="dm-resto"> partida</span></button>
+      <button class="dm-acao dm-sair" type="button" id="draftSair">Sair<span class="dm-resto-sair"> do draft</span></button>
+    </header>
+    <div class="dm-corpo">
+      <div class="dm-mesa">
+        <div class="dm-vagas" id="draftVagas"></div>
+        <div class="dm-grade">
+          <div class="dm-grade-topo">
+            <!-- Para onde vai o próximo toque, ou o que o Enter marca. -->
+            <p class="dm-dica" id="draftDica" role="status"></p>
+            <label class="dm-outro">
+              <span class="sr">Outro brawler, pelo nome em português ou em inglês</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              <input type="text" id="draftNome" placeholder="Outro" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
+            </label>
+          </div>
+          <ul class="dm-pecas" id="draftGrade" aria-label="Mais escolhidos neste mapa, ainda livres"></ul>
+          <p class="dm-teclas" id="draftTeclas"></p>
         </div>
-        <button class="limpar" type="button" id="draftNova">Nova partida</button>
+        <p class="sr" id="draftAviso" aria-live="polite"></p>
       </div>
-      <p class="draft-legenda">Os mais escolhidos neste mapa. Quem não estiver aqui, digite em "Outro".</p>
-      <div class="draft-grade" id="draftGrade"></div>
-      <label class="draft-caixa">
-        <span>Outro</span>
-        <input type="text" id="draftNome" autocomplete="off" spellcheck="false" placeholder="2 ou 3 letras e Enter">
-      </label>
-      <p id="draftDica"></p>
-      <p class="draft-marcados" id="draftMarcados"></p>
-      <p class="draft-chance" id="draftChance"></p>
-      <div id="draftLeitura" hidden>
-        <h4>Leitura da partida</h4>
-        <ul class="picks" id="leituraLinhas"></ul>
-        <div class="leitura-rolagem"><table class="leitura" id="leituraTabela"></table></div>
-        <p class="draft-legenda" id="leituraNota"></p>
-      </div>
-      <div id="draftBloqueio" hidden>
-        <h4>Pra bloquear</h4>
-        <ol class="picks ordenada" id="bloqueioLista"></ol>
-        <p class="draft-legenda" id="bloqueioNota"></p>
-      </div>
-      <h4>Pra nossa próxima escolha</h4>
-      <p class="draft-legenda" id="draftEmpate"></p>
-      <ol class="picks ordenada" id="draftRecomenda"></ol>
-      <div id="draftSeus" hidden>
-        <h4>Dos seus fortes</h4>
-        <ul class="picks" id="seusLista"></ul>
-        <p class="draft-legenda">Fora dos 5 de cima. Quem joga bem com o brawler muitas vezes compensa os pontos.</p>
-      </div>
-      <p>Clique no brawler ou digite o nome e aperte Enter. Ele vai pro que estiver selecionado lá em cima, inclusive o clique num recomendado. As teclas 1, 2 e 3 trocam entre Inimigo, Nosso time e Bloqueio, até com o cursor na caixa. Backspace com a caixa vazia desfaz a última marcação, e clicar num nome marcado desmarca.</p>
-    </section>
-    <!-- fim do LEGADO das Tasks 7 e 8 -->
+      <!-- A resposta da vez. A Task 8 desenha aqui; até lá, fica a resposta de hoje. -->
+      <section class="dm-resposta" id="draftResposta" aria-label="Resposta da vez">
+        <!-- LEGADO: sai na Task 8 -->
+        <div class="bloco draft">
+          <div id="draftBloqueio" hidden>
+            <h4>Pra bloquear</h4>
+            <ol class="picks ordenada" id="bloqueioLista"></ol>
+            <p class="draft-legenda" id="bloqueioNota"></p>
+          </div>
+          <h4>Pra nossa próxima escolha</h4>
+          <p class="draft-legenda" id="draftEmpate"></p>
+          <ol class="picks ordenada" id="draftRecomenda"></ol>
+          <div id="draftSeus" hidden>
+            <h4>Dos seus fortes</h4>
+            <ul class="picks" id="seusLista"></ul>
+            <p class="draft-legenda">Fora dos 5 de cima. Quem joga bem com o brawler muitas vezes compensa os pontos.</p>
+          </div>
+          <p class="draft-chance" id="draftChance"></p>
+          <div id="draftLeitura" hidden>
+            <h4>Leitura da partida</h4>
+            <ul class="picks" id="leituraLinhas"></ul>
+            <div class="leitura-rolagem"><table class="leitura" id="leituraTabela"></table></div>
+            <p class="draft-legenda" id="leituraNota"></p>
+          </div>
+        </div>
+        <!-- fim do LEGADO da Task 8 -->
+      </section>
+    </div>
   </section>
 
   <div class="andares">
@@ -1064,8 +1190,12 @@ details.mais > summary .seta { margin-left: auto; }
       </div>
       <div id="guiaDraft" hidden>
         <h3>Draft</h3>
-        <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O draft já vem aberto em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um clique nos mais escolhidos do mapa ou digitando o nome; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. Com pelo menos um brawler de cada lado, a leitura da partida diz quem cada um do nosso time caça e evita, pelos mesmos confrontos, e compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.</p>
+        <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O botão "Estou no draft" liga o modo Draft em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um toque nos mais escolhidos do mapa ou digitando o nome em "Outro"; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, aparece a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. Com pelo menos um brawler de cada lado, a leitura da partida diz quem cada um do nosso time caça e evita, pelos mesmos confrontos, e compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.</p>
         <p>Antes das escolhas, "Pra bloquear" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra as suas 3 melhores opções. As opções são os seus fortes que você tem no máximo, os melhores no mapa primeiro, completados pelos outros que você tem no máximo. Proteger três evita que um bloqueio do outro time numa delas desperdice o seu. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. "Seu forte" é quem você marcou com "Sei jogar" no cartão do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza. Nos modos de objetivo (Pique-Gema, Futebol, Roubo e Zona Estratégica), com um brawler de alcance longo no nosso time (<span id="guiaAlcanceLongo"></span> quadrados ou mais, pelo wiki), os outros de alcance longo ganham o aviso "já temos um de alcance longo". A ordem também não muda: nas partidas do Lendário pra cima, time com dois ou mais deles nesses modos fez uns 1,5 ponto abaixo do esperado. Em Caça-Estrelas e Nocaute isso não acontece, e o aviso não aparece.</p>
+      </div>
+      <div id="guiaTeclado" hidden>
+        <h3>Draft: toque e teclado</h3>
+        <p>Toque no brawler ou digite o nome em "Outro" e aperte Enter. Ele vai para o grupo da vez, o de borda amarela, e a vez passa sozinha quando o grupo enche. Tocar no nome de um grupo muda a vez na mão, e tocar numa vaga cheia tira o brawler dela. No teclado, as teclas 1, 2 e 3 trocam entre Inimigo, Nosso time e Bloqueios, até com o cursor no campo. Backspace com o campo vazio desfaz a última marcação, e Esc sai do modo. "Nova partida" zera tudo.</p>
       </div>
       <div>
         <h3>De onde vêm os dados</h3>
@@ -1256,15 +1386,43 @@ const guardar = {
   gravar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 
+// Os três grupos da partida: cada time escolhe 3, e são até 6 bloqueios. A recomendação só
+// precisa de quem o inimigo pegou; bloqueios só tiram nomes da lista, e o nosso time tira
+// nomes e dá a chance de vitória. titulo é o rótulo das vagas. vez é a frase que diz para
+// onde vai o próximo toque. cheio é a frase de quando o grupo não tem mais vaga, que o modo
+// Draft e a folha do brawler mostram: uma frase inteira por grupo, porque o título sozinho
+// não concorda. depois é para quem a vez passa quando o grupo enche, na ordem do jogo: dos
+// bloqueios para as escolhas, e de um time para o outro.
+const GRUPOS = {
+  eles: { titulo: 'Inimigo', max: 3, vez: 'Toque em quem o inimigo pegou.', cheio: 'O time inimigo já está completo.', depois: ['nos'] },
+  nos: { titulo: 'Nosso time', max: 3, vez: 'Toque em quem o nosso time pegou.', cheio: 'Nosso time já está completo.', depois: ['eles'] },
+  bloqueios: { titulo: 'Bloqueios', max: 6, vez: 'Toque em quem foi bloqueado.', get cheio() { return `Os ${this.max} bloqueios já estão marcados.`; }, depois: ['eles', 'nos'] },
+};
+// As teclas que escolhem o grupo da vez no modo Draft. Ficam lado a lado no teclado (B, I e
+// N ficavam longe), e funcionam com o cursor no campo porque nenhum nome de brawler tem
+// esses números.
+const GRUPO_DA_TECLA = { 1: 'eles', 2: 'nos', 3: 'bloqueios' };
+
 // A partida do ranqueado em andamento, uma por vez: quem foi bloqueado, quem o inimigo
 // pegou e quem o nosso time pegou. O modo Draft e os botões da folha do brawler
-// (mandarProDraft) leem e gravam só aqui. Fica guardada pra sobreviver a um F5 no meio do draft, e abrir outro mapa
-// começa outra partida. feitos guarda as marcações na ordem, pro Backspace desfazer.
+// (mandarProDraft) leem e gravam só aqui. Fica guardada pra sobreviver a um F5 no meio do
+// draft, e abrir outro mapa começa outra partida. marcando é o grupo da vez, o que recebe o
+// próximo toque. feitos guarda as marcações na ordem, pro Backspace desfazer.
 // Começa no Bloqueio porque no jogo os bloqueios vêm antes das escolhas.
 const partidaVazia = (mapa) => ({ mapa, marcando: 'bloqueios', bloqueios: [], eles: [], nos: [], feitos: [] });
+// Uma partida guardada só serve inteira: os campos de partidaVazia, com os tipos certos e sem
+// passar das vagas de cada grupo. Formato antigo ou guardado estragado quebraria a mesa a
+// cada visita.
+function partidaValida(p) {
+  const nomes = (g) => Array.isArray(p[g]) && p[g].length <= GRUPOS[g].max && p[g].every((n) => typeof n === 'string');
+  return !!p && typeof p === 'object' && (p.mapa === null || typeof p.mapa === 'string')
+    && Object.hasOwn(GRUPOS, p.marcando) && Object.keys(GRUPOS).every(nomes)
+    && Array.isArray(p.feitos) && p.feitos.every((f) => Object.hasOwn(GRUPOS, f?.grupo) && typeof f.nome === 'string');
+}
 let partida = guardar.ler('partida', null);
-// Partida guardada no formato antigo, com as 6 vezes em ordem, não serve mais.
-if (!partida?.eles) partida = partidaVazia(null);
+// A que não serve é descartada sozinha: a tag, os "meus" e o resto do que está guardado ficam.
+// A de outro mapa é trocada em selecionar(), que começa outra partida.
+if (!partidaValida(partida)) partida = partidaVazia(null);
 const salvarPartida = () => guardar.gravar('partida', partida);
 // Até 20/10 cada mapa guardava os próprios bloqueios para sempre, e eles voltavam na partida seguinte.
 try { for (const k of Object.keys(localStorage)) if (k.startsWith('bloq:')) localStorage.removeItem(k); } catch {}
@@ -1495,10 +1653,9 @@ function desenharCapa(m) {
   // A cor do modo tinge a página inteira.
   document.documentElement.style.setProperty('--modo', corModo(m.modo));
 
-  // Draft só no ranqueado, e só com a força de todos nos dados (geração parcial não tem).
-  const comDraft = m.parte === 'ranqueado' && !!m.forca;
-  document.getElementById('interruptor').hidden = !comDraft;
-  capa.classList.toggle('sem-draft', !comDraft);
+  // Sem Draft neste mapa (Troféu), o botão "Estou no draft" some da borda da capa.
+  document.getElementById('interruptor').hidden = !temDraft(m);
+  capa.classList.toggle('sem-draft', !temDraft(m));
 
   const naBarra = document.getElementById('barraMapa');
   naBarra.innerHTML = `${miniatura(m, 22, true)}<span>${esc(nome)}</span>`;
@@ -1674,37 +1831,27 @@ document.addEventListener('keydown', (e) => {
   abrirTrocarMapa();
 });
 
-// ---------- Modo Draft (Mítico pra cima, escolha por turnos) ----------
+// ---------- Draft (Mítico pra cima, escolha por turnos) ----------
 
-// A recomendação só precisa de quem o inimigo pegou. Bloqueios só tiram nomes da lista,
-// e o nosso time tira nomes e dá a chance de vitória. Cada time escolhe 3, e são até 6
-// bloqueios. cheio é a frase de quando o grupo não tem mais vaga, que o Draft e a folha do
-// brawler mostram: uma frase inteira por grupo, porque o título sozinho não concorda.
-const GRUPOS = {
-  eles: { titulo: 'Inimigos', max: 3, cheio: 'O time inimigo já está completo.' },
-  nos: { titulo: 'Nosso time', max: 3, cheio: 'Nosso time já está completo.' },
-  bloqueios: { titulo: 'Bloqueados', max: 6, get cheio() { return `Os ${this.max} bloqueios já estão marcados.`; } },
-};
 const foraDoDraft = () => new Set([...partida.bloqueios, ...partida.eles, ...partida.nos]);
 // Todo brawler que aparece em alguma parte do site. Só o ranqueado não basta: brawler com
 // pouca partida no Lendário+ some de todos os mapas de lá, e a Bonnie não dava pra marcar.
 const NOMES_TODOS = [...new Set(TODOS.flatMap((m) => m.brawlers.map((b) => b.nome)))];
 const chaveNome = (s) => norm(s).replace(/[^a-z0-9]/g, '');
-// Os mais escolhidos do mapa viram botões: quase sempre o inimigo está entre eles, e um
-// clique é mais rápido que digitar.
-const NA_GRADE = 12;
 
 // Nomes livres com o que foi digitado, do mais usado no mapa pro menos: com 2 letras
 // ambíguas, o Enter fica com quem mais se escolhe aqui. Quem começa com o texto vem
 // antes de quem só o contém, que salva o nome lembrado pela metade ("per" acha Piper).
+// Vale o nome em inglês e o em português: "wattson" e "surge" acham o mesmo brawler.
 function acharNomes(texto, m, fora) {
   const q = chaveNome(texto);
   if (!q) return [];
   const uso = new Map(m.brawlers.map((b) => [b.nome, b.uso]));
+  const chaves = (n) => [chaveNome(n), chaveNome(nomePt(n))];
   const livres = NOMES_TODOS
-    .filter((n) => !fora.has(n) && chaveNome(n).includes(q))
+    .filter((n) => !fora.has(n) && chaves(n).some((c) => c.includes(q)))
     .sort((a, b) => (uso.get(b) ?? 0) - (uso.get(a) ?? 0) || a.localeCompare(b));
-  const comeca = (n) => chaveNome(n).startsWith(q);
+  const comeca = (n) => chaves(n).some((c) => c.startsWith(q));
   return [...livres.filter(comeca), ...livres.filter((n) => !comeca(n))];
 }
 
@@ -1806,19 +1953,317 @@ function desenharLeitura(m) {
     : 'Em vermelho, o outro time. Sem os números do wiki nesta geração.';
 }
 
-const cheio = () => partida[partida.marcando].length >= GRUPOS[partida.marcando].max;
+// ---------- Modo Draft: a mesa ----------
+// "Estou no draft" liga um modo de tela cheia: abrirDraft() esconde o resto da página
+// (body.em-draft) e fecharDraft() traz de volta, no ponto em que a pessoa estava. De cima para
+// baixo, o modo tem a barra do mapa, as vagas (6 bloqueios e os dois times de 3), a grade dos
+// mais escolhidos com o campo "Outro" e a resposta da vez, em #draftResposta.
+//
+// Para a resposta da vez marcar alguém (um rosto do Bane, o botão "Pegar"), ela chama
+// marcarNoDraft(nome, botão tocado, grupo): a função marca, anda a vez, redesenha e faz o
+// retrato voar do botão até a vaga.
+const modoDraft = document.getElementById('draftModo');
+const caixaDraft = document.getElementById('draftNome');
+// Draft só no ranqueado, e só com a força de todos nos dados (geração parcial não tem).
+const temDraft = (m) => m.parte === 'ranqueado' && !!m.forca;
+const draftAberto = () => !modoDraft.hidden;
+// Se o grupo (o da vez, quando não vem outro) já não tem vaga.
+const cheio = (grupo = partida.marcando) => partida[grupo].length >= GRUPOS[grupo].max;
 
-function desenharDica(m) {
-  const texto = caixaDraft.value;
-  const achados = acharNomes(texto, m, foraDoDraft());
-  document.getElementById('draftDica').textContent = !texto
-    ? ''
-    : cheio()
-      ? GRUPOS[partida.marcando].cheio
-      : !achados.length
-        ? 'Nenhum brawler livre com esse nome.'
-        : `Enter marca ${achados[0]}${achados.length > 1 ? ` (também: ${achados.slice(1, 4).join(', ')})` : ''}.`;
+// O nome vai pro grupo (o da vez, quando não vem outro), enquanto ele tem vaga.
+function marcar(nome, grupo = partida.marcando) {
+  if (cheio(grupo)) return false;
+  mudar(grupo, nome, true);
+  partida.feitos.push({ grupo, nome });
+  andarVez();
+  return true;
 }
+
+// A vez anda sozinha quando o grupo dela enche: passa ao primeiro de `depois` que ainda tem
+// vaga. Sem nenhum, fica onde está, e a frase da grade diz que o grupo está completo.
+function andarVez() {
+  if (!cheio()) return;
+  const proximo = GRUPOS[partida.marcando].depois.find((g) => !cheio(g));
+  if (proximo) partida.marcando = proximo;
+}
+
+// Tirar alguém devolve a vez ao grupo que ganhou a vaga: quem corrige um toque errado quer
+// marcar o certo no mesmo lugar.
+function desmarcar(grupo, nome) {
+  mudar(grupo, nome, false);
+  partida.marcando = grupo;
+}
+
+// Desfaz a última marcação e devolve qual era, ou undefined quando não há nenhuma.
+function desfazer() {
+  const ultimo = partida.feitos.at(-1);
+  if (ultimo) desmarcar(ultimo.grupo, ultimo.nome);
+  return ultimo;
+}
+
+// Outra partida, no mesmo mapa ou em outro: tudo do zero, com o campo vazio.
+function novaPartida(mapa) {
+  partida = partidaVazia(mapa);
+  salvarPartida();
+  caixaDraft.value = '';
+}
+
+// Toda mudança na partida passa por aqui: grava e redesenha o modo Draft. A ficha e a tier
+// list valem para o mapa e não mudam com a partida.
+function mudouPartida() {
+  salvarPartida();
+  desenharDraft(atual);
+}
+
+// Quantos brawlers a grade mostra: as colunas vezes as fileiras que o CSS desenha nesta tela
+// (12 no celular, 24 no PC). É o que cabe sem empurrar a resposta para fora da tela.
+function tamanhoDaGrade() {
+  const cs = getComputedStyle(modoDraft);
+  const n = (v, padrao) => parseInt(cs.getPropertyValue(v), 10) || padrao;
+  return n('--colunas-grade', 6) * n('--linhas-grade', 2);
+}
+
+const XIS = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l6 6M9 3L3 9"/></svg>';
+// Quem ainda está voando até a vaga (ver voar): a vaga dele espera vazia até o retrato chegar.
+const voando = new Set();
+
+// As vagas: os 6 bloqueios e, embaixo, os dois times lado a lado. O rótulo de cada grupo é o
+// botão que muda a vez na mão, e a vaga cheia é o botão que tira o brawler dela. Os times
+// mostram o nome embaixo do retrato; nos bloqueios não cabe, e ele fica no title.
+function desenharVagas() {
+  const grupo = (g, comNome) => {
+    const { titulo, max } = GRUPOS[g];
+    const nomes = partida[g];
+    const daVez = g === partida.marcando;
+    const tecla = Object.keys(GRUPO_DA_TECLA).find((k) => GRUPO_DA_TECLA[k] === g);
+    const casa = (nome, i) => {
+      const legenda = comNome ? `<span class="dm-vaga-nome">${nome ? esc(nomePt(nome)) : ''}</span>` : '';
+      return nome
+        ? `<li><button class="dm-vaga cheia${voando.has(nome) ? ' esperando' : ''}" type="button" data-desmarcar="${g}" data-nome="${esc(nome)}" aria-label="Tirar ${esc(nomePt(nome))}" title="Tirar ${esc(nomePt(nome))}">`
+          + `<span class="dm-vaga-casa">${retrato(nome, 56, true)}<span class="dm-tira">${XIS}</span></span>${legenda}</button></li>`
+        : `<li aria-hidden="true"><span class="dm-vaga vazia"><span class="dm-vaga-casa num">${i + 1}</span>${legenda}</span></li>`;
+    };
+    return `<section class="dm-grupo${daVez ? ' ativo' : ''}" data-grupo="${g}" aria-label="${titulo}, ${nomes.length} de ${max}">
+      <button class="dm-rot" type="button" data-marcando="${g}" aria-pressed="${daVez}" aria-keyshortcuts="${tecla}">${titulo}</button>
+      <ol class="dm-casas" style="--n:${max}">${Array.from({ length: max }, (_, i) => casa(nomes[i], i)).join('')}</ol>
+    </section>`;
+  };
+  document.getElementById('draftVagas').innerHTML = `${grupo('bloqueios', false)}<div class="dm-times">${grupo('nos', true)}${grupo('eles', true)}</div>`;
+}
+
+// A grade: os mais escolhidos do mapa que ainda estão livres. Quase sempre o brawler está
+// entre eles, e um toque no rosto é mais rápido que digitar. Com texto no campo "Outro", ela
+// mostra os achados, e o primeiro é o que o Enter marca.
+function desenharGrade(m) {
+  const texto = caixaDraft.value.trim();
+  const fora = foraDoDraft();
+  const n = tamanhoDaGrade();
+  const nomes = texto
+    ? acharNomes(texto, m, fora).slice(0, n)
+    : [...m.brawlers].sort((a, b) => b.uso - a.uso).filter((b) => !fora.has(b.nome)).slice(0, n).map((b) => b.nome);
+  const semVaga = cheio();
+  document.getElementById('draftGrade').innerHTML = nomes.map((nome, i) =>
+    `<li><button class="dm-peca${texto && !i && !semVaga ? ' achado' : ''}" type="button" data-marcar="${esc(nome)}"${semVaga ? ' disabled' : ''}>`
+    + `${retrato(nome, 48, true)}<span class="dm-peca-nome">${esc(nomePt(nome))}</span></button></li>`).join('');
+  // Só troca quando muda: o leitor de tela não repete a mesma frase a cada toque.
+  const frase = fraseDaGrade(m, texto, nomes);
+  const dica = document.getElementById('draftDica');
+  if (dica.textContent !== frase) dica.textContent = frase;
+}
+
+// A frase ao lado do campo "Outro": para onde vai o próximo toque, o que o Enter marca ou
+// por que nada marca. nomes são os achados livres para o texto do campo.
+function fraseDaGrade(m, texto, nomes) {
+  if (cheio()) return GRUPOS[partida.marcando].cheio;
+  if (!texto) return GRUPOS[partida.marcando].vez;
+  if (nomes.length) return `Enter marca ${nomePt(nomes[0])}.`;
+  // Quem a busca não acha livre pode já estar marcado: aí a frase diz onde.
+  const [marcado] = acharNomes(texto, m, new Set());
+  const onde = marcado && Object.keys(GRUPOS).find((g) => partida[g].includes(marcado));
+  return onde ? `${nomePt(marcado)} já está ${NA_PARTIDA[onde]}.` : 'Nenhum brawler livre com esse nome.';
+}
+
+// A barra do modo: a miniatura e o nome do mapa. Só é refeita quando o mapa muda.
+function desenharBarraDraft(m) {
+  if (modoDraft.dataset.mapa === chave(m)) return;
+  modoDraft.dataset.mapa = chave(m);
+  const en = mapaEn(m);
+  document.getElementById('draftMini').innerHTML = miniatura(m, 22, true);
+  document.getElementById('draftTitulo').innerHTML = `<span class="sr">Draft em </span>${esc(mapaPt(m))}${en ? `<small lang="en">${esc(en)}</small>` : ''}`;
+}
+
+// Com o modo fechado não há o que desenhar: abrirDraft() desenha tudo ao abrir.
+function desenharDraft(m) {
+  if (!draftAberto()) return;
+  desenharBarraDraft(m);
+  desenharVagas();
+  desenharGrade(m);
+  desenharResposta(m);
+}
+
+// O retrato voa do lugar do toque (`de`, a caixa do botão tocado) até a vaga e quica: um
+// fantasma solto no body, animado só com transform, enquanto a vaga espera vazia. Com
+// prefers-reduced-motion nada voa nem quica: o retrato já está na vaga.
+const poucoMovimento = matchMedia('(prefers-reduced-motion: reduce)');
+function voar(nome, de) {
+  const achar = () => document.querySelector(`#draftVagas [data-desmarcar][data-nome="${CSS.escape(nome)}"]`);
+  const vaga = achar();
+  if (!vaga || poucoMovimento.matches) return;
+  const pousar = () => {
+    // A mesa pode ter sido redesenhada durante o voo: a vaga é procurada de novo.
+    const v = achar();
+    if (!v) return;
+    v.classList.remove('esperando');
+    v.classList.add('pousou');
+    v.addEventListener('animationend', () => v.classList.remove('pousou'), { once: true });
+  };
+  const para = vaga.querySelector('.dm-vaga-casa').getBoundingClientRect();
+  if (!de?.width || !para.width) return pousar();
+  voando.add(nome);
+  vaga.classList.add('esperando');
+  const fantasma = document.createElement('div');
+  fantasma.className = 'dm-voando';
+  fantasma.setAttribute('aria-hidden', 'true');
+  fantasma.innerHTML = retrato(nome, Math.round(para.width), true);
+  Object.assign(fantasma.style, { left: `${para.left}px`, top: `${para.top}px`, width: `${para.width}px`, height: `${para.height}px` });
+  document.body.append(fantasma);
+  // O fantasma já nasce no lugar da vaga; a animação começa deslocada até o toque e termina em zero.
+  const dx = de.left + de.width / 2 - (para.left + para.width / 2);
+  const dy = de.top + de.height / 2 - (para.top + para.height / 2);
+  const s = Math.min(1.6, Math.max(0.4, Math.min(de.width, de.height) / para.width));
+  const chegar = () => { fantasma.remove(); voando.delete(nome); pousar(); };
+  fantasma.animate([
+    { transform: `translate(${dx}px, ${dy}px) scale(${s})` },
+    { transform: `translate(${dx * 0.45}px, ${dy * 0.45 - 28}px) scale(${(s + 1) / 2 * 1.12})`, offset: 0.55 },
+    { transform: 'translate(0, 0) scale(1)' },
+  ], { duration: 300, easing: 'cubic-bezier(.4, .1, .3, 1)' }).finished.then(chegar, chegar);
+}
+
+// O que acabou de acontecer na mesa, para quem usa leitor de tela.
+const avisar = (texto) => { document.getElementById('draftAviso').textContent = texto; };
+
+// Depois de redesenhar a mesa, o foco não fica solto no corpo da página. No PC ele volta ao
+// campo "Outro", porque o próximo nome pode não estar na grade. No celular vai para o botão
+// do seletor, sem abrir o teclado; se esse botão sumiu ou não marca mais, vai para o rótulo
+// do grupo da vez.
+function focoNaMesa(seletor) {
+  if (telaLarga.matches) return caixaDraft.focus({ preventScroll: true });
+  const alvo = seletor && modoDraft.querySelector(seletor);
+  if (alvo && !alvo.disabled) return alvo.focus({ preventScroll: true });
+  modoDraft.querySelector(`[data-marcando="${partida.marcando}"]`)?.focus({ preventScroll: true });
+}
+
+// Marcar pelo modo: `origem` é o botão tocado, de onde o retrato sai voando. grupo é o da vez,
+// quando não vem outro (o bloqueio sugerido vai sempre pros bloqueios). Sem vaga, nada muda.
+function marcarNoDraft(nome, origem, grupo = partida.marcando) {
+  const de = (origem?.querySelector('.img, .sem-img') ?? origem)?.getBoundingClientRect();
+  // A posição da peça na grade, para o foco ficar na que ocupar o lugar dela.
+  const lugar = origem?.closest('#draftGrade > li');
+  const i = lugar ? [...lugar.parentElement.children].indexOf(lugar) + 1 : 0;
+  if (!marcar(nome, grupo)) return false;
+  caixaDraft.value = '';
+  mudouPartida();
+  voar(nome, de);
+  avisar(`${nomePt(nome)} ${NA_PARTIDA[grupo]}.`);
+  focoNaMesa(i ? `#draftGrade > li:nth-child(${i}) [data-marcar]` : null);
+  return true;
+}
+
+// O grupo da vez muda na mão: pelo rótulo do grupo ou pelas teclas 1, 2 e 3.
+function trocarGrupo(grupo) {
+  partida.marcando = grupo;
+  mudouPartida();
+  focoNaMesa(`[data-marcando="${grupo}"]`);
+}
+
+// O modo aberto sobrevive a um F5 (ou a um puxão para recarregar, no celular) junto com a
+// partida. Fica no sessionStorage: vale para esta aba, e uma visita nova começa na página.
+function lembrarModo(aberto) {
+  try { aberto ? sessionStorage.setItem('draft', '1') : sessionStorage.removeItem('draft'); } catch {}
+}
+const modoLembrado = () => { try { return sessionStorage.getItem('draft') === '1'; } catch { return false; } };
+
+// Onde a pessoa estava quando ligou o modo: a rolagem da página e quem tinha o foco. "Sair do
+// draft" devolve os dois.
+let antesDoDraft = null;
+
+function abrirDraft() {
+  if (!temDraft(atual)) return;
+  // A folha fecha antes de tudo: o <dialog> devolve o foco a quem a abriu (a linha da tier
+  // list, por exemplo), e é para lá que o foco volta quando a pessoa sair do modo.
+  fecharFolha();
+  if (!draftAberto()) {
+    const foco = document.activeElement;
+    antesDoDraft = { y: scrollY, foco: foco && foco !== document.body ? foco : null };
+    document.body.classList.add('em-draft');
+    modoDraft.hidden = false;
+    lembrarModo(true);
+    scrollTo({ top: 0, behavior: 'instant' });
+  }
+  // Quem chega com o grupo da vez já cheio (marcado pela folha do brawler) recebe a vez seguinte.
+  andarVez();
+  mudouPartida();
+  // No PC o cursor começa no campo; no celular o foco vai para o nome do mapa, que o teclado
+  // cobriria a mesa.
+  (telaLarga.matches ? caixaDraft : document.getElementById('draftTitulo')).focus({ preventScroll: true });
+}
+
+function fecharDraft() {
+  if (!draftAberto()) return;
+  modoDraft.hidden = true;
+  document.body.classList.remove('em-draft');
+  lembrarModo(false);
+  caixaDraft.value = '';
+  const { y = 0, foco = null } = antesDoDraft ?? {};
+  antesDoDraft = null;
+  scrollTo({ top: y, behavior: 'instant' });
+  // Quem tinha o foco pode ter sumido num redesenho da página: aí ele vai para "Estou no draft".
+  (foco?.isConnected && foco.getClientRects().length ? foco : document.getElementById('ligarDraft')).focus({ preventScroll: true });
+}
+
+caixaDraft.addEventListener('input', () => desenharGrade(atual));
+// Enter marca o primeiro achado, que é a primeira peça da grade enquanto há texto no campo.
+caixaDraft.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || e.isComposing) return;
+  e.preventDefault();
+  const primeira = caixaDraft.value.trim() && document.querySelector('#draftGrade [data-marcar]:not(:disabled)');
+  if (primeira) marcarNoDraft(primeira.dataset.marcar, primeira);
+});
+// As outras teclas do Draft valem no modo inteiro, com o cursor no campo ou não: 1, 2 e 3
+// trocam o grupo da vez, Backspace com o campo vazio desfaz a última marcação e Esc sai. Só
+// com o modo aberto e sem folha por cima dele: com uma folha aberta, as teclas são dela.
+document.addEventListener('keydown', (e) => {
+  if (!draftAberto() || document.querySelector('dialog[open]') || e.ctrlKey || e.altKey || e.metaKey || e.isComposing) return;
+  if (e.target !== caixaDraft && e.target.closest?.('input, textarea')) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    // O primeiro Esc limpa o campo, como na busca de mapa; com ele vazio, sai do modo.
+    if (!caixaDraft.value) return fecharDraft();
+    caixaDraft.value = '';
+    desenharGrade(atual);
+  } else if (e.key === 'Backspace' && !caixaDraft.value) {
+    e.preventDefault();
+    const desfeito = desfazer();
+    if (!desfeito) return;
+    mudouPartida();
+    avisar(`${nomePt(desfeito.nome)} saiu.`);
+    focoNaMesa(`[data-marcando="${desfeito.grupo}"]`);
+  } else if (GRUPO_DA_TECLA[e.key]) {
+    e.preventDefault();
+    trocarGrupo(GRUPO_DA_TECLA[e.key]);
+  }
+});
+// A grade tem outro tamanho na tela larga.
+telaLarga.addEventListener('change', () => desenharDraft(atual));
+// A legenda do teclado, embaixo da grade: sai dos mesmos nomes das vagas.
+document.getElementById('draftTeclas').innerHTML = [
+  ...Object.entries(GRUPO_DA_TECLA).map(([tecla, g]) => [tecla, GRUPOS[g].titulo]),
+  ['Enter', 'marca o primeiro achado'], ['Backspace', 'desfaz'], ['Esc', 'sai'],
+].map(([tecla, faz]) => `<span><kbd>${tecla}</kbd>${faz}</span>`).join('');
+
+// ---------- Modo Draft: a resposta de hoje ----------
+// LEGADO: sai na Task 8, que desenha a resposta da vez em #draftResposta. Até lá fica a de
+// hoje: o bloqueio sugerido, as 5 recomendações, os seus fortes, a chance e a leitura.
 
 // Os fortes da pessoa fora dos 5 recomendados, livres e no máximo, com quanto o time
 // perde de chance em relação ao melhor que ela pode pegar, pela mesma conta da chance.
@@ -1840,26 +2285,8 @@ function desenharSeusFortes(m, lista, escolhas, nome, selo) {
     `<li><b>${nome(r.nome)}${selo(r.nome)}</b><span>${r.pos ? `${r.pos}º no mapa` : 'pouco jogado aqui'} · ${custo(r.nome)}</span></li>`).join('');
 }
 
-function desenharDraft(m) {
-  // Sempre aberto no ranqueado: no draft não sobra tempo pra um clique a mais.
-  const secao = document.getElementById('draft');
-  // Dado gerado antes da força de todos (geração parcial, só do troféu) não tem como dar a conta.
-  secao.hidden = m.parte !== 'ranqueado' || !m.forca;
-  if (secao.hidden) return;
-  for (const b of document.querySelectorAll('[data-marcando]')) b.setAttribute('aria-pressed', String(b.dataset.marcando === partida.marcando));
+function desenharResposta(m) {
   const fora = foraDoDraft();
-  document.getElementById('draftGrade').innerHTML = [...m.brawlers]
-    .sort((a, b) => b.uso - a.uso)
-    .filter((b) => !fora.has(b.nome))
-    .slice(0, NA_GRADE)
-    .map((b) => `<button type="button" data-marcar="${esc(b.nome)}">${esc(b.nome)}</button>`)
-    .join('');
-  // Marcado é botão: um clique desmarca, pra corrigir sem refazer o draft.
-  document.getElementById('draftMarcados').innerHTML = Object.entries(GRUPOS)
-    .filter(([g]) => partida[g].length)
-    .map(([g, { titulo }]) => `<span class="${g}">${titulo}: ${partida[g].map((n) =>
-      `<button class="desbloq" type="button" data-desmarcar="${g}" data-nome="${esc(n)}" aria-label="Desmarcar ${esc(n)}">${esc(n)}</button>`).join(', ')}</span>`)
-    .join('') || 'Nada marcado ainda. Sem inimigo marcado, a lista é a dos mais fortes do mapa.';
   // Sem posição, o brawler tem partidas de menos pra entrar na tier list do mapa, e a
   // força dele vem quase toda do modo. Até 27/10 o texto era "poucas partidas no mapa",
   // que parecia o motivo da recomendação. Depois vem o confronto que explica a nota;
@@ -1913,67 +2340,7 @@ function desenharDraft(m) {
     : '';
   desenharChance(m);
   desenharLeitura(m);
-  desenharDica(m);
 }
-
-// O nome vai pro grupo que está sendo marcado, enquanto ele tem vaga.
-function marcar(nome) {
-  if (cheio()) return false;
-  mudar(partida.marcando, nome, true);
-  partida.feitos.push({ grupo: partida.marcando, nome });
-  return true;
-}
-
-function desfazer() {
-  const ultimo = partida.feitos.at(-1);
-  if (ultimo) mudar(ultimo.grupo, ultimo.nome, false);
-}
-
-const caixaDraft = document.getElementById('draftNome');
-
-// Outra partida, no mesmo mapa ou em outro: tudo do zero, com a caixa vazia.
-function novaPartida(mapa) {
-  partida = partidaVazia(mapa);
-  salvarPartida();
-  caixaDraft.value = '';
-}
-
-// Toda mudança na partida passa por aqui: grava e redesenha o Draft. A ficha e a tier list
-// valem para o mapa e não mudam com a partida.
-function mudouPartida() {
-  salvarPartida();
-  desenharMapa();
-}
-
-caixaDraft.addEventListener('input', () => desenharDica(atual));
-caixaDraft.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const [nome] = acharNomes(caixaDraft.value, atual, foraDoDraft());
-    if (nome && marcar(nome)) caixaDraft.value = '';
-  } else if (e.key === 'Backspace' && !caixaDraft.value) {
-    e.preventDefault();
-    desfazer();
-  } else return;
-  mudouPartida();
-});
-
-// O que marcar: pelo botão ou pelas teclas 1, 2 e 3, na ordem dos botões. Ficam lado a
-// lado no teclado (B, I e N ficavam longe), e funcionam com o cursor na caixa porque
-// nenhum nome de brawler tem esses números.
-function trocarGrupo(grupo) {
-  partida.marcando = grupo;
-  mudouPartida();
-  caixaDraft.focus();
-}
-const GRUPO_DA_TECLA = { 1: 'eles', 2: 'nos', 3: 'bloqueios' };
-document.addEventListener('keydown', (e) => {
-  const grupo = GRUPO_DA_TECLA[e.key];
-  if (!grupo || e.ctrlKey || e.altKey || e.metaKey || document.getElementById('draft').hidden) return;
-  if (e.target.closest('input, textarea') && e.target !== caixaDraft) return;
-  e.preventDefault();
-  trocarGrupo(grupo);
-});
 
 // ---------- A ficha do mapa: Bane, Pegue e Se o inimigo pegar ----------
 // A ficha responde "quem eu bano e quem eu pego neste mapa", antes de qualquer marcação.
@@ -2263,8 +2630,7 @@ function abrirBrawler(nome) {
 // "Bloquear", "Inimigo" e "Nosso" da folha passam todos por aqui. grupo é 'bloqueios', 'eles'
 // ou 'nos'. Com o grupo cheio, a partida não muda: a folha fica aberta e diz que o grupo está
 // completo (a mesma frase do Draft). Com vaga, o brawler sai de outro grupo em que estivesse e
-// entra neste. Até a Task 7, depois de marcar, a folha fecha e a página rola até o Draft de
-// hoje. A Task 7 troca só o fim: em vez de rolar, abre o modo Draft.
+// entra neste, e o modo Draft abre com ele já na vaga.
 function mandarProDraft(grupo, nome) {
   if (!partida[grupo].includes(nome)) {
     if (partida[grupo].length >= GRUPOS[grupo].max) {
@@ -2278,12 +2644,7 @@ function mandarProDraft(grupo, nome) {
   }
   // O foco vai para o Draft, não para quem abriu a folha (que pode estar longe, lá em cima).
   quemAbriu = null;
-  fecharFolha();
-  mudouPartida();
-  // No PC o cursor vai para o campo do Draft; no celular vai para o título, que o teclado
-  // cobriria a tela.
-  (telaLarga.matches ? caixaDraft : document.getElementById('draftTitulo')).focus({ preventScroll: true });
-  document.getElementById('draftModo').scrollIntoView();
+  abrirDraft();
 }
 
 function desenharMapa() {
@@ -2296,6 +2657,7 @@ function desenharMapa() {
   document.getElementById('guiaEscondido').hidden = !ranqueado;
   document.getElementById('guiaPopular').hidden = !ranqueado;
   document.getElementById('guiaDraft').hidden = !ranqueado;
+  document.getElementById('guiaTeclado').hidden = !ranqueado;
 
   desenharDraft(m);
 }
@@ -2449,6 +2811,8 @@ function selecionar(m, mexerNoHash = true) {
   desenharFicha(m);
   desenharLista(m);
   desenharEstudo(m);
+  // Mapa sem Draft (Troféu) aberto com o modo ligado: o modo desliga antes de desenhar.
+  if (!temDraft(m)) fecharDraft();
   desenharMapa();
   fecharFolha();
 }
@@ -2477,8 +2841,8 @@ document.addEventListener('click', (e) => {
     selecionar(TODOS.find((m) => chave(m) === mapa.dataset.chave));
     return scrollTo({ top: 0, behavior: 'instant' });
   }
-  // Até a Task 7 trocar por abrirDraft(): "Estou no draft" leva ao Draft de hoje.
-  if (e.target.closest('#ligarDraft')) return document.getElementById('draftModo').scrollIntoView();
+  if (e.target.closest('#ligarDraft')) return abrirDraft();
+  if (e.target.closest('#draftSair')) return fecharDraft();
   // Rosto da ficha, linha da tier list ou counter da folha: abre a folha do brawler (o
   // counter troca o brawler na folha aberta). No modo Draft (Task 8), o rosto marca.
   const rostoTocado = e.target.closest('[data-brawler]');
@@ -2487,36 +2851,29 @@ document.addEventListener('click', (e) => {
   // "Bloquear", "Inimigo" e "Nosso" da folha do brawler.
   const manda = e.target.closest('[data-draft]');
   if (manda) return mandarProDraft(manda.dataset.draft, manda.dataset.nome);
+  // Daqui para baixo, a mesa do modo Draft.
   // Outra partida no mesmo mapa: bloqueios e escolhas são outros.
-  if (e.target.id === 'draftNova') {
+  if (e.target.closest('#draftNova')) {
     novaPartida(atual.mapa);
     mudouPartida();
-    return caixaDraft.focus();
+    avisar('Partida nova, sem ninguém marcado.');
+    return focoNaMesa('#draftNova');
   }
-  // O cursor volta pra caixa: o próximo nome pode não estar entre os botões, e até
-  // 01/11 era preciso clicar na caixa de novo no meio do draft.
+  // Uma peça da grade (ou um nome da resposta) vai para o grupo da vez.
   const marca = e.target.closest('[data-marcar]');
-  if (marca) {
-    marcar(marca.dataset.marcar);
-    mudouPartida();
-    return caixaDraft.focus();
-  }
-  // O bloqueio sugerido vai sempre pros bloqueios, seja qual for o grupo selecionado.
+  if (marca) return marcarNoDraft(marca.dataset.marcar, marca);
+  // O bloqueio sugerido vai sempre pros bloqueios, seja qual for o grupo da vez.
   const bloquear = e.target.closest('[data-bloquear]');
-  if (bloquear) {
-    if (partida.bloqueios.length < GRUPOS.bloqueios.max) {
-      mudar('bloqueios', bloquear.dataset.bloquear, true);
-      partida.feitos.push({ grupo: 'bloqueios', nome: bloquear.dataset.bloquear });
-    }
-    mudouPartida();
-    return caixaDraft.focus();
-  }
+  if (bloquear) return marcarNoDraft(bloquear.dataset.bloquear, bloquear, 'bloqueios');
+  // Tocar numa vaga cheia tira o brawler dela.
   const desmarca = e.target.closest('[data-desmarcar]');
   if (desmarca) {
-    mudar(desmarca.dataset.desmarcar, desmarca.dataset.nome, false);
+    desmarcar(desmarca.dataset.desmarcar, desmarca.dataset.nome);
     mudouPartida();
-    return caixaDraft.focus();
+    avisar(`${nomePt(desmarca.dataset.nome)} saiu.`);
+    return focoNaMesa(`[data-marcando="${desmarca.dataset.desmarcar}"]`);
   }
+  // Tocar no rótulo de um grupo muda a vez.
   const marcando = e.target.closest('[data-marcando]');
   if (marcando) return trocarGrupo(marcando.dataset.marcando);
 });
@@ -2592,6 +2949,8 @@ window.addEventListener('hashchange', () => {
   if (m && m !== atual) selecionar(m);
 });
 selecionar(porChave(location.hash.slice(1)) ?? porChave(guardar.ler('mapa', null)) ?? primeiroDa(Object.keys(DADOS.partes)[0]), false);
+// Quem recarregou a página no meio do draft volta para o modo, com a partida guardada.
+if (modoLembrado()) temDraft(atual) ? abrirDraft() : lembrarModo(false);
 </script>
 </body>
 </html>
