@@ -813,7 +813,7 @@ details.mais > summary .seta { margin-left: auto; }
     <!-- LEGADO: sai nas Tasks 7 e 8 -->
     <section class="bloco destaque draft" id="draft" hidden>
       <div class="draft-topo">
-        <h3>Draft</h3>
+        <h3 id="draftTitulo" tabindex="-1">Draft</h3>
         <div class="segmento" role="group" aria-label="O que marcar">
           <button type="button" data-marcando="eles" aria-pressed="false" aria-keyshortcuts="1">Inimigo<kbd>1</kbd></button>
           <button type="button" data-marcando="nos" aria-pressed="false" aria-keyshortcuts="2">Nosso time<kbd>2</kbd></button>
@@ -2139,12 +2139,12 @@ document.getElementById('folhaBrawler').addEventListener('close', (e) => {
   // voltar, o foco fica no corpo da página ou preso no botão de fechar da folha fechada.
   const ativo = document.activeElement;
   if (!q || (ativo && ativo !== document.body && !e.target.contains(ativo))) return;
-  if (q.el?.isConnected) return q.el.focus();
+  if (q.el?.isConnected) return q.el.focus({ preventScroll: true });
   if (!q.nome) return;
   const visivel = (el) => el.getClientRects().length;
   const noBloco = iguaisEm(q.regiao, q.nome).filter(visivel);
   const alvo = noBloco[q.i] ?? noBloco[0] ?? iguaisEm('main', q.nome).find(visivel);
-  (alvo ?? document.getElementById('ficha')).focus();
+  (alvo ?? document.getElementById('ficha')).focus({ preventScroll: true });
 });
 
 // Onde o brawler está na partida em andamento, para a folha avisar.
@@ -2174,7 +2174,7 @@ function desenharBrawler(m, nome) {
         ${cartao('Vitória real', b.n ? pct(b.wr) : 'sem partida', b.n ? 'sem ajuste' : '')}
         ${cartao('Amostra', milhar(b.n), `partidas, ${pct(b.uso)} das escolhas`)}
         ${b.trofeus != null ? cartao('Troféus', trof(b.trofeus), 'troféus por partida') : ''}
-        ${b.posicao != null ? cartao('Posição média', posicao(b.posicao), 'lugar na sala') : ''}
+        ${b.posicao != null ? cartao('Posição média', posicao(b.posicao), '1º é o melhor') : ''}
       </dl>`
     : '<p class="bw-nota">Poucas partidas neste mapa para entrar na lista. A força dele aqui vem quase toda do modo.</p>';
   const avisos = (b ? selosDe(b, m) : []).map((s) =>
@@ -2204,7 +2204,7 @@ function desenharBrawler(m, nome) {
   // Os três botões que mandam o brawler para o Draft. Só onde tem Draft (Ranqueado com a força).
   const onde = Object.keys(GRUPOS).find((g) => partida[g].includes(nome));
   const draft = m.parte === 'ranqueado' && m.forca
-    ? `<section class="bw-draft"><h3>Marcar no Draft <small>${onde ? `já está ${NA_PARTIDA[onde]}` : 'na partida em andamento'}</small></h3>
+    ? `<section class="bw-draft"><h3>Marcar no Draft <small id="folhaBrawlerOnde" aria-live="polite">${onde ? `já está ${NA_PARTIDA[onde]}` : 'na partida em andamento'}</small></h3>
         <div class="bw-draft-botoes">${[['bloqueios', 'Bloquear'], ['eles', 'Inimigo'], ['nos', 'Nosso']].map(([g, rotulo]) =>
           `<button type="button" data-draft="${g}" data-nome="${esc(nome)}">${rotulo}</button>`).join('')}</div></section>`
     : '';
@@ -2224,20 +2224,29 @@ function abrirBrawler(nome) {
 }
 
 // "Bloquear", "Inimigo" e "Nosso" da folha passam todos por aqui. grupo é 'bloqueios', 'eles'
-// ou 'nos'. O brawler sai de outro grupo em que estivesse e entra neste se houver vaga.
-// Até a Task 7, depois de marcar, a folha fecha e a página rola até o Draft de hoje. A Task 7
-// troca só o fim: em vez de rolar, abre o modo Draft.
+// ou 'nos'. Com o grupo cheio, a partida não muda: a folha fica aberta e diz que o grupo está
+// completo (a mesma frase do Draft). Com vaga, o brawler sai de outro grupo em que estivesse e
+// entra neste. Até a Task 7, depois de marcar, a folha fecha e a página rola até o Draft de
+// hoje. A Task 7 troca só o fim: em vez de rolar, abre o modo Draft.
 function mandarProDraft(grupo, nome) {
-  for (const g of Object.keys(GRUPOS)) if (g !== grupo && partida[g].includes(nome)) mudar(g, nome, false);
-  if (!partida[grupo].includes(nome) && partida[grupo].length < GRUPOS[grupo].max) {
+  if (!partida[grupo].includes(nome)) {
+    if (partida[grupo].length >= GRUPOS[grupo].max) {
+      const aviso = document.getElementById('folhaBrawlerOnde');
+      if (aviso) aviso.textContent = `${GRUPOS[grupo].titulo} já está completo.`;
+      return;
+    }
+    for (const g of Object.keys(GRUPOS)) if (g !== grupo && partida[g].includes(nome)) mudar(g, nome, false);
     mudar(grupo, nome, true);
     partida.feitos.push({ grupo, nome });
   }
+  // O foco vai para o Draft, não para quem abriu a folha (que pode estar longe, lá em cima).
+  quemAbriu = null;
   fecharFolha();
   mudouPartida();
+  // No PC o cursor vai para o campo do Draft; no celular vai para o título, que o teclado
+  // cobriria a tela.
+  (telaLarga.matches ? caixaDraft : document.getElementById('draftTitulo')).focus({ preventScroll: true });
   document.getElementById('draftModo').scrollIntoView();
-  // No PC o cursor vai para o campo do Draft; no celular não, que o teclado cobriria a tela.
-  if (telaLarga.matches) caixaDraft.focus({ preventScroll: true });
 }
 
 function desenharMapa() {
