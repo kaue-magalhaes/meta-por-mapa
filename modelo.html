@@ -457,7 +457,7 @@ mark { background: var(--linha-forte); color: inherit; border-radius: 3px; }
    Sem moldura: os blocos se separam por espaço e título. Moldura só no "Mais duplas", que abre,
    e no "Vale maximizar" trancado, em que o tracejado diz que falta a tag da pessoa. */
 .estudo-bloco { margin-top: 28px; }
-.estudo-bloco > h3 { display: flex; align-items: center; gap: 10px; min-height: 26px; }
+.estudo-topo { display: flex; align-items: center; gap: 10px; min-height: 26px; }
 .estudo-sub { margin-top: 2px; font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); text-wrap: pretty; }
 .estudo-vazio { margin-top: 6px; color: var(--tinta-2); text-wrap: pretty; }
 .mini-rot { margin: 18px 0 2px; font-size: var(--t-pequeno); font-weight: 800; font-stretch: 80%; text-transform: uppercase; letter-spacing: .06em; }
@@ -605,7 +605,9 @@ body.em-draft > .pular, body.em-draft > .barra-fixa, body.em-draft > main > :not
 /* A grade: a frase que diz para onde vai o toque, o campo "Outro" e os rostos. A altura é a
    de --linhas-grade fileiras mesmo quando a busca acha menos. */
 .dm-grade { min-width: 0; }
-.dm-grade-topo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 150px); gap: 8px; align-items: center; min-height: var(--alvo); }
+/* O "?" da mesa fica entre a frase e o campo, com 10 px de cada lado para o alvo de 44 px
+   não cobrir o campo. */
+.dm-grade-topo { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 150px); column-gap: 10px; align-items: center; min-height: var(--alvo); }
 .dm-dica { font-size: var(--t-pequeno); font-weight: 700; line-height: 1.2; text-wrap: balance; }
 .dm-outro { position: relative; display: block; }
 .dm-outro svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 16px; height: 16px; color: var(--tinta-2); pointer-events: none; }
@@ -737,6 +739,45 @@ dialog.folha::backdrop { background: rgb(12 10 18 / .55); }
 /* Altura fixa: a folha de mapas não pula quando a busca filtra. */
 #folhaMapa { height: 88dvh; }
 
+/* ---------- O "?" de cada bloco: a explicação no lugar ----------
+   Um balão só (#balao) para a página inteira. O script o põe logo depois do "?" tocado,
+   para o Tab ir do "?" para o texto, e o posiciona embaixo do "?", ou em cima quando
+   embaixo não cabe. --seta é onde fica a ponta, sob o "?". */
+.ajuda[aria-expanded="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--papel-base); }
+.balao {
+  position: absolute; z-index: 25; width: min(340px, calc(100vw - 2 * var(--margem)));
+  padding: 12px 14px 2px; border-radius: var(--raio); border: 1.5px solid var(--linha-forte);
+  background: var(--cartao); color: var(--tinta); box-shadow: 0 4px 0 var(--linha-forte);
+  font: 500 var(--t-corpo)/1.45 var(--fonte); text-align: left;
+}
+.balao::before {
+  content: ""; position: absolute; top: -7.5px; left: calc(var(--seta, 24px) - 6px); width: 12px; height: 12px;
+  background: inherit; border: 1.5px solid var(--linha-forte); border-width: 1.5px 0 0 1.5px; rotate: 45deg;
+}
+.balao.acima::before { top: auto; bottom: -7.5px; border-width: 0 1.5px 1.5px 0; }
+.balao-texto { display: grid; gap: 6px; text-wrap: pretty; }
+.balao-como {
+  display: inline-flex; align-items: center; gap: 6px; min-height: var(--alvo);
+  font-size: var(--t-pequeno); font-weight: 800; text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* ---------- Folha "Como funciona": um assunto por parte, que abre e fecha ---------- */
+.como-intro { color: var(--tinta-2); text-wrap: pretty; }
+.topicos { margin-top: 14px; border-bottom: 1px solid var(--linha); }
+.topico { border-top: 1px solid var(--linha); }
+.topico > summary {
+  list-style: none; cursor: pointer; min-height: 52px; padding: 4px 0; border-radius: 10px;
+  display: flex; align-items: center; gap: 10px; font-weight: 800; line-height: 1.2;
+}
+.topico > summary::-webkit-details-marker { display: none; }
+.topico > summary .seta { margin-left: auto; }
+.topico-corpo { display: grid; gap: 10px; max-width: 62ch; padding-bottom: 18px; color: var(--tinta-2); text-wrap: pretty; }
+.topico-corpo b { color: var(--tinta); font-weight: 800; }
+.topico-corpo a { color: var(--tinta); font-weight: 700; text-underline-offset: 3px; }
+@media (hover: hover) {
+  .topico > summary:hover { background: var(--linha); }
+}
+
 /* ---------- Trocar mapa ---------- */
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: var(--raio); background: var(--linha); }
 .seg button { min-height: var(--alvo); border-radius: 10px; font-weight: 700; color: var(--tinta-2); }
@@ -847,7 +888,7 @@ details.mais > summary .seta { margin-left: auto; }
   .dm-casas { gap: 4px; }
   .dm-times { gap: 6px; }
   .dm-pecas { column-gap: 4px; }
-  .dm-grade-topo { grid-template-columns: minmax(0, 1fr) minmax(0, 132px); }
+  .dm-grade-topo { grid-template-columns: minmax(0, 1fr) auto minmax(0, 132px); }
   .dm-vaga-nome, .dm-peca-nome { font-stretch: 75%; letter-spacing: -.01em; }
   .dm-resto { display: none; }
   /* A escolha principal encolhe o retrato, para o nome e o motivo terem onde quebrar. */
@@ -928,7 +969,7 @@ details.mais > summary .seta { margin-left: auto; }
   .dm-grupo { padding: 6px 10px 10px; }
   .dm-casas { justify-content: start; gap: 8px; }
   .dm-teclas { display: flex; }
-  .dm-grade-topo { grid-template-columns: minmax(0, 1fr) 240px; }
+  .dm-grade-topo { grid-template-columns: minmax(0, 1fr) auto 240px; }
   .dm-pecas { column-gap: 8px; }
 
   .busca input:placeholder-shown ~ kbd { display: block; }
@@ -945,31 +986,6 @@ details.mais > summary .seta { margin-left: auto; }
   dialog.folha.folha-gaveta { margin: 0 calc(100% - 100vw) 0 auto; width: 440px; height: 100dvh; max-height: none; border-radius: 24px 0 0 24px; }
   dialog.folha.folha-gaveta[open] { animation-name: do-lado; }
 }
-
-/* ===================================================================================
-   LEGADO. Daqui até o fim do <style> é o CSS da página antiga, para as áreas que ainda
-   não foram refeitas continuarem funcionando dentro dos lugares novos. Cada bloco diz
-   a task que o apaga. Depois da Task 9 não sobra nada daqui.
-   =================================================================================== */
-
-/* LEGADO: sai na Task 9 (com o último bloco legado). Os nomes antigos dos tokens, que só
-   os blocos abaixo usam, apontando para os novos. O --accent virou tinta para a página
-   ter um amarelo só, e a Lilita não entra nos títulos antigos. */
-:root {
-  --bg: var(--papel); --surface: var(--cartao); --surface-2: var(--linha);
-  --ink: var(--tinta); --muted: var(--tinta-2); --line: var(--linha-forte);
-  --accent: var(--tinta); --on-accent: var(--papel-base);
-  --tier-s: #c8433a; --tier-a: #b8650f; --tier-b: #3567b8; --tier-c: #5d6a82;
-  --good: var(--bom); --bad: var(--ruim);
-  --font-display: var(--fonte); --font-body: var(--fonte);
-}
-
-/* LEGADO: sai na Task 9 (o guia de hoje, dentro de #folhaComo). */
-.guia { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 28px; }
-.guia div { display: grid; gap: 4px; max-width: 62ch; }
-.guia a { color: inherit; text-decoration: underline; }
-.guia p { margin: 0; color: var(--muted); font-size: 0.88rem; }
-/* fim do LEGADO da Task 9 */
 </style>
 
 </head>
@@ -1025,6 +1041,7 @@ details.mais > summary .seta { margin-left: auto; }
           <div class="dm-grade-topo">
             <!-- Para onde vai o próximo toque, ou o que o Enter marca. -->
             <p class="dm-dica" id="draftDica" role="status"></p>
+            <button class="ajuda" type="button" data-ajuda="draft" aria-expanded="false" aria-controls="balao" aria-label="Como marcar no Draft">?</button>
             <label class="dm-outro">
               <span class="sr">Outro brawler, pelo nome em português ou em inglês</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -1047,7 +1064,7 @@ details.mais > summary .seta { margin-left: auto; }
       <div class="andar-topo">
         <div class="andar-titulo">
           <h2 id="todosTitulo">Todos neste mapa</h2>
-          <button class="ajuda" type="button" data-ajuda="lista" data-folha="folhaComo" aria-haspopup="dialog" aria-label="Como a lista é ordenada">?</button>
+          <button class="ajuda" type="button" data-ajuda="lista" aria-expanded="false" aria-controls="balao" aria-label="Como a lista é ordenada">?</button>
         </div>
         <p class="andar-sub" id="todosSub"></p>
         <label class="filtro" id="filtroMeus" hidden><input type="checkbox" id="soMeus"> Só os que tenho no máximo</label>
@@ -1147,74 +1164,15 @@ details.mais > summary .seta { margin-left: auto; }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
-  <div class="folha-corpo" id="folhaComoCorpo">
-    <!-- LEGADO: sai na Task 9 -->
-    <section class="guia">
-      <div>
-        <h3>Counters</h3>
-        <p>Toque num brawler. "Perde para" lista quem mais ganha dele neste mapa: se o inimigo escolheu esse brawler, são boas respostas. A conta compara com a taxa normal dele, então mostra o efeito do confronto e não só a força do brawler. No ranqueado, confronto com poucas partidas aqui puxa pro mesmo confronto nos outros mapas do modo. No troféu, os counters são do modo inteiro, porque a maioria dos mapas tem poucas partidas.</p>
-      </div>
-      <div>
-        <h3>Duplas</h3>
-        <p>No ranqueado, a ordem vem da força dos dois na tier list mais o que a dupla rende junta além disso. Essa parte a mais é pequena e só aparece com muitas partidas, então a lista mostra mais dois brawlers fortes juntos do que combinações escondidas. O primeiro número é a vitória estimada; o "real" é o que a dupla fez no período. No troféu, as duplas são do modo inteiro, como os counters.</p>
-      </div>
-      <div>
-        <h3>Como a lista é ordenada</h3>
-        <p>Pela vitória ajustada. Ela parte da força do brawler no modo inteiro e vai virando a do mapa conforme ele junta partidas: com 400 partidas aqui, metade vem do mapa e metade do modo. Assim um brawler com 9 partidas e 8 vitórias não vai pro topo, e mapa novo já tem lista.</p>
-      </div>
-      <div>
-        <h3>Por que a média passa de 50%</h3>
-        <p>O site só registra partidas de quem já pesquisou o próprio perfil lá, e essa turma joga melhor que a média. Por isso cada mapa tem a própria média, e a barra mostra quanto o brawler fica acima ou abaixo dela.</p>
-      </div>
-      <div>
-        <h3>Por que outros sites mostram outra ordem</h3>
-        <p>Alguns sites dão uma nota que mistura vitória com uso, e aí brawler muito escolhido sobe mesmo ganhando pouco. Aqui a ordem é só pela vitória ajustada. Em 11/11, o Hank tinha a segunda maior vitória do Mítico num desses sites, 58%, e aparecia em 83º de 108, porque quase ninguém joga com ele. No ranqueado desta página, ele ficava entre os 3 primeiros em metade dos mapas onde aparece. Aqui, quanto o brawler é escolhido aparece no número de partidas e, no ranqueado, no selo "popular", sem mexer na ordem.</p>
-      </div>
-      <div>
-        <h3>Especialistas</h3>
-        <p>Compara a vitória do brawler neste mapa com a vitória dele no modo inteiro. Entra quem fica acima com diferença que dificilmente é sorte. A tier list diz quem é forte aqui; este quadro diz quem fica mais forte aqui do que costuma ser.</p>
-      </div>
-      <div id="guiaNicho" hidden>
-        <h3>Selo "nicho"</h3>
-        <p>Marca brawler com menos de 0,5% de uso no mapa. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, e a vitória alta mede a mão desses jogadores tanto quanto a força do brawler. O número está certo: quem joga com ele de fato ganha isso. Mas, se você não treina esse brawler, não conte com a mesma vitória. Na dúvida, prefira um brawler sem o selo no mesmo tier.</p>
-      </div>
-      <div id="guiaIncerto" hidden>
-        <h3>Selo "incerto"</h3>
-        <p>Marca brawler do S que ainda pode ser B ou pior, com mais de 10% de chance. Acontece com quem tem poucas partidas no mapa, ou que ficou bem perto do corte do S. A conta já puxa esses brawlers pra força deles no modo, então o S costuma se confirmar; o selo avisa quando a dúvida é maior. Se for treinar um brawler novo, prefira um S sem o selo.</p>
-      </div>
-      <div id="guiaEscondido" hidden>
-        <h3>Selo "escondido"</h3>
-        <p id="textoGuiaEscondido"></p>
-      </div>
-      <div id="guiaPopular" hidden>
-        <h3>Selo "popular"</h3>
-        <p id="textoGuiaPopular"></p>
-      </div>
-      <div id="guiaVoce" hidden>
-        <h3>Seu perfil</h3>
-        <p>Digite sua tag em "Sua tag" (ela fica no seu perfil do jogo, embaixo do nome) e a página marca quem você tem no máximo: nível 11 com gadget, star power e hipercarga. A página lembra a tag neste navegador e atualiza o perfil a cada visita. Se marcar ou desmarcar algum brawler na mão, o ajuste fica guardado. Para marcar tudo na mão, deixe o campo vazio e aperte Buscar.</p>
-      </div>
-      <div id="guiaBloqueio">
-        <h3>Bloqueio</h3>
-        <p>O jogo não informa quem foi bloqueado. Abaixo de Diamante I não tem bloqueio, mas o nível é baixo demais pra servir de referência. Então o bloqueio entra na mão, no Draft ou pelo botão "Bloquear" da folha do brawler.</p>
-      </div>
-      <div id="guiaDraft" hidden>
-        <h3>Draft</h3>
-        <p>Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O botão "Estou no draft" liga o modo Draft em todo mapa do ranqueado. Basta marcar quem o inimigo pegou, com um toque nos mais escolhidos do mapa ou digitando o nome em "Outro"; bloqueios e o nosso time são opcionais e tiram nomes da lista. A lista mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois. Com o nosso time marcado, "Chance e alcance" mostra a chance de vitória, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. Com pelo menos um brawler de cada lado, a leitura da partida diz quem cada um do nosso time caça e evita, pelos mesmos confrontos, e compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.</p>
-        <p>Antes das escolhas, "Bane um destes" sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra as suas 3 melhores opções. As opções são os seus fortes que você tem no máximo, os melhores no mapa primeiro, completados pelos outros que você tem no máximo. Proteger três evita que um bloqueio do outro time numa delas desperdice o seu. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. "Seu forte" é quem você marcou com "Sei jogar" no cartão do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos. Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza. Nos modos de objetivo (Pique-Gema, Futebol, Roubo e Zona Estratégica), com um brawler de alcance longo no nosso time (<span id="guiaAlcanceLongo"></span> quadrados ou mais, pelo wiki), os outros de alcance longo ganham o aviso "já temos um de alcance longo". A ordem também não muda: nas partidas do Lendário pra cima, time com dois ou mais deles nesses modos fez uns 1,5 ponto abaixo do esperado. Em Caça-Estrelas e Nocaute isso não acontece, e o aviso não aparece.</p>
-      </div>
-      <div id="guiaTeclado" hidden>
-        <h3>Draft: toque e teclado</h3>
-        <p>Toque no brawler ou digite o nome em "Outro" e aperte Enter. Ele vai para o grupo da vez, o de borda amarela, e a vez passa sozinha quando o grupo enche. Tocar no nome de um grupo muda a vez na mão, e tocar numa vaga cheia tira o brawler dela. No teclado, as teclas 1, 2 e 3 trocam entre Inimigo, Nosso time e Bloqueios, até com o cursor no campo. Backspace com o campo vazio desfaz a última marcação, e Esc sai do modo. "Nova partida" zera tudo.</p>
-      </div>
-      <div>
-        <h3>De onde vêm os dados</h3>
-        <p>Das partidas registradas pelo <a href="https://brawltime.ninja" target="_blank" rel="noopener">Brawl Time Ninja</a>, no período que aparece no topo. No ranqueado, a tier list usa as últimas 6 semanas, e uma partida de duas semanas atrás vale metade de uma de hoje; o número de partidas mostrado já vem com esse peso. As contas (vitória ajustada, tiers, duplas, counters) são desta página. Não é um site oficial da Supercell. <span lang="en">This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: <a href="https://www.supercell.com/fan-content-policy" target="_blank" rel="noopener">www.supercell.com/fan-content-policy</a>.</span></p>
-      </div>
-    </section>
-    <!-- fim do LEGADO da Task 9 -->
-  </div>
+  <!-- Os assuntos, desenhados por desenharComo(). -->
+  <div class="folha-corpo" id="folhaComoCorpo"></div>
 </dialog>
+
+<!-- O texto do "?": um balão só, que abrirBalao() põe logo depois do "?" tocado. -->
+<div class="balao" id="balao" role="group" aria-label="Explicação" hidden>
+  <div class="balao-texto" id="balaoTexto"></div>
+  <button class="balao-como" type="button" data-como="">Mais em Como funciona</button>
+</div>
 
 <script>
 const DADOS = /*__DADOS__*/null;
@@ -1387,8 +1345,6 @@ const SELOS = {
   nicho: { titulo: 'Nicho', texto: TEXTO_NICHO, vale: (b) => nicho(b) },
 };
 const selosDe = (b, m) => Object.entries(SELOS).filter(([, s]) => s.vale(b, m)).map(([chave, s]) => ({ chave, ...s }));
-document.getElementById('textoGuiaEscondido').textContent = `Marca brawler do S com menos de ${pct(USO_ESCONDIDO, 0)} de uso no mapa e sem o selo "incerto". Na ranqueada, quem escolhe por último poderia levar um brawler raro só quando o confronto é bom, e aí a vitória viria do confronto, não da força. Isso foi testado em 10/11 com 58 mil partidas do Lendário pra cima: o confronto real desses brawlers foi até um pouco pior que contra um time inimigo sorteado, e eles ganharam 53,9%. O que o teste não separa é a mão de quem joga, porque quem escolhe brawler raro pode ser especialista nele. Se você não joga com ele, treine antes de levar à ranqueada.`;
-document.getElementById('textoGuiaPopular').textContent = `Marca brawler entre os ${TOP_POPULAR} mais escolhidos do mapa que ganha abaixo da média. O mapa inteiro vai com ele, mas a vitória não acompanha. O selo não muda nenhuma conta: chama atenção pra um número que já está na lista. O top conta o mapa todo, então não muda com "só os meus" nem com bloqueio.`;
 
 const guardar = {
   ler(k, padrao) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : padrao; } catch { return padrao; } },
@@ -1622,6 +1578,7 @@ function abrirFolha(id) {
   const folha = document.getElementById(id);
   if (folha.open) return;
   fecharFolha();
+  fecharBalao();
   folha.showModal();
 }
 
@@ -1912,7 +1869,6 @@ const MODOS_OBJETIVO = new Set(['gemGrab', 'brawlBall', 'heist', 'hotZone']);
 function ehLongo(nome) {
   return (DADOS.atributos?.brawlers?.[nome]?.alcance ?? 0) >= ALCANCE_LONGO;
 }
-document.getElementById('guiaAlcanceLongo').textContent = ALCANCE_LONGO;
 
 // ---------- Modo Draft: a mesa ----------
 // "Estou no draft" liga um modo de tela cheia: abrirDraft() esconde o resto da página
@@ -2156,6 +2112,7 @@ function abrirDraft() {
   // A folha fecha antes de tudo: o <dialog> devolve o foco a quem a abriu (a linha da tier
   // list, por exemplo), e é para lá que o foco volta quando a pessoa sair do modo.
   fecharFolha();
+  fecharBalao();
   if (!draftAberto()) {
     const foco = document.activeElement;
     antesDoDraft = { y: scrollY, foco: foco && foco !== document.body ? foco : null };
@@ -2174,6 +2131,7 @@ function abrirDraft() {
 
 function fecharDraft() {
   if (!draftAberto()) return;
+  fecharBalao();
   modoDraft.hidden = true;
   document.body.classList.remove('em-draft');
   lembrarModo(false);
@@ -2225,6 +2183,223 @@ document.getElementById('draftTeclas').innerHTML = [
   ['Enter', 'marca o primeiro achado'], ['Backspace', 'desfaz'], ['Esc', 'sai'],
 ].map(([tecla, faz]) => `<span><kbd>${tecla}</kbd>${faz}</span>`).join('');
 
+// ---------- Explicações: o "?" de cada bloco e a folha "Como funciona" ----------
+// Cada bloco tem um "?" (ajuda) que abre no próprio lugar uma ou duas frases de AJUDA, e o
+// texto inteiro mora na folha "Como funciona", um assunto por parte (ASSUNTOS). O botão "Mais
+// em Como funciona", no balão, abre a folha no assunto daquele "?". Os dois textos vêm do guia
+// de 14 blocos que ficava no fim da página até 16/11: encurtados, sem perder nenhuma ideia.
+
+// O "?": pequeno no desenho, 44 px no toque. chave escolhe o texto em AJUDA, e rotulo é o que
+// o leitor de tela ouve.
+const ajuda = (chave, rotulo) =>
+  `<button class="ajuda" type="button" data-ajuda="${chave}" aria-expanded="false" aria-controls="balao" aria-label="${esc(rotulo)}">?</button>`;
+const topoFaixa = (titulo, chave, rotulo, sub) =>
+  `<div class="faixa-topo"><h2>${esc(titulo)}</h2>${ajuda(chave, rotulo)}</div>${sub ? `<p class="faixa-sub">${sub}</p>` : ''}`;
+
+// "6 semanas", das partes dos dados (o padrão é o de 16/11).
+const semanas = (dias) => `${dias / 7} ${dias === 7 ? 'semana' : 'semanas'}`;
+const DIAS_RANQ = DADOS.partes.ranqueado?.dias ?? 42;
+const MEIA_VIDA_RANQ = DADOS.partes.ranqueado?.meiaVida ?? 14;
+const juntar = (itens) => new Intl.ListFormat('pt-BR', { type: 'conjunction' }).format(itens);
+
+// O texto curto de cada "?". texto(q) recebe o botão tocado e devolve as frases: algumas
+// dependem do que o bloco mostra agora (o empate, o "!", o selo "escondido").
+const AJUDA = {
+  bane: { topico: 'bloqueio', texto: () => [
+    'A ordem junta o quanto ele aparece neste mapa com o quanto pesaria contra as suas 3 melhores opções. Embaixo de cada um, em quantos times ele aparece.'] },
+  pegue: { topico: 'lista', texto: (q) => {
+    const faixa = q.closest('.faixa');
+    return [
+      'Os 5 de cima da lista: o "+N" é quanto a vitória ajustada de cada um passa da média do mapa, em pontos.',
+      faixa?.querySelector('.empate-pegue') && 'A chave embaixo junta os primeiros que a margem da conta não separa: eles estão empatados.',
+      faixa?.querySelector('.rosto-selo') && 'O "!" no retrato avisa que o número merece cuidado, e a folha do brawler diz por quê.',
+    ].filter(Boolean);
+  } },
+  inimigo: { topico: 'counters', texto: () => [
+    'Os 5 mais escolhidos neste mapa, os inimigos mais prováveis, e os 3 que mais ganham de cada um no confronto direto. O número é o efeito do confronto, não só a força de quem responde.'] },
+  lista: { topico: 'lista', texto: () => [
+    'A ordem é a da vitória ajustada: ela parte da força no modo inteiro e vira a do mapa conforme o brawler junta partidas. Os tiers são faixas de pontos acima ou abaixo da média do mapa, e o "!" avisa que o número merece cuidado.'] },
+  duplas: { topico: 'duplas', texto: () => [atual.parte === 'ranqueado'
+    ? 'A ordem vem da força dos dois na lista mais o que a dupla rende junta além disso. Essa parte a mais é pequena, então quase sempre são dois brawlers fortes juntos.'
+    : 'No Troféu, as duplas são do modo inteiro, porque a maioria dos mapas tem poucas partidas. O número é a vitória da dupla, sem ajuste.'] },
+  especialistas: { topico: 'especialistas', texto: () => [
+    'Compara a vitória do brawler neste mapa com a dele no modo inteiro. Entra quem fica acima com diferença que dificilmente é sorte.'] },
+  pouca: { topico: 'lista', texto: () => [
+    'Quem tem poucas partidas não sobe na lista, porque a vitória ajustada puxa ele para a força no modo. Aqui ficam os que, mesmo assim, ganharam bem acima da média.'] },
+  perfil: { topico: 'perfil', texto: () => [DADOS.worker
+    ? 'Com a sua tag, a página marca quem você tem no máximo e mostra onde vale gastar recurso. Dá para marcar na mão também, em "Tenho no máximo", na folha de cada brawler.'
+    : 'Marque "Tenho no máximo" na folha de cada brawler, e a página mostra onde vale gastar recurso.'] },
+  // Na escolha, o empate e o "escondido" só têm o title do selo, que o toque não mostra: o
+  // "?" diz os dois quando eles estão na tela.
+  escolha: { topico: 'draft', texto: () => {
+    const caixa = document.getElementById('draftResposta');
+    const empate = caixa.querySelector('.dm-selo[data-selo="empatado"]');
+    const minuscula = (s) => s[0].toLowerCase() + s.slice(1);
+    return [
+      'Os que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com quem o inimigo já pegou. A força pesa quase 4 vezes o confronto.',
+      empate && `Empatados: ${minuscula(empate.title)}`,
+      caixa.querySelector('.dm-selo[data-selo="escondido"]') && `Escondido: ${minuscula(TEXTO_ESCONDIDO)}`,
+    ].filter(Boolean);
+  } },
+  plano: { topico: 'draft', texto: () => [
+    'Para cada um do nosso time, o inimigo de quem ele mais ganha (caça) e o que mais ganha dele (evita), em pontos de vitória no confronto direto. No Mítico os confrontos quase não preveem o resultado: a leitura orienta, não promete vitória.'] },
+  draft: { topico: 'draft', texto: () => [
+    'Toque em quem saiu, ou digite o nome em "Outro": ele vai para o grupo de borda amarela, e a vez passa sozinha quando o grupo enche. Tocar numa vaga cheia tira o brawler dela.',
+    telaLarga.matches && 'No teclado, 1, 2 e 3 trocam o grupo, Backspace desfaz e Esc sai.',
+  ].filter(Boolean) },
+};
+
+// Os assuntos da folha "Como funciona", na ordem do design. Cada texto é uma lista de
+// parágrafos em HTML; os números saem das constantes da conta, para não mentir quando ela muda.
+const ASSUNTOS = [
+  { chave: 'dados', titulo: 'De onde vêm os dados', texto: () => [
+    `Das partidas registradas pelo <a href="https://brawltime.ninja" target="_blank" rel="noopener">Brawl Time Ninja</a>, no período e na faixa que aparecem no rodapé. No Ranqueado, a tier list usa as últimas ${semanas(DIAS_RANQ)}, e uma partida de ${semanas(MEIA_VIDA_RANQ)} atrás vale metade de uma de hoje; o número de partidas mostrado já vem com esse peso. No Troféu, duplas e counters são do modo inteiro.`,
+    'As contas (vitória ajustada, tiers, duplas, counters) são desta página. Não é um site oficial da Supercell: o aviso e a Política de Conteúdo de Fãs estão no rodapé.',
+  ] },
+  { chave: 'lista', titulo: 'A ordem da lista e a média acima de 50%', texto: () => [
+    'A lista é ordenada pela vitória ajustada. Ela parte da força do brawler no modo inteiro e vai virando a do mapa conforme ele junta partidas: com 400 partidas aqui, metade vem do mapa e metade do modo. Assim um brawler com 9 partidas e 8 vitórias não vai pro topo, e mapa novo já tem lista. Na folha do brawler, a vitória real é o que ele fez no período, sem esse ajuste.',
+    'Os tiers são faixas de pontos acima ou abaixo da média do mapa. Quem tem poucas partidas e ganhou bem acima da média aparece em "Pouca amostra", em "Para estudar".',
+    '<b>Por que a média passa de 50%.</b> O Brawl Time Ninja só registra partidas de quem já pesquisou o próprio perfil lá, e essa turma joga melhor que a média. Por isso cada mapa tem a própria média, e o "+N" do Pegue e a barra da lista, no PC, mostram quanto o brawler fica acima ou abaixo dela.',
+  ] },
+  { chave: 'selos', titulo: 'Os selos', texto: () => [
+    'Na lista, um "!" junta os selos de confiança, e a folha do brawler diz qual é e por quê. No Pegue, o "!" aparece no incerto e no escondido.',
+    `<b>Nicho</b> (Troféu). Marca brawler com menos de ${pct(DADOS.partes.trofeu?.nicho ?? 0.005)} de uso no mapa. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, e a vitória alta mede a mão desses jogadores tanto quanto a força do brawler. O número está certo: quem joga com ele de fato ganha isso. Mas, se você não treina esse brawler, não conte com a mesma vitória. Na dúvida, prefira um brawler sem o selo no mesmo tier.`,
+    `<b>Incerto</b> (Ranqueado). Marca brawler do S que ainda pode ser B ou pior, com mais de ${pct(CHANCE_INCERTO, 0)} de chance. Acontece com quem tem poucas partidas no mapa, ou que ficou bem perto do corte do S. A conta já puxa esses brawlers pra força deles no modo, então o S costuma se confirmar; o selo avisa quando a dúvida é maior. Se for treinar um brawler novo, prefira um S sem o selo.`,
+    `<b>Escondido</b> (Ranqueado). Marca brawler do S com menos de ${pct(USO_ESCONDIDO, 0)} de uso no mapa e sem o selo "incerto". Na ranqueada, quem escolhe por último poderia levar um brawler raro só quando o confronto é bom, e aí a vitória viria do confronto, não da força. Isso foi testado em 10/11 com 58 mil partidas do Lendário pra cima: o confronto real desses brawlers foi até um pouco pior que contra um time inimigo sorteado, e eles ganharam 53,9%. O que o teste não separa é a mão de quem joga, porque quem escolhe brawler raro pode ser especialista nele. Se você não joga com ele, treine antes de levar à ranqueada.`,
+    `<b>Popular</b> (Ranqueado). Marca brawler entre os ${TOP_POPULAR} mais escolhidos do mapa que ganha abaixo da média. O mapa inteiro vai com ele, mas a vitória não acompanha. O selo não muda nenhuma conta: chama atenção pra um número que já está na lista. O top conta o mapa todo, então não muda com "só os meus" nem com bloqueio.`,
+  ] },
+  { chave: 'counters', titulo: 'Counters', texto: () => [
+    '"Se o inimigo pegar", na ficha, e "Perde para", na folha do brawler, listam quem mais ganha dele neste mapa: se o inimigo escolheu esse brawler, são boas respostas. "Bom contra" é o contrário, de quem ele mais ganha.',
+    'A conta compara com a taxa normal dele, então mostra o efeito do confronto e não só a força do brawler. No Ranqueado, confronto com poucas partidas aqui puxa pro mesmo confronto nos outros mapas do modo. No Troféu, os counters são do modo inteiro, porque a maioria dos mapas tem poucas partidas. No Showdown não há counters: os inimigos são a sala inteira.',
+  ] },
+  { chave: 'duplas', titulo: 'Duplas', texto: () => [
+    'No Ranqueado, a ordem vem da força dos dois na tier list mais o que a dupla rende junta além disso. Essa parte a mais é pequena e só aparece com muitas partidas, então a lista mostra mais dois brawlers fortes juntos do que combinações escondidas. O número grande é a vitória estimada, e embaixo o "real" é o que a dupla fez no período. As que perdem ficam em "Mais duplas".',
+    'No Troféu, as duplas são do modo inteiro, como os counters.',
+  ] },
+  { chave: 'especialistas', titulo: 'Rendem mais aqui (especialistas)', texto: () => [
+    '"Rendem mais aqui" compara a vitória do brawler neste mapa com a vitória dele no modo inteiro. Entra quem fica acima com diferença que dificilmente é sorte. A tier list diz quem é forte aqui; este bloco diz quem fica mais forte aqui do que costuma ser.',
+  ] },
+  { chave: 'bloqueio', titulo: 'Bloqueio', texto: () => [
+    'O jogo não informa quem foi bloqueado. Abaixo de Diamante I não tem bloqueio, mas o nível é baixo demais pra servir de referência. Então o bloqueio entra na mão, no Draft ou pelo botão "Bloquear" da folha do brawler.',
+    'O Bane sugere até 3 nomes: quem mais aparece no mapa e mais ajudaria o outro time contra as suas 3 melhores opções. Embaixo de cada um, em quantos times ele aparece. As opções são os seus fortes que você tem no máximo, os melhores no mapa primeiro, completados pelos outros que você tem no máximo; sem perfil e sem marcação, são os melhores do mapa. Proteger três evita que um bloqueio do outro time numa delas desperdice o seu. Brawler forte que ninguém escolhe aqui não entra, porque bloquear ele gasta a vaga. No Draft, "Bane um destes" refaz a conta sem quem já foi marcado.',
+  ] },
+  { chave: 'draft', titulo: 'Draft e teclado', texto: () => [
+    'Só no Ranqueado. Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O botão "Estou no draft" liga o modo Draft. Basta marcar quem o inimigo pegou, com um toque nos mais escolhidos do mapa ou digitando o nome em "Outro"; bloqueios e o nosso time são opcionais e tiram nomes da lista.',
+    '"Melhor agora" mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos: três à vista e mais dois a um toque. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois.',
+    'Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. Nos empatados aparece também o seu recorde de troféus com ele. "Seu forte" é quem você marcou com "Sei jogar" na folha do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo.',
+    '"Chance e alcance" mostra a chance de vitória do nosso time, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos.',
+    'Com pelo menos um brawler de cada lado, a leitura por brawler diz quem cada um do nosso time caça e evita, pelos mesmos confrontos; com o nosso time completo, ela vira o "Plano da partida". A tabela compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. A linha do maior perigo mostra o inimigo mais forte no mapa e quem ganha dele. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.',
+    `Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza. Nos modos de objetivo (Pique-Gema, Futebol, Roubo e Zona Estratégica), com um brawler de alcance longo no nosso time (${ALCANCE_LONGO} quadrados ou mais, pelo wiki), os outros de alcance longo ganham o aviso "já temos um de alcance longo". A ordem também não muda: nas partidas do Lendário pra cima, time com dois ou mais deles nesses modos fez uns 1,5 ponto abaixo do esperado. Em Caça-Estrelas e Nocaute isso não acontece, e o aviso não aparece.`,
+    `<b>Toque e teclado.</b> Toque no brawler ou digite o nome em "Outro" e aperte Enter. Ele vai para o grupo da vez, o de borda amarela, e a vez passa sozinha quando o grupo enche. Tocar no nome de um grupo muda a vez na mão, e tocar numa vaga cheia tira o brawler dela. No teclado, as teclas 1, 2 e 3 trocam entre ${juntar(Object.values(GRUPO_DA_TECLA).map((g) => GRUPOS[g].titulo))}, até com o cursor no campo. Backspace com o campo vazio desfaz a última marcação. Com texto no campo, Esc limpa o campo; com ele vazio, Esc sai do modo. "Nova partida" zera tudo.`,
+  ] },
+  { chave: 'perfil', titulo: 'Seu perfil', texto: () => [
+    DADOS.worker && 'Toque em "Seu perfil", na barra, e digite sua tag (ela fica no seu perfil do jogo, embaixo do nome). A página marca quem você tem no máximo: nível 11 com gadget, star power e hipercarga. A página lembra a tag neste navegador e atualiza o perfil a cada visita.',
+    `Se marcar ou desmarcar algum brawler na mão, em "Tenho no máximo" na folha do brawler, o ajuste fica guardado.${DADOS.worker ? ' Para marcar tudo na mão, deixe o campo vazio e aperte Buscar, ou use "Tirar a tag".' : ''}`,
+    'Com essa lista, o Pegue mostra só quem você tem no máximo, o Draft apaga quem você não tem e "Vale maximizar" mostra quem ainda falta: quem está no tier S ou A em mais mapas do Ranqueado e os fortes deste mapa. "Sei jogar", na folha do brawler, marca os seus fortes, que o Draft põe na frente.',
+  ].filter(Boolean) },
+  { chave: 'outros', titulo: 'Por que outros sites ordenam diferente', texto: () => [
+    'Alguns sites dão uma nota que mistura vitória com uso, e aí brawler muito escolhido sobe mesmo ganhando pouco. Aqui a ordem é só pela vitória ajustada. Em 11/11, o Hank tinha a segunda maior vitória do Mítico num desses sites, 58%, e aparecia em 83º de 108, porque quase ninguém joga com ele. No Ranqueado desta página, ele ficava entre os 3 primeiros em metade dos mapas onde aparece. Aqui, quanto o brawler é escolhido aparece no número de partidas e, no Ranqueado, no selo "popular", sem mexer na ordem.',
+  ] },
+];
+
+// A folha "Como funciona": uma parte por assunto, todas fechadas. Desenhada uma vez, ao abrir
+// a página: o texto não depende do mapa.
+function desenharComo() {
+  document.getElementById('folhaComoCorpo').innerHTML = `
+    <p class="como-intro">Cada bloco da página tem um "?" com a explicação curta. Aqui está o texto inteiro, por assunto.</p>
+    <div class="topicos">${ASSUNTOS.map(({ chave, titulo, texto }) => `
+      <details class="topico" data-topico="${chave}"><summary><span>${esc(titulo)}</span>${SETA}</summary>
+        <div class="topico-corpo">${texto().map((p) => `<p>${p}</p>`).join('')}</div>
+      </details>`).join('')}</div>`;
+}
+desenharComo();
+
+// "Mais em Como funciona": a folha abre só com o assunto do "?" aberto, e o foco no título dele.
+function abrirComo(topico) {
+  const q = balaoDe;
+  // O foco passa antes pelo "?": é para ele que o <dialog> devolve o foco quando a folha fecha.
+  q?.focus({ preventScroll: true });
+  abrirFolha('folhaComo');
+  const parte = document.querySelector(`#folhaComo details[data-topico="${topico}"]`);
+  if (!parte) return;
+  for (const d of document.querySelectorAll('#folhaComo details.topico')) d.open = d === parte;
+  const titulo = parte.querySelector('summary');
+  titulo.scrollIntoView({ block: 'start' });
+  titulo.focus({ preventScroll: true });
+}
+
+// O balão do "?". Um só para a página inteira: abrirBalao(q) o põe logo depois do "?" (a
+// ordem do Tab vai do "?" para o texto e o botão dele) e o posiciona embaixo do "?", ou em
+// cima quando embaixo não cabe. Toque ou clique no "?" abre e fecha; no PC, chegar no "?"
+// pelo Tab também abre. Esc fecha e devolve o foco ao "?"; o foco ou um toque fora fecham.
+// O balão não é folha: com ele aberto, as teclas do Draft continuam valendo, e o foco que
+// elas mudam de lugar fecha o balão.
+const balao = document.getElementById('balao');
+let balaoDe = null;
+// Se o foco chegou pelo Tab: só aí o foco abre o balão (o foco que o <dialog> ou o Esc
+// devolvem ao "?" não reabre).
+let peloTab = false;
+const balaoAberto = () => !!balaoDe?.isConnected && balao.isConnected && !balao.hidden;
+
+function fecharBalao(devolverFoco = false) {
+  const q = balaoDe;
+  balaoDe = null;
+  q?.setAttribute('aria-expanded', 'false');
+  balao.hidden = true;
+  // Volta para o fim do body: um redesenho do bloco não o leva junto.
+  if (balao.parentElement !== document.body) document.body.append(balao);
+  if (devolverFoco && q?.isConnected) q.focus({ preventScroll: true });
+}
+
+function abrirBalao(q) {
+  fecharBalao();
+  const { topico, texto } = AJUDA[q.dataset.ajuda];
+  document.getElementById('balaoTexto').innerHTML = texto(q).map((f) => `<p>${esc(f)}</p>`).join('');
+  balao.querySelector('[data-como]').dataset.como = topico;
+  q.after(balao);
+  balao.hidden = false;
+  balaoDe = q;
+  q.setAttribute('aria-expanded', 'true');
+  posicionarBalao();
+}
+
+function posicionarBalao() {
+  if (!balaoAberto()) return;
+  const raiz = getComputedStyle(document.documentElement);
+  const margem = parseFloat(raiz.getPropertyValue('--margem')) || 16;
+  const barra = parseFloat(raiz.getPropertyValue('--barra-alt')) || 56;
+  const q = balaoDe.getBoundingClientRect();
+  const { width: largura, height: altura } = balao.getBoundingClientRect();
+  const meio = q.left + q.width / 2;
+  const esq = Math.max(margem, Math.min(meio - 26, document.documentElement.clientWidth - margem - largura));
+  const acima = q.bottom + 10 + altura > innerHeight && q.top - 10 - altura >= barra;
+  const topo = acima ? q.top - 10 - altura : q.bottom + 10;
+  // As coordenadas são as do bloco que contém o balão: a página, quase sempre.
+  const pai = balao.offsetParent;
+  const base = pai && pai !== document.body ? pai.getBoundingClientRect() : { left: -scrollX, top: -scrollY };
+  balao.style.left = `${esq - base.left}px`;
+  balao.style.top = `${topo - base.top}px`;
+  balao.style.setProperty('--seta', `${meio - esq}px`);
+  balao.classList.toggle('acima', acima);
+}
+addEventListener('resize', posicionarBalao);
+
+// O Esc fecha o balão antes de qualquer outra coisa: sem isso, o mesmo Esc sairia do modo Draft.
+addEventListener('keydown', (e) => {
+  peloTab = e.key === 'Tab';
+  if (e.key !== 'Escape' || !balaoAberto()) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  fecharBalao(true);
+}, true);
+addEventListener('pointerdown', () => { peloTab = false; }, true);
+document.addEventListener('focusin', (e) => {
+  if (balaoAberto() && (e.target === balaoDe || balao.contains(e.target))) return;
+  if (balaoAberto()) fecharBalao();
+  const q = e.target.closest?.('button[data-ajuda]');
+  if (q && peloTab && telaLarga.matches) abrirBalao(q);
+});
+
 // ---------- A ficha do mapa: Bane, Pegue e Se o inimigo pegar ----------
 // A ficha responde "quem eu bano e quem eu pego neste mapa", antes de qualquer marcação.
 // Ela vale para o mapa e não muda com a partida em andamento: quem acompanha a partida é
@@ -2232,11 +2407,6 @@ document.getElementById('draftTeclas').innerHTML = [
 // Draft reusa os dois. Todo rosto é um botão com data-brawler; quem decide o que o toque faz é o lugar
 // onde o bloco está (na página, abre a folha do brawler).
 
-// O "?" de cada faixa. O texto no próprio lugar vem na Task 9; até lá ele abre "Como funciona".
-const ajuda = (chave, rotulo) =>
-  `<button class="ajuda" type="button" data-ajuda="${chave}" data-folha="folhaComo" aria-haspopup="dialog" aria-label="${rotulo}">?</button>`;
-const topoFaixa = (titulo, chave, rotulo, sub) =>
-  `<div class="faixa-topo"><h2>${esc(titulo)}</h2>${ajuda(chave, rotulo)}</div>${sub ? `<p class="faixa-sub">${sub}</p>` : ''}`;
 // Pontos de vitória com sinal e cor: "+7" verde, "−3" vermelho. x é a fração (0,07).
 // O que arredonda para zero fica sem cor: não é bom nem ruim.
 function pontos(x) {
@@ -2376,7 +2546,10 @@ function motivoDaEscolha({ pos, motivo }) {
   return pos ? `${onde} · forte aqui, mesmo perdendo ${pontos} para ${contra}` : onde;
 }
 
-const selo = (texto, titulo = '') => `<span class="dm-selo"${titulo ? ` title="${esc(titulo)}"` : ''}>${texto}</span>`;
+// chave marca os selos que o "?" de "Melhor agora" explica (empatado e escondido): o title
+// não aparece no toque.
+const selo = (texto, titulo = '', chave = '') =>
+  `<span class="dm-selo"${chave ? ` data-selo="${chave}"` : ''}${titulo ? ` title="${esc(titulo)}"` : ''}>${texto}</span>`;
 // O retrato, o nome e uma linha de texto de um brawler, num botão que abre a folha dele.
 const quem = (nome, texto, { tamanho = 44, selos = '', apagado = false } = {}) =>
   `<button class="dm-quem${apagado ? ' nao-tenho' : ''}" type="button" data-brawler="${esc(nome)}">${retrato(nome, tamanho, true)}`
@@ -2508,11 +2681,11 @@ function respostaEscolha(m) {
   const porQue = `A diferença entre os ${empatados} primeiros é menor que a margem da conta.${temForte() ? ' Entre eles, vêm antes os seus fortes.' : ''}`;
   const selosDoBrawler = (r) => {
     const b = m.brawlers.find((x) => x.nome === r.nome);
-    return (b && escondido(b, m) ? selo('escondido', TEXTO_ESCONDIDO) : '') + (seuForte(r.nome) ? selo('seu forte') : '');
+    return (b && escondido(b, m) ? selo('escondido', TEXTO_ESCONDIDO, 'escondido') : '') + (seuForte(r.nome) ? selo('seu forte') : '');
   };
   const selos = (r, i) => {
     const empatado = i < empatados && empatados > 1;
-    const empate = !empatado ? '' : selo(i ? 'empatado' : empatados === 2 ? `empatado com ${esc(nomePt(lista[1].nome))}` : `${empatados} empatados`, porQue);
+    const empate = !empatado ? '' : selo(i ? 'empatado' : empatados === 2 ? `empatado com ${esc(nomePt(lista[1].nome))}` : `${empatados} empatados`, porQue, 'empatado');
     return empate + selosDoBrawler(r)
       + (empatado && recorde(r.nome) ? selo(`seu recorde: ${milhar(recorde(r.nome))} troféus`) : '')
       + (temTank && ehTank(r.nome) ? selo('já temos um tank') : '')
@@ -2772,21 +2945,6 @@ function mandarProDraft(grupo, nome) {
   abrirDraft();
 }
 
-function desenharMapa() {
-  const m = atual;
-  const ranqueado = m.parte === 'ranqueado';
-
-  document.getElementById('guiaBloqueio').hidden = !ranqueado;
-  document.getElementById('guiaNicho').hidden = ranqueado;
-  document.getElementById('guiaIncerto').hidden = !ranqueado;
-  document.getElementById('guiaEscondido').hidden = !ranqueado;
-  document.getElementById('guiaPopular').hidden = !ranqueado;
-  document.getElementById('guiaDraft').hidden = !ranqueado;
-  document.getElementById('guiaTeclado').hidden = !ranqueado;
-
-  desenharDraft(m);
-}
-
 // ---------- Para estudar ----------
 // O que serve entre uma partida e outra: duplas, quem rende mais aqui que no modo, pouca
 // amostra e onde gastar recurso ("Vale maximizar"). Os números são os de hoje, só com rótulo.
@@ -2798,7 +2956,7 @@ const estudoVazio = (texto) => `<p class="estudo-vazio">${texto}</p>`;
 // "Pôr minha tag", que a abriu, sumiu no redesenho.
 const blocoEstudo = (chave, titulo, ajudaDele, sub, corpo) =>
   `<section class="estudo-bloco" data-estudo="${chave}" aria-label="${esc(titulo)}"${chave === 'maximizar' ? ' tabindex="-1"' : ''}>
-    <h3>${esc(titulo)}${ajudaDele ?? ''}</h3>${sub ? `<p class="estudo-sub">${sub}</p>` : ''}${corpo}
+    <div class="estudo-topo"><h3>${esc(titulo)}</h3>${ajudaDele ?? ''}</div>${sub ? `<p class="estudo-sub">${sub}</p>` : ''}${corpo}
   </section>`;
 // Uma linha de brawler que abre a folha dele: retrato, nome, o texto pequeno e o número.
 const linhaEstudo = (nome, sub, num, classeNum = '') =>
@@ -2845,12 +3003,13 @@ function blocoRendem(m) {
 
 // Pouca amostra: ganham bem acima da média com poucas partidas. Vazia, fica a frase, sem moldura.
 function blocoPouca(m) {
-  if (!m.poucaAmostra.length) return blocoEstudo('pouca', 'Pouca amostra', null, '', estudoVazio('Ninguém com poucas partidas ganhou bem acima da média neste mapa.'));
+  const ajudaPouca = ajuda('pouca', 'Por que poucas partidas');
+  if (!m.poucaAmostra.length) return blocoEstudo('pouca', 'Pouca amostra', ajudaPouca, '', estudoVazio('Ninguém com poucas partidas ganhou bem acima da média neste mapa.'));
   const sub = m.parte === 'ranqueado'
     ? 'Ganham bem acima da média, mas com poucas partidas. Pode ser sorte, ou brawler forte que quase sempre é bloqueado.'
     : 'Ganham bem acima da média, mas com poucas partidas. Pode ser sorte.';
   const linhas = m.poucaAmostra.map((b) => linhaEstudo(b.nome, `${milhar(Math.round(b.n))} partidas`, `${Math.round(b.wr * 100)}%<span class="sr"> de vitória</span>`));
-  return blocoEstudo('pouca', 'Pouca amostra', null, sub, `<ul class="estudo-lista">${linhas.join('')}</ul>`);
+  return blocoEstudo('pouca', 'Pouca amostra', ajudaPouca, sub, `<ul class="estudo-lista">${linhas.join('')}</ul>`);
 }
 
 // Vale maximizar: onde gastar recurso. Sem lista de quem a pessoa tem no máximo, fica trancado
@@ -2859,7 +3018,7 @@ function blocoPouca(m) {
 // na conta, que até a Task 4 moravam em "Pra escolher agora".
 function blocoMaximizar(m) {
   const ranqueado = m.parte === 'ranqueado' && DADOS.partes.ranqueado;
-  const ajudaPerfil = DADOS.worker ? ajuda('perfil', 'Como o perfil funciona') : null;
+  const ajudaPerfil = ajuda('perfil', 'Como o perfil funciona');
   if (!temLista()) {
     const texto = DADOS.worker
       ? (ranqueado
@@ -2938,11 +3097,17 @@ function selecionar(m, mexerNoHash = true) {
   desenharEstudo(m);
   // Mapa sem Draft (Troféu) aberto com o modo ligado: o modo desliga antes de desenhar.
   if (!temDraft(m)) fecharDraft();
-  desenharMapa();
+  desenharDraft(atual);
   fecharFolha();
 }
 
 document.addEventListener('click', (e) => {
+  // O "?" abre e fecha o texto dele; um toque fora fecha o texto e segue valendo.
+  const q = e.target.closest('button[data-ajuda]');
+  if (q) return q === balaoDe && balaoAberto() ? fecharBalao() : abrirBalao(q);
+  const como = e.target.closest('[data-como]');
+  if (como) return abrirComo(como.dataset.como);
+  if (balaoAberto() && !balao.contains(e.target)) fecharBalao();
   // Folha: o toque no fundo escuro cai no próprio <dialog>, e fecha como o botão de fechar.
   if (e.target.matches('dialog.folha') || e.target.closest('[data-fechar]')) return fecharFolha();
   if (e.target.closest('[data-trocar-mapa]')) return abrirTrocarMapa();
@@ -3019,7 +3184,7 @@ document.addEventListener('change', (e) => {
     sei[brawlerAberto] = e.target.checked;
     guardar.gravar('sei:' + (perfil?.tag ?? ''), sei);
     desenharFicha(atual);
-    desenharMapa();
+    desenharDraft(atual);
   }
   if (e.target.id === 'soMeus') {
     guardar.gravar('soMeus', e.target.checked);
@@ -3051,7 +3216,7 @@ function mudouMeus() {
   desenharFicha(atual);
   desenharLista(atual);
   desenharEstudo(atual);
-  desenharMapa();
+  desenharDraft(atual);
 }
 
 // O campo da tag, e o selo da barra que abre a folha dele, só existem quando a página foi
@@ -3059,7 +3224,6 @@ function mudouMeus() {
 if (DADOS.worker) {
   document.getElementById('abrirPerfil').hidden = false;
   document.getElementById('voce').hidden = false;
-  document.getElementById('guiaVoce').hidden = false;
   const tag = guardar.ler('tag', null);
   if (tag) {
     document.getElementById('tag').value = `#${tag}`;
