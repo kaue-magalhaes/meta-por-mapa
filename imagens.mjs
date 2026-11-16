@@ -12,6 +12,7 @@ export const AGENTE_BRAWLIFY = 'meta-por-mapa (https://kaue-magalhaes.github.io/
 const API = 'https://api.brawlapi.com';
 const CDN = 'https://cdn.brawlify.com';
 const TEMPO_POR_PEDIDO = 30_000;
+const FALHAS_SEGUIDAS = 3;
 // O mapa ou brawler que a BrawlAPI não conhecia é perguntado de novo depois disso. Ela
 // fica semanas atrás do jogo (em 15/11, os arquivos eram de 03/10).
 const DIAS_PARA_PERGUNTAR_DE_NOVO = 7;
@@ -145,18 +146,29 @@ export async function atualizarNomesEImagens(dir, mapasDoSite, nomesDoSite, { bu
 
   const img = new URL('site/img/', dir);
   const falta = faltando(tabela, (caminho) => existsSync(new URL(caminho, img)));
+  // Com o CDN fora do ar, cada imagem esperaria o tempo do pedido inteiro, e as 261 da
+  // primeira rodada passariam do limite de 45 minutos do publicar.sh antes da coleta.
+  // Depois de FALHAS_SEGUIDAS, o resto fica para a próxima rodada.
   const falharam = [];
+  let baixadas = 0;
+  let seguidas = 0;
   for (const { url, caminho } of falta) {
     try {
       const destino = new URL(caminho, img);
       const bytes = new Uint8Array(await (await pedir(url)).arrayBuffer());
       await mkdir(new URL('.', destino), { recursive: true });
       await writeFile(destino, bytes);
+      baixadas++;
+      seguidas = 0;
     } catch (e) {
       falharam.push(`${caminho} (${e.message})`);
+      if (++seguidas === FALHAS_SEGUIDAS) break;
     }
   }
-  if (falharam.length) console.warn(`imagens que não baixaram, a página mostra a inicial no lugar: ${falharam.join(', ')}`);
-  console.log(`nomes e imagens: pedidos à BrawlAPI e ao CDN: ${pedidos}; imagens novas: ${falta.length - falharam.length}`);
+  if (falharam.length) {
+    const parou = seguidas === FALHAS_SEGUIDAS ? `; o CDN deu ${FALHAS_SEGUIDAS} falhas seguidas e parei` : '';
+    console.warn(`imagens que não baixaram, a página mostra a inicial no lugar: ${falharam.join(', ')}${parou}; ${falta.length - baixadas} imagens ficam para a próxima rodada`);
+  }
+  console.log(`nomes e imagens: pedidos à BrawlAPI e ao CDN: ${pedidos}; imagens novas: ${baixadas}`);
   return tabela;
 }

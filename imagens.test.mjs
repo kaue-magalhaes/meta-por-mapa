@@ -188,3 +188,36 @@ test('atualizarNomesEImagens segue com o cache quando a rede falha', async () =>
   // Sem cache nenhum, sai a tabela vazia.
   assert.deepEqual(await atualizarNomesEImagens(await pasta(), doSite, [], { buscar: semRede }), { mapas: {}, modos: {}, brawlers: {} });
 });
+
+test('atualizarNomesEImagens para as imagens depois de 3 falhas seguidas', async () => {
+  // 2 mapas, 2 modos e 3 brawlers: 7 imagens. falhas: a ordem do que dá errado no CDN.
+  const site = [...doSite, { modo: 'knockout', mapa: "Belle's Rock" }];
+  const nomes = ['Surge', 'Shelly', 'Larry & Lawrie'];
+  const cdn = (falhas) => {
+    const { pedidos, buscar } = servidor();
+    let i = 0;
+    return {
+      pedidos: () => pedidos.filter((p) => p.url.includes('cdn.brawlify.com')).length,
+      buscar: async (url, opcoes) => {
+        if (url.includes('cdn.brawlify.com') && falhas[i++]) {
+          pedidos.push({ url });
+          throw new Error('o CDN não respondeu');
+        }
+        return buscar(url, opcoes);
+      },
+    };
+  };
+
+  const fora = cdn([true, true, true, true, true, true, true]);
+  avisos.mock.resetCalls();
+  await atualizarNomesEImagens(await pasta(), site, nomes, fora);
+  assert.equal(fora.pedidos(), 3);
+  assert.match(avisos.mock.calls.at(-1).arguments[0], /3 falhas seguidas.*7 imagens ficam para a próxima rodada/);
+
+  // Uma imagem que baixa zera a conta.
+  const instavel = cdn([true, true, false, true, true, true, false]);
+  avisos.mock.resetCalls();
+  await atualizarNomesEImagens(await pasta(), site, nomes, instavel);
+  assert.equal(instavel.pedidos(), 6);
+  assert.match(avisos.mock.calls.at(-1).arguments[0], /6 imagens ficam para a próxima rodada/);
+});
