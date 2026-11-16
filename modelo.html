@@ -2156,7 +2156,8 @@ caixaDraft.addEventListener('keydown', (e) => {
   if (primeira) marcarNoDraft(primeira.dataset.marcar, primeira);
 });
 // As outras teclas do Draft valem no modo inteiro, com o cursor no campo ou não: 1, 2 e 3
-// trocam o grupo da vez, Backspace com o campo vazio desfaz a última marcação e Esc sai. Só
+// trocam o grupo da vez, Backspace com o campo vazio desfaz a última marcação e Esc limpa o
+// campo ou, com ele vazio, sai. O que a tela diz delas sai de TECLAS_GRUPO e TECLAS_OUTRAS. Só
 // com o modo aberto e sem folha por cima dele: com uma folha aberta, as teclas são dela.
 document.addEventListener('keydown', (e) => {
   if (!draftAberto() || document.querySelector('dialog[open]') || e.ctrlKey || e.altKey || e.metaKey || e.isComposing) return;
@@ -2181,11 +2182,12 @@ document.addEventListener('keydown', (e) => {
 });
 // A grade tem outro tamanho na tela larga.
 telaLarga.addEventListener('change', () => desenharDraft(atual));
-// A legenda do teclado, embaixo da grade: sai dos mesmos nomes das vagas.
-document.getElementById('draftTeclas').innerHTML = [
-  ...Object.entries(GRUPO_DA_TECLA).map(([tecla, g]) => [tecla, GRUPOS[g].titulo]),
-  ['Enter', 'marca o primeiro achado'], ['Backspace', 'desfaz'], ['Esc', 'sai'],
-].map(([tecla, faz]) => `<span><kbd>${tecla}</kbd>${faz}</span>`).join('');
+// As teclas do Draft e o que cada uma faz, numa lista só: a legenda embaixo da grade e o "?"
+// do Draft saem daqui. As de grupo usam os mesmos nomes das vagas.
+const TECLAS_GRUPO = Object.entries(GRUPO_DA_TECLA).map(([tecla, g]) => [tecla, GRUPOS[g].titulo]);
+const TECLAS_OUTRAS = [['Enter', 'marca o primeiro achado'], ['Backspace', 'desfaz'], ['Esc', 'limpa o campo ou sai']];
+document.getElementById('draftTeclas').innerHTML = [...TECLAS_GRUPO, ...TECLAS_OUTRAS]
+  .map(([tecla, faz]) => `<span><kbd>${tecla}</kbd>${faz}</span>`).join('');
 
 // ---------- Explicações: o "?" de cada bloco e a folha "Como funciona" ----------
 // Cada bloco tem um "?" (ajuda) que abre no próprio lugar uma ou duas frases de AJUDA, e o
@@ -2249,7 +2251,8 @@ const AJUDA = {
     'Para cada um do nosso time, o inimigo de quem ele mais ganha (caça) e o que mais ganha dele (evita), em pontos de vitória no confronto direto. No Mítico os confrontos quase não preveem o resultado: a leitura orienta, não promete vitória.'] },
   draft: { topico: 'draft', texto: () => [
     'Toque em quem saiu, ou digite o nome em "Outro": ele vai para o grupo de borda amarela, e a vez passa sozinha quando o grupo enche. Tocar numa vaga cheia tira o brawler dela.',
-    telaLarga.matches && 'No teclado, 1, 2 e 3 trocam o grupo, Backspace desfaz e Esc sai.',
+    telaLarga.matches && `No teclado, ${juntar([`${juntar(TECLAS_GRUPO.map(([tecla]) => tecla))} trocam o grupo`,
+      ...TECLAS_OUTRAS.map(([tecla, faz]) => `${tecla} ${faz}`)])}.`,
   ].filter(Boolean) },
 };
 
@@ -2294,7 +2297,7 @@ const ASSUNTOS = [
     '"Chance e alcance" mostra a chance de vitória do nosso time, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos.',
     'Com pelo menos um brawler de cada lado, a leitura por brawler diz quem cada um do nosso time caça e evita, pelos mesmos confrontos; com o nosso time completo, ela vira o "Plano da partida". A tabela compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. A linha do maior perigo mostra o inimigo mais forte no mapa e quem ganha dele. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.',
     `Com um tank no nosso time (vida de 5.000 ou mais e alcance curto, pelo wiki), os outros tanks da lista ganham o aviso "já temos um tank". A ordem não muda: nas partidas do Mítico pra cima, time com dois tanks fez uns 2 pontos abaixo do esperado, pouco pra ter certeza. Nos modos de objetivo (Pique-Gema, Futebol, Roubo e Zona Estratégica), com um brawler de alcance longo no nosso time (${ALCANCE_LONGO} quadrados ou mais, pelo wiki), os outros de alcance longo ganham o aviso "já temos um de alcance longo". A ordem também não muda: nas partidas do Lendário pra cima, time com dois ou mais deles nesses modos fez uns 1,5 ponto abaixo do esperado. Em Caça-Estrelas e Nocaute isso não acontece, e o aviso não aparece.`,
-    `<b>Toque e teclado.</b> Toque no brawler ou digite o nome em "Outro" e aperte Enter. Ele vai para o grupo da vez, o de borda amarela, e a vez passa sozinha quando o grupo enche. Tocar no nome de um grupo muda a vez na mão, e tocar numa vaga cheia tira o brawler dela. No teclado, as teclas 1, 2 e 3 trocam entre ${juntar(Object.values(GRUPO_DA_TECLA).map((g) => GRUPOS[g].titulo))}, até com o cursor no campo. Backspace com o campo vazio desfaz a última marcação. Com texto no campo, Esc limpa o campo; com ele vazio, Esc sai do modo. "Nova partida" zera tudo.`,
+    `<b>Toque e teclado.</b> Toque no brawler ou digite o nome em "Outro" e aperte Enter. Ele vai para o grupo da vez, o de borda amarela, e a vez passa sozinha quando o grupo enche. Tocar no nome de um grupo muda a vez na mão, e tocar numa vaga cheia tira o brawler dela. No teclado, as teclas ${juntar(TECLAS_GRUPO.map(([tecla]) => tecla))} trocam entre ${juntar(TECLAS_GRUPO.map(([, grupo]) => grupo))}, até com o cursor no campo. Backspace com o campo vazio desfaz a última marcação. Com texto no campo, Esc limpa o campo; com ele vazio, Esc sai do modo. "Nova partida" zera tudo.`,
   ] },
   { chave: 'perfil', titulo: 'Seu perfil', texto: () => [
     DADOS.worker && 'Toque em "Seu perfil", na barra, e digite sua tag (ela fica no seu perfil do jogo, embaixo do nome). A página marca quem você tem no máximo: nível 11 com gadget, star power e hipercarga. A página lembra a tag neste navegador e atualiza o perfil a cada visita.',
@@ -2803,7 +2806,9 @@ function desenharLista(m) {
   lista.innerHTML = nSA + nBC
     ? bloco('S') + bloco('A') + botao + (nBC ? `<div id="tiersBC"${nSA && !abertoBC ? ' hidden' : ''}>${bloco('B')}${bloco('C')}</div>` : '')
     : '<p class="lista-vazia">Nenhum brawler seu com partidas suficientes neste mapa.</p>';
-  document.getElementById('todosSub').innerHTML = `Ordem pela vitória ajustada, contra a média do mapa, que é <b>${pct(m.media)}</b>. Toque num brawler para ver contra quem ele ganha e perde.`;
+  // No Showdown não há counters (m.confrontos), então a frase do toque só vale fora dele.
+  document.getElementById('todosSub').innerHTML = `Ordem pela vitória ajustada, contra a média do mapa, que é <b>${pct(m.media)}</b>.`
+    + (m.confrontos ? ' Toque num brawler para ver contra quem ele ganha e perde.' : '');
 }
 
 // Abre ou fecha B e C sem redesenhar a lista: o botão fica no lugar e com o foco.
@@ -2907,9 +2912,9 @@ function desenharBrawler(m, nome) {
       <label class="caixa"><input type="checkbox" id="tenho"${meus.has(nome) ? ' checked' : ''}> Tenho no máximo</label>
       <label class="caixa"><input type="checkbox" id="sei"${seuForte(nome) ? ' checked' : ''}> Sei jogar</label>
     </div>`;
-  // Os três botões que mandam o brawler para o Draft. Só onde tem Draft (Ranqueado com a força).
+  // Os três botões que mandam o brawler para o Draft. Só onde tem Draft.
   const onde = Object.keys(GRUPOS).find((g) => partida[g].includes(nome));
-  const draft = m.parte === 'ranqueado' && m.forca
+  const draft = temDraft(m)
     ? `<section class="bw-draft"><h3>Marcar no Draft <small id="folhaBrawlerOnde" aria-live="polite">${onde ? `já está ${NA_PARTIDA[onde]}` : 'na partida em andamento'}</small></h3>
         <div class="bw-draft-botoes">${[['bloqueios', 'Bloquear'], ['eles', 'Inimigo'], ['nos', 'Nosso']].map(([g, rotulo]) =>
           `<button type="button" data-draft="${g}" data-nome="${esc(nome)}">${rotulo}</button>`).join('')}</div></section>`
