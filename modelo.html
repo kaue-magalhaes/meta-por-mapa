@@ -346,6 +346,113 @@ mark { background: var(--linha-forte); color: inherit; border-radius: 3px; }
   .ajuda:hover { color: var(--tinta); border-color: var(--tinta); }
 }
 
+/* ---------- O tier de um brawler: uma escala na cor do modo, de cheia a vazada ----------
+   Vale para a letra da tier list e para a da folha. Sem o vermelho de ruim. */
+.letra-tier { display: grid; place-items: center; font-weight: 800; font-stretch: 85%; line-height: 1; color: var(--tinta-2); box-shadow: inset 0 0 0 2px var(--linha-forte); }
+.letra-tier[data-t="S"] { background: var(--capa); color: #fff; box-shadow: 0 3px 0 color-mix(in oklab, var(--capa) 55%, black); }
+.letra-tier[data-t="A"] { background: color-mix(in oklab, var(--modo) 42%, var(--papel)); color: var(--tinta); box-shadow: none; }
+.letra-tier[data-t="B"] { background: color-mix(in oklab, var(--modo) 16%, var(--papel)); color: var(--tinta); box-shadow: none; }
+
+/* ---------- Todos neste mapa: a tier list ----------
+   Cada linha é um botão inteiro que abre a folha do brawler. No celular, retrato, nome e
+   vitória; no PC entram a barra contra a média, as escolhas e, no Troféu, os troféus. */
+.andar-topo { display: grid; gap: 6px; }
+.andar-titulo { display: flex; align-items: center; gap: 10px; }
+.andar-titulo h2 { font-stretch: 85%; }
+.andar-sub { font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); max-width: 62ch; text-wrap: pretty; }
+.andar-sub b { color: var(--tinta); font-weight: 800; }
+/* Filtro de quem a pessoa tem no máximo: só aparece com lista. */
+.filtro {
+  justify-self: start; display: inline-flex; align-items: center; gap: 10px; min-height: var(--alvo); margin-top: 6px;
+  padding: 0 14px 0 12px; border-radius: 12px; border: 1.5px solid var(--linha-forte); font-weight: 700; cursor: pointer;
+}
+.filtro input, .caixa input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--tinta); cursor: pointer; }
+.filtro:has(input:checked), .caixa:has(input:checked) { border-color: var(--tinta); background: var(--cartao); }
+
+.tier { display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 12px; margin-top: 20px; }
+/* A letra acompanha a rolagem enquanto o tier dela está na tela. */
+.tier > .letra-tier { position: sticky; top: calc(var(--barra-alt) + 8px); align-self: start; width: 40px; height: 40px; border-radius: 12px; font-size: var(--t-titulo); }
+.tier-cab { min-height: 40px; display: flex; align-items: center; font-size: var(--t-pequeno); font-weight: 600; color: var(--tinta-2); }
+.tier-cab .col { display: none; }
+.linhas { list-style: none; margin: 0; padding: 0; }
+.linhas > li + li { border-top: 1px solid var(--linha); }
+.linha {
+  width: 100%; min-height: 52px; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; column-gap: 12px; align-items: center;
+  padding: 6px 8px 6px 0; border-radius: 12px; text-align: left;
+}
+.linha-nome { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; line-height: 1.2; }
+.linha-nome b { font-weight: 700; overflow-wrap: anywhere; }
+.linha-nome small { font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); }
+/* O "!" junta os quatro selos de confiança; a folha diz qual é e por quê. */
+.sinal {
+  flex: none; width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 50%; border: 1.5px solid currentColor;
+  font-size: var(--t-pequeno); font-weight: 800; line-height: 1; color: var(--tinta-2);
+}
+.max { flex: none; padding: 0 7px; border-radius: 99px; border: 1.5px solid currentColor; font-size: var(--t-pequeno); font-weight: 800; letter-spacing: .04em; line-height: 1.3; }
+.linha-vit { min-width: 3ch; text-align: right; font-size: var(--t-titulo); font-weight: 800; letter-spacing: -.01em; }
+.linha-barra, .linha-uso, .linha-trof { display: none; }
+/* Quem a pessoa não tem no máximo sai apagado, como hoje. */
+.linha.apagada .img, .linha.apagada .sem-img { filter: grayscale(1); opacity: .55; }
+.linha.apagada .linha-nome b { font-weight: 500; color: var(--tinta-2); }
+.linha.apagada .linha-vit { color: var(--tinta-2); }
+.ver-bc {
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--alvo); margin: 16px 0 0 52px; padding: 0 14px 0 16px;
+  border-radius: 12px; border: 1.5px solid var(--linha-forte); font-weight: 700;
+}
+.ver-bc .seta { rotate: 90deg; }
+.ver-bc[aria-expanded="true"] .seta { rotate: -90deg; }
+.lista-vazia { margin: 14px 0 0; color: var(--tinta-2); }
+
+/* ---------- Folha do brawler: folha no celular, gaveta à direita no PC ---------- */
+.bw-topo { align-items: center; gap: 14px; }
+.bw-retrato .img, .bw-retrato .sem-img { border-radius: 20px; box-shadow: var(--sombra); }
+.bw-titulo { min-width: 0; flex: 1; display: grid; gap: 2px; }
+.bw-sub { display: grid; gap: 4px; justify-items: start; font-size: var(--t-pequeno); font-weight: 600; color: var(--tinta-2); }
+.bw-tier { display: inline-flex; align-items: center; gap: 8px; color: var(--tinta); font-weight: 700; }
+.bw-tier-letra { width: 28px; height: 28px; border-radius: 8px; font-size: var(--t-corpo); }
+.bw-numeros { margin: 6px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.bw-numeros > div { min-width: 0; padding: 10px 12px; border-radius: 12px; background: var(--cartao); }
+.bw-numeros dt { font-size: var(--t-pequeno); font-weight: 600; color: var(--tinta-2); }
+.bw-numeros dd { margin: 2px 0 0; font-size: var(--t-titulo); font-weight: 800; line-height: 1.2; }
+.bw-numeros dd small { display: block; margin-top: 2px; font-size: var(--t-pequeno); font-weight: 500; line-height: 1.3; color: var(--tinta-2); }
+.sobe { color: var(--bom); }
+.desce { color: var(--ruim); }
+.bw-selo { margin-top: 10px; display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 12px; border-radius: 12px; background: var(--cartao); font-size: var(--t-pequeno); }
+.bw-selo b { font-weight: 800; }
+.bw-conf { margin-top: 22px; }
+.bw-conf h3, .bw-draft h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.bw-conf h3 small, .bw-draft h3 small { font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); }
+.bw-conf ol { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
+/* Tocar num counter troca o brawler na mesma folha. A barra fina sai do zero. */
+.cf {
+  width: 100%; min-height: var(--alvo); display: grid; grid-template-columns: 32px minmax(0, 7.5em) minmax(0, 1fr) 3.4em; column-gap: 10px; align-items: center;
+  padding: 4px 6px 4px 0; border-radius: 10px; text-align: left;
+}
+.cf-nome { min-width: 0; font-size: var(--t-pequeno); font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.trilho { position: relative; height: 8px; border-radius: 99px; background: var(--linha); overflow: hidden; }
+.trilho i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: currentColor; }
+.cf-valor { text-align: right; font-weight: 800; }
+.bw-nota { margin-top: 10px; font-size: var(--t-pequeno); color: var(--tinta-2); }
+.bw-caixas { margin-top: 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.caixa {
+  min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 6px 12px;
+  border-radius: 12px; border: 1.5px solid var(--linha-forte); font-weight: 700; line-height: 1.2; cursor: pointer;
+}
+.bw-draft { margin-top: 22px; }
+.bw-draft-botoes { margin-top: 8px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.bw-draft-botoes button {
+  min-height: 48px; padding: 0 6px; border-radius: 12px; font-weight: 800;
+  background: var(--tinta); color: var(--papel-base); box-shadow: 0 3px 0 var(--linha-forte);
+}
+.bw-draft-botoes button:active { translate: 0 2px; box-shadow: 0 1px 0 var(--linha-forte); }
+
+@media (hover: hover) {
+  .linha:hover { background: color-mix(in oklab, var(--modo) 10%, transparent); }
+  .cf:hover { background: var(--linha); }
+  .ver-bc:hover, .filtro:hover, .caixa:hover { border-color: var(--tinta); }
+  .bw-draft-botoes button:hover { background: var(--modo-tinta); }
+}
+
 /* ---------- Rodapé ---------- */
 .rodape {
   margin-top: 56px; padding: 24px var(--margem) calc(40px + env(safe-area-inset-bottom, 0px));
@@ -470,6 +577,8 @@ details.mais > summary .seta { margin-left: auto; }
   /* As respostas ficam em pé: retrato em cima, nome e pontos embaixo, sem cortar o nome. */
   .resposta { grid-template-columns: minmax(0, 1fr); justify-items: center; row-gap: 2px; padding: 6px 2px; text-align: center; }
   .resposta .img, .resposta .sem-img { grid-row: auto; }
+  /* Na folha do brawler, o retrato encolhe para o nome e a posição caberem ao lado. */
+  .bw-retrato .img, .bw-retrato .sem-img { width: 64px; height: 64px; }
 }
 
 /* No celular, com o mapa na barra, o botão fica só "Trocar": o nome do mapa precisa do espaço. */
@@ -516,6 +625,21 @@ details.mais > summary .seta { margin-left: auto; }
   .respostas { grid-template-columns: minmax(0, 1fr); gap: 2px; margin-top: 4px; }
   .resposta { grid-template-columns: 32px minmax(0, 1fr) auto; column-gap: 10px; padding: 4px 6px 4px 0; background: none; }
   .resposta .img, .resposta .sem-img { grid-row: auto; }
+  /* Tier list: as colunas do PC. O cabeçalho de cada tier usa as mesmas colunas da linha. */
+  #lista { --colunas: 132px 64px 60px; }
+  #lista.com-trofeus { --colunas: 108px 64px 88px 60px; }
+  .linha { grid-template-columns: 36px minmax(0, 1fr) var(--colunas); }
+  .tier-cab { display: grid; grid-template-columns: minmax(0, 1fr) var(--colunas); column-gap: 12px; padding-right: 8px; }
+  .tier-cab .col { display: block; text-align: right; line-height: 1.15; }
+  .tier-cab .col-barra { text-align: center; }
+  .linha-barra { display: block; position: relative; height: 8px; border-radius: 99px; background: var(--linha); }
+  .linha-barra::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1.5px; background: var(--tinta-2); }
+  .linha-barra i { position: absolute; top: 0; bottom: 0; border-radius: 99px; }
+  .linha-barra i.sobe { left: 50%; background: var(--bom); }
+  .linha-barra i.desce { right: 50%; background: var(--ruim); }
+  .linha-uso { display: block; text-align: right; font-size: var(--t-pequeno); font-weight: 600; color: var(--tinta-2); }
+  .linha-trof { display: grid; justify-items: end; font-weight: 800; line-height: 1.2; }
+  .linha-trof small { font-size: var(--t-pequeno); font-weight: 500; color: var(--tinta-2); }
 
   .busca input:placeholder-shown ~ kbd { display: block; }
   .folha-topo { padding-top: 14px; }
@@ -526,7 +650,9 @@ details.mais > summary .seta { margin-left: auto; }
   dialog.folha.folha-estreita { width: min(440px, 92vw); }
   .folha-janela .mapas { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   /* Gaveta à direita (brawler, como funciona). */
-  dialog.folha.folha-gaveta { margin: 0 0 0 auto; width: 440px; height: 100dvh; max-height: none; border-radius: 24px 0 0 24px; }
+  /* A margem negativa cobre a calha da barra de rolagem (scrollbar-gutter: stable), que fica
+     vazia com a página parada: sem ela, sobrava uma faixa à direita da gaveta. */
+  dialog.folha.folha-gaveta { margin: 0 calc(100% - 100vw) 0 auto; width: 440px; height: 100dvh; max-height: none; border-radius: 24px 0 0 24px; }
   dialog.folha.folha-gaveta[open] { animation-name: do-lado; }
 }
 
@@ -566,81 +692,6 @@ details.mais > summary .seta { margin-left: auto; }
 .vazio { color: var(--muted); font-size: 0.86rem; }
 .nicho, .incerto, .escondido, .popular { font-size: 0.66rem; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; flex: none; cursor: help; }
 /* fim do LEGADO da Task 8 (peças comuns) */
-
-/* LEGADO: sai na Task 5 (tier list dentro de #todos e cartão do brawler dentro de #folhaBrawler). */
-#todos { display: grid; gap: 14px; }
-.lista { display: grid; gap: 14px; min-width: 0; }
-.tier { display: grid; grid-template-columns: 44px minmax(0, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.tier-letra {
-  font-family: var(--font-display); font-size: 1.6rem; color: #fff;
-  display: grid; place-items: center;
-  -webkit-text-stroke: 0.5px rgba(0,0,0,.35);
-}
-.tier[data-t="S"] .tier-letra { background: var(--tier-s); }
-.tier[data-t="A"] .tier-letra { background: var(--tier-a); }
-.tier[data-t="B"] .tier-letra { background: var(--tier-b); }
-.tier[data-t="C"] .tier-letra { background: var(--tier-c); }
-.linhas { display: grid; min-width: 0; }
-.linha {
-  display: grid;
-  grid-template-columns: minmax(96px, 1.1fr) minmax(70px, 1fr) 62px 58px 30px;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 12px;
-  border-top: 1px solid var(--line);
-  font-size: 0.92rem;
-}
-.linha:first-child { border-top: 0; }
-.linha .val { text-align: right; }
-.linha .val small { display: block; color: var(--muted); font-size: 0.74rem; line-height: 1.2; }
-.barra { position: relative; height: 8px; background: color-mix(in srgb, var(--line) 60%, transparent); border-radius: 4px; }
-.barra::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--muted); opacity: .6; }
-.barra i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
-.barra i.pos { left: 50%; background: var(--good); }
-.barra i.neg { right: 50%; background: var(--bad); }
-.bloq {
-  width: 28px; height: 28px; border-radius: 6px;
-  border: 1px solid var(--line); background: transparent; color: var(--muted);
-  cursor: pointer; display: grid; place-items: center; padding: 0;
-}
-.bloq svg { width: 15px; height: 15px; }
-.bloq:hover { border-color: var(--muted); color: var(--ink); }
-.linha.bloqueado .nome { text-decoration: line-through; color: var(--muted); }
-.linha.bloqueado .barra, .linha.bloqueado .val { opacity: .4; }
-.linha.bloqueado .bloq { background: var(--bad); border-color: var(--bad); color: #fff; }
-.cabeca { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-top: 0; padding-block: 0 2px; }
-.cabeca .val { text-align: right; }
-@media (max-width: 520px) {
-  .linha { grid-template-columns: minmax(80px, 1fr) 54px 50px 30px; }
-  .linha .barra, .cabeca .c-barra { display: none; }
-}
-.ferramentas { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
-.alternar { display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--muted); cursor: pointer; }
-.alternar input { accent-color: var(--tier-b); width: 16px; height: 16px; }
-.alternares { display: flex; flex-wrap: wrap; gap: 6px 18px; }
-/* Selo que não cabe ao lado do nome desce pra linha de baixo */
-.linha .nome { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; font-weight: 600; }
-.nome button {
-  max-width: 100%;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
-}
-.nome button:hover { text-decoration: underline; }
-.max { font: 400 0.66rem var(--font-display); letter-spacing: 0.04em; color: var(--on-accent); background: var(--accent); border-radius: 4px; padding: 1px 5px; flex: none; }
-.linha.nao-tenho .nome button { color: var(--muted); font-weight: 400; }
-.linha.selecionado { background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.detalhe-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.detalhe-topo h3 { font-size: 1.35rem; }
-.colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.colunas h4 { margin: 0 0 4px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
-.colunas .picks li { font-size: 0.86rem; }
-.trofeu .linha { grid-template-columns: minmax(96px, 1.1fr) minmax(70px, 1fr) 62px 58px 52px; }
-@media (max-width: 520px) {
-  .trofeu .linha { grid-template-columns: minmax(80px, 1fr) 54px 50px 46px; }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .linha { transition: opacity .15s; }
-}
-/* fim do LEGADO da Task 5 */
 
 /* LEGADO: sai na Task 6 (blocos de estudo dentro de #estudo e a busca da tag dentro de #folhaPerfil). */
 #estudo { display: grid; gap: 14px; }
@@ -805,13 +856,17 @@ details.mais > summary .seta { margin-left: auto; }
 
   <div class="andares">
     <!-- "Todos neste mapa": a tier list (Task 5). -->
-    <section class="secao" id="todos" aria-label="Todos neste mapa">
-      <!-- LEGADO: sai na Task 5 -->
-      <div class="ferramentas" id="ferramentas" hidden>
-        <label class="alternar"><input type="checkbox" id="soMeus"> Esconder os que não tenho no máximo</label>
+    <section class="secao" id="todos" aria-labelledby="todosTitulo">
+      <div class="andar-topo">
+        <div class="andar-titulo">
+          <h2 id="todosTitulo">Todos neste mapa</h2>
+          <button class="ajuda" type="button" data-ajuda="lista" data-folha="folhaComo" aria-haspopup="dialog" aria-label="Como a lista é ordenada">?</button>
+        </div>
+        <p class="andar-sub" id="todosSub"></p>
+        <label class="filtro" id="filtroMeus" hidden><input type="checkbox" id="soMeus"> Só os que tenho no máximo</label>
       </div>
-      <div class="lista" id="lista"></div>
-      <!-- fim do LEGADO da Task 5 -->
+      <!-- Os tiers, desenhados por desenharLista(). -->
+      <div id="lista"></div>
     </section>
 
     <!-- "Para estudar": duplas, quem rende mais aqui, pouca amostra e vale maximizar (Task 6). -->
@@ -880,17 +935,18 @@ details.mais > summary .seta { margin-left: auto; }
 </dialog>
 
 <dialog class="folha folha-gaveta" id="folhaBrawler" aria-labelledby="folhaBrawlerTitulo">
-  <div class="folha-topo">
-    <h2 id="folhaBrawlerTitulo" tabindex="-1" autofocus>Brawler</h2>
+  <!-- Desenhada por abrirBrawler(nome): o título recebe o nome do brawler. -->
+  <div class="folha-topo bw-topo">
+    <span class="bw-retrato" id="folhaBrawlerRetrato"></span>
+    <div class="bw-titulo">
+      <h2 id="folhaBrawlerTitulo" tabindex="-1" autofocus>Brawler</h2>
+      <p class="bw-sub" id="folhaBrawlerSub"></p>
+    </div>
     <button class="fechar" type="button" data-fechar aria-label="Fechar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
-  <div class="folha-corpo" id="folhaBrawlerCorpo">
-    <!-- LEGADO: sai na Task 5 -->
-    <div class="bloco" id="detalhe"></div>
-    <!-- fim do LEGADO da Task 5 -->
-  </div>
+  <div class="folha-corpo" id="folhaBrawlerCorpo"></div>
 </dialog>
 
 <dialog class="folha folha-janela folha-estreita" id="folhaPerfil" aria-labelledby="folhaPerfilTitulo">
@@ -924,7 +980,7 @@ details.mais > summary .seta { margin-left: auto; }
     <section class="guia">
       <div>
         <h3>Counters</h3>
-        <p>Clique no nome de um brawler. "Perde para" lista quem mais ganha dele neste mapa: se o inimigo escolheu esse brawler, são boas respostas. A conta compara com a taxa normal dele, então mostra o efeito do confronto e não só a força do brawler. No ranqueado, confronto com poucas partidas aqui puxa pro mesmo confronto nos outros mapas do modo. No troféu, os counters são do modo inteiro, porque a maioria dos mapas tem poucas partidas.</p>
+        <p>Toque num brawler. "Perde para" lista quem mais ganha dele neste mapa: se o inimigo escolheu esse brawler, são boas respostas. A conta compara com a taxa normal dele, então mostra o efeito do confronto e não só a força do brawler. No ranqueado, confronto com poucas partidas aqui puxa pro mesmo confronto nos outros mapas do modo. No troféu, os counters são do modo inteiro, porque a maioria dos mapas tem poucas partidas.</p>
       </div>
       <div>
         <h3>Duplas</h3>
@@ -968,7 +1024,7 @@ details.mais > summary .seta { margin-left: auto; }
       </div>
       <div id="guiaBloqueio">
         <h3>Bloqueio</h3>
-        <p>O jogo não informa quem foi bloqueado. Abaixo de Diamante I não tem bloqueio, mas o nível é baixo demais pra servir de referência. Então o bloqueio entra na mão, pelo cadeado.</p>
+        <p>O jogo não informa quem foi bloqueado. Abaixo de Diamante I não tem bloqueio, mas o nível é baixo demais pra servir de referência. Então o bloqueio entra na mão, no Draft ou pelo botão "Bloquear" da folha do brawler.</p>
       </div>
       <div id="guiaDraft" hidden>
         <h3>Draft</h3>
@@ -1030,7 +1086,8 @@ const SETA = '<svg class="seta" viewBox="0 0 16 16" fill="none" stroke="currentC
 
 const pct = (x, d = 1) => (x * 100).toFixed(d).replace('.', ',') + '%';
 const pp = (x) => (x >= 0 ? '+' : '−') + Math.abs(x * 100).toFixed(1).replace('.', ',');
-const trof = (x) => (x == null ? '–' : (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1).replace('.', ','));
+// Troféus por partida com sinal e uma casa ("+6,1"). Quem chama confere antes se o número existe.
+const trof = (x) => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1).replace('.', ',');
 const posicao = (x) => x.toFixed(1).replace('.', ',') + 'º';
 const hora = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -1125,7 +1182,6 @@ const CHANCE_INCERTO = 0.1;
 const TEXTO_INCERTO = 'Pode não ser S: com as partidas que tem, a chance de ser B ou pior passa de 10%.';
 const incerto = (b, m) => b.sd != null && tierDe(b.adj - m.media) === 'S'
   && normal((FAIXAS.A - (b.adj - m.media)) / b.sd) > CHANCE_INCERTO;
-const seloIncerto = (b, m) => (incerto(b, m) ? `<span class="incerto" title="${TEXTO_INCERTO}">incerto</span>` : '');
 
 // Só no ranqueado. Escondido: força de S, quase ninguém escolhe e sem dúvida de ser S.
 // Em 10/11, com 58 mil partidas do Lendário+, o confronto real desses brawlers foi até
@@ -1146,7 +1202,16 @@ function maisUsados(m) {
   return topDoMapa.get(m);
 }
 const popular = (b, m) => m.parte === 'ranqueado' && b.adj < m.media && maisUsados(m).has(b.nome);
-const seloPopular = (b, m) => (popular(b, m) ? `<span class="popular" title="${TEXTO_POPULAR}">popular</span>` : '');
+
+// Os quatro selos de confiança. Na tier list viram um "!" só; a folha do brawler diz qual é
+// e por quê. O Pegue usa os dois que cabem no topo da lista (incerto e escondido).
+const SELOS = {
+  incerto: { titulo: 'Incerto', texto: TEXTO_INCERTO, vale: incerto },
+  escondido: { titulo: 'Escondido', texto: TEXTO_ESCONDIDO, vale: escondido },
+  popular: { titulo: 'Popular', texto: TEXTO_POPULAR, vale: popular },
+  nicho: { titulo: 'Nicho', texto: TEXTO_NICHO, vale: (b) => nicho(b) },
+};
+const selosDe = (b, m) => Object.entries(SELOS).filter(([, s]) => s.vale(b, m)).map(([chave, s]) => ({ chave, ...s }));
 document.getElementById('textoGuiaEscondido').textContent = `Marca brawler do S com menos de ${pct(USO_ESCONDIDO, 0)} de uso no mapa e sem o selo "incerto". Na ranqueada, quem escolhe por último poderia levar um brawler raro só quando o confronto é bom, e aí a vitória viria do confronto, não da força. Isso foi testado em 10/11 com 58 mil partidas do Lendário pra cima: o confronto real desses brawlers foi até um pouco pior que contra um time inimigo sorteado, e eles ganharam 53,9%. O que o teste não separa é a mão de quem joga, porque quem escolhe brawler raro pode ser especialista nele. Se você não joga com ele, treine antes de levar à ranqueada.`;
 document.getElementById('textoGuiaPopular').textContent = `Marca brawler entre os ${TOP_POPULAR} mais escolhidos do mapa que ganha abaixo da média. O mapa inteiro vai com ele, mas a vitória não acompanha. O selo não muda nenhuma conta: chama atenção pra um número que já está na lista. O top conta o mapa todo, então não muda com "só os meus" nem com bloqueio.`;
 
@@ -1156,8 +1221,8 @@ const guardar = {
 };
 
 // A partida do ranqueado em andamento, uma por vez: quem foi bloqueado, quem o inimigo
-// pegou e quem o nosso time pegou. O cadeado da tier list e o modo Draft leem e gravam
-// só aqui. Fica guardada pra sobreviver a um F5 no meio do draft, e abrir outro mapa
+// pegou e quem o nosso time pegou. O modo Draft e os botões da folha do brawler
+// (mandarProDraft) leem e gravam só aqui. Fica guardada pra sobreviver a um F5 no meio do draft, e abrir outro mapa
 // começa outra partida. feitos guarda as marcações na ordem, pro Backspace desfazer.
 // Começa no Bloqueio porque no jogo os bloqueios vêm antes das escolhas.
 const partidaVazia = (mapa) => ({ mapa, marcando: 'bloqueios', bloqueios: [], eles: [], nos: [], feitos: [] });
@@ -1290,7 +1355,6 @@ const TODOS = Object.values(DADOS.partes).flatMap((p) => p.mapas);
 const chave = (m) => slug(`${m.parte} ${m.modo} ${m.mapa}`);
 
 let atual = null;
-let selecionado = null;
 
 // A rotação do troféu é refeita de hora em hora; as estatísticas, uma vez por dia.
 const quandoRot = (parte) => hora(DADOS.partes[parte].rotacaoEm ?? DADOS.partes[parte].geradoEm);
@@ -1574,32 +1638,6 @@ document.addEventListener('keydown', (e) => {
   abrirTrocarMapa();
 });
 
-function desenharDetalhe() {
-  const m = atual;
-  const b = m.brawlers.find((x) => x.nome === selecionado);
-  const caixa = document.getElementById('detalhe');
-  if (!b) { caixa.innerHTML = `<p>Clique no nome de um brawler pra ver os counters dele neste ${m.parte === 'ranqueado' ? 'mapa' : 'modo'}.</p>`; return; }
-  const topo = `
-    <div class="detalhe-topo"><h3>${esc(b.nome)}</h3><span class="sub num">${pct(b.adj)} · ${pp(b.adj - m.media)}</span></div>
-    <div class="alternares">
-      <label class="alternar"><input type="checkbox" id="tenho" ${meus.has(b.nome) ? 'checked' : ''}> Tenho no máximo</label>
-      <label class="alternar"><input type="checkbox" id="sei" ${seuForte(b.nome) ? 'checked' : ''}> Sei jogar</label>
-    </div>`;
-  if (!m.confrontos) {
-    caixa.innerHTML = topo + '<p>Sem counters no Showdown: os inimigos são a sala inteira, então um confronto direto mede pouco.</p>';
-    return;
-  }
-  const { bom, ruim } = m.confrontos[b.nome] ?? { bom: [], ruim: [] };
-  const item = ([inimigo, efeito]) => `<li><b>${esc(inimigo)}</b><span class="${efeito >= 0 ? 'pos' : 'neg'}">${pp(efeito)}</span></li>`;
-  const vazio = '<li class="vazio">Nada claro</li>';
-  caixa.innerHTML = topo + `
-    <div class="colunas">
-      <div><h4>Bom contra</h4><ul class="picks num">${bom.map(item).join('') || vazio}</ul></div>
-      <div><h4>Perde para</h4><ul class="picks num">${ruim.map(item).join('') || vazio}</ul></div>
-    </div>
-    <p>Pontos de vitória a mais ou a menos que o normal dele, no confronto direto.</p>`;
-}
-
 // ---------- Modo Draft (Mítico pra cima, escolha por turnos) ----------
 
 // A recomendação só precisa de quem o inimigo pegou. Bloqueios só tiram nomes da lista,
@@ -1863,8 +1901,8 @@ function novaPartida(mapa) {
   caixaDraft.value = '';
 }
 
-// Toda mudança na partida passa por aqui: grava e redesenha o mapa inteiro, porque
-// bloqueio mexe na tier list e no draft.
+// Toda mudança na partida passa por aqui: grava e redesenha o Draft. A ficha e a tier list
+// valem para o mapa e não mudam com a partida.
 function mudouPartida() {
   salvarPartida();
   desenharMapa();
@@ -1954,8 +1992,8 @@ function blocoPegue(m, { fora = new Set(), compacto = false } = {}) {
   let empatados = 1;
   while (empatados < top.length && top[0].adj - top[empatados].adj < Math.hypot(sd(top[0]), sd(top[empatados]))) empatados++;
   const selo = (b) => {
-    const texto = incerto(b, m) ? ['incerto', TEXTO_INCERTO] : escondido(b, m) ? ['escondido', TEXTO_ESCONDIDO] : null;
-    return texto ? `<span class="rosto-selo" title="${esc(texto[1])}">!<span class="sr"> ${texto[0]}</span></span>` : '';
+    const s = selosDe(b, m).find((x) => x.chave === 'incerto' || x.chave === 'escondido');
+    return s ? `<span class="rosto-selo" title="${esc(s.texto)}">!<span class="sr"> ${s.chave}</span></span>` : '';
   };
   const empate = empatados > 1
     ? `<div class="empate-pegue" style="--n:${empatados}" aria-hidden="true"><span class="empate-chave"></span><span class="empate-texto">${empatados === 5 ? 'os 5 empatados' : `${empatados} empatados`}</span></div>
@@ -1999,52 +2037,212 @@ function desenharFicha(m) {
   document.getElementById('ficha').innerHTML = blocoBane(m) + blocoPegue(m) + blocoInimigo(m);
 }
 
-// A folha do brawler. Até a Task 5 refazê-la, mostra o cartão de hoje.
+// ---------- Todos neste mapa: a tier list ----------
+// S e A ficam abertos; "Ver B e C" mostra o resto. A tier list vale para o mapa, como a ficha:
+// não muda com a partida em andamento, então só é redesenhada quando muda o mapa ou a lista
+// de quem a pessoa tem no máximo.
+
+// O que cada tier quer dizer, em pontos de vitória contra a média, saído das FAIXAS.
+const ptsFaixa = (x) => Math.round(Math.abs(x) * 100);
+const TEXTO_TIER = {
+  S: `${ptsFaixa(FAIXAS.S)} pontos ou mais acima da média`,
+  A: `de ${ptsFaixa(FAIXAS.A)} a ${ptsFaixa(FAIXAS.S)} pontos acima`,
+  B: `perto da média, de −${ptsFaixa(FAIXAS.B)} a +${ptsFaixa(FAIXAS.A)} pontos`,
+  C: `mais de ${ptsFaixa(FAIXAS.B)} ponto abaixo da média`,
+};
+// B e C abertos ou não. Fica igual ao trocar de mapa, durante a visita.
+let abertoBC = false;
+
+// O "!" de uma linha: um sinal só para os selos, e o nome de cada um para quem passa o mouse
+// ou usa leitor de tela.
+const sinal = (selos) => `<span class="sinal" title="${esc(selos.map((s) => `${s.titulo}: ${s.texto}`).join(' '))}" aria-hidden="true">!</span>`
+  + `<span class="sr">, aviso: ${selos.map((s) => s.chave).join(' e ')}</span>`;
+
+function desenharLista(m) {
+  const trofeus = m.brawlers.some((b) => b.trofeus != null);
+  // A barra do PC vai de -escala a +escala, com o zero (a média) no meio.
+  const escala = Math.max(0.08, ...m.brawlers.map((b) => Math.abs(b.adj - m.media)));
+  const esconder = temLista() && document.getElementById('soMeus').checked;
+  const porTier = { S: [], A: [], B: [], C: [] };
+  for (const b of m.brawlers) if (!esconder || tenho(b.nome)) porTier[tierDe(b.adj - m.media)].push(b);
+
+  const linha = (b) => {
+    const d = b.adj - m.media;
+    const pt = nomePt(b.nome);
+    const selos = selosDe(b, m);
+    const apagada = temLista() && !tenho(b.nome);
+    return `<li><button class="linha${apagada ? ' apagada' : ''}" type="button" data-brawler="${esc(b.nome)}">
+      ${retrato(b.nome, 36)}
+      <span class="linha-nome"><b>${esc(pt)}</b>${pt !== b.nome ? `<small lang="en">${esc(b.nome)}</small>` : ''}${selos.length ? sinal(selos) : ''}${tenho(b.nome) ? '<span class="max">MAX</span>' : ''}${apagada ? '<span class="sr">, você não tem no máximo</span>' : ''}</span>
+      <span class="linha-barra" title="${pp(d)} pontos de vitória contra a média" aria-hidden="true"><i class="${d >= 0 ? 'sobe' : 'desce'}" style="width:${Math.min(50, Math.abs(d) / escala * 50)}%"></i></span>
+      <span class="linha-uso num">${pct(b.uso)}<span class="sr"> das escolhas</span></span>
+      ${trofeus ? `<span class="linha-trof num">${b.trofeus != null ? trof(b.trofeus) : ''}<span class="sr"> troféus por partida</span>${b.posicao != null ? `<small>${posicao(b.posicao)} lugar</small>` : ''}</span>` : ''}
+      <span class="linha-vit num">${Math.round(b.adj * 100)}%</span><span class="sr">de vitória</span>
+    </button></li>`;
+  };
+  const cab = (t) => `<h3 class="tier-cab"><span>${TEXTO_TIER[t]} · ${porTier[t].length}</span>`
+    + `<span class="col col-barra" aria-hidden="true">vs. média</span><span class="col" aria-hidden="true">escolhas</span>`
+    + `${trofeus ? '<span class="col" aria-hidden="true">troféus por partida</span>' : ''}<span class="col" aria-hidden="true">vitória</span></h3>`;
+  const bloco = (t) => (porTier[t].length
+    ? `<section class="tier" data-t="${t}" aria-label="Tier ${t}"><span class="letra-tier" data-t="${t}" aria-hidden="true">${t}</span>
+        <div>${cab(t)}<ul class="linhas">${porTier[t].map(linha).join('')}</ul></div></section>`
+    : '');
+  const nSA = porTier.S.length + porTier.A.length;
+  const nBC = porTier.B.length + porTier.C.length;
+  // Sem ninguém no S e no A (filtro ligado), B e C já vêm abertos, sem o botão.
+  const botao = nSA && nBC
+    ? `<button class="ver-bc" id="verBC" type="button" aria-expanded="${abertoBC}" aria-controls="tiersBC"><span class="ver-bc-texto">${abertoBC ? 'Esconder' : 'Ver'} B e C</span> <span class="num">(${nBC})</span>${SETA}</button>`
+    : '';
+  const lista = document.getElementById('lista');
+  lista.classList.toggle('com-trofeus', trofeus);
+  lista.innerHTML = nSA + nBC
+    ? bloco('S') + bloco('A') + botao + (nBC ? `<div id="tiersBC"${nSA && !abertoBC ? ' hidden' : ''}>${bloco('B')}${bloco('C')}</div>` : '')
+    : '<p class="lista-vazia">Nenhum brawler seu com partidas suficientes neste mapa.</p>';
+  document.getElementById('todosSub').innerHTML = `Ordem pela vitória ajustada, contra a média do mapa, que é <b>${pct(m.media)}</b>. Toque num brawler para ver contra quem ele ganha e perde.`;
+}
+
+// Abre ou fecha B e C sem redesenhar a lista: o botão fica no lugar e com o foco.
+function alternarBC() {
+  abertoBC = !abertoBC;
+  const botao = document.getElementById('verBC');
+  document.getElementById('tiersBC').hidden = !abertoBC;
+  botao.setAttribute('aria-expanded', abertoBC);
+  botao.querySelector('.ver-bc-texto').textContent = `${abertoBC ? 'Esconder' : 'Ver'} B e C`;
+}
+
+// ---------- A folha do brawler ----------
+// Todo rosto e toda linha da página levam aqui. abrirBrawler(nome) desenha a folha e abre;
+// com a folha já aberta (toque num counter), troca o brawler na mesma folha: folha nunca
+// abre folha. nome é o nome interno (o do Brawl Time Ninja, "Surge").
+let brawlerAberto = null;
+
+// Quem abriu a folha, para o foco voltar lá quando ela fecha. A ficha e a tier list podem ser
+// redesenhadas com a folha aberta ("Tenho no máximo" muda as duas), e aí o botão que abriu
+// não existe mais: o foco vai para o mesmo brawler no mesmo bloco, na mesma posição.
+let quemAbriu = null;
+const regiaoDe = (el) => {
+  const faixa = el.closest('[data-faixa]');
+  return faixa ? `[data-faixa="${faixa.dataset.faixa}"]` : el.closest('#todos') ? '#todos' : 'main';
+};
+const iguaisEm = (regiao, nome) => [...document.querySelectorAll(`main ${regiao === 'main' ? '' : regiao} [data-brawler="${CSS.escape(nome)}"]`)];
+function lembrarQuemAbriu() {
+  const el = document.activeElement;
+  const nome = el?.closest?.('main') && el.dataset?.brawler;
+  if (!nome) return { el };
+  const regiao = regiaoDe(el);
+  return { el, nome, regiao, i: Math.max(0, iguaisEm(regiao, nome).indexOf(el)) };
+}
+document.getElementById('folhaBrawler').addEventListener('close', (e) => {
+  const q = quemAbriu;
+  quemAbriu = null;
+  // Quem fechou já pôs o foco noutro lugar (o Draft, por exemplo): fica lá. Sem lugar para
+  // voltar, o foco fica no corpo da página ou preso no botão de fechar da folha fechada.
+  const ativo = document.activeElement;
+  if (!q || (ativo && ativo !== document.body && !e.target.contains(ativo))) return;
+  if (q.el?.isConnected) return q.el.focus();
+  if (!q.nome) return;
+  const visivel = (el) => el.getClientRects().length;
+  const noBloco = iguaisEm(q.regiao, q.nome).filter(visivel);
+  const alvo = noBloco[q.i] ?? noBloco[0] ?? iguaisEm('main', q.nome).find(visivel);
+  (alvo ?? document.getElementById('ficha')).focus();
+});
+
+// Onde o brawler está na partida em andamento, para a folha avisar.
+const NA_PARTIDA = { bloqueios: 'nos bloqueados', eles: 'no time inimigo', nos: 'no nosso time' };
+
+function desenharBrawler(m, nome) {
+  const i = m.brawlers.findIndex((b) => b.nome === nome);
+  const b = m.brawlers[i];
+  const pt = nomePt(nome);
+  const t = b ? tierDe(b.adj - m.media) : null;
+  document.getElementById('folhaBrawlerTitulo').textContent = pt;
+  document.getElementById('folhaBrawlerRetrato').innerHTML = retrato(nome, 80, true);
+  document.getElementById('folhaBrawlerSub').innerHTML = (pt !== nome ? `<span><span lang="en">${esc(nome)}</span> em inglês</span>` : '')
+    + `<span class="bw-tier">${b
+      ? `<span class="sr">Tier</span><span class="letra-tier bw-tier-letra" data-t="${t}">${t}</span>${i + 1}º de ${m.brawlers.length} em ${esc(mapaPt(m))}`
+      : `Fora da lista de ${esc(mapaPt(m))}`}</span>`;
+
+  // Os números, cada um com a sua unidade.
+  const cartao = (rotulo, valor, unidade = '', classe = '') =>
+    `<div><dt>${rotulo}</dt><dd class="num${classe}">${valor}${unidade ? ` <small>${unidade}</small>` : ''}</dd></div>`;
+  const d = b ? b.adj - m.media : 0;
+  const cor = Math.round(Math.abs(d) * 1000) ? (d > 0 ? ' sobe' : ' desce') : '';
+  const numeros = b
+    ? `<dl class="bw-numeros">
+        ${cartao('Vitória ajustada', pct(b.adj), 'a que ordena a lista')}
+        ${cartao('Contra a média', pp(d), `pontos de vitória sobre a média, ${pct(m.media)}`, cor)}
+        ${cartao('Vitória real', b.n ? pct(b.wr) : 'sem partida', b.n ? 'sem ajuste' : '')}
+        ${cartao('Amostra', milhar(b.n), `partidas, ${pct(b.uso)} das escolhas`)}
+        ${b.trofeus != null ? cartao('Troféus', trof(b.trofeus), 'troféus por partida') : ''}
+        ${b.posicao != null ? cartao('Posição média', posicao(b.posicao), 'lugar na sala') : ''}
+      </dl>`
+    : '<p class="bw-nota">Poucas partidas neste mapa para entrar na lista. A força dele aqui vem quase toda do modo.</p>';
+  const avisos = (b ? selosDe(b, m) : []).map((s) =>
+    `<p class="bw-selo"><span class="sinal" aria-hidden="true">!</span><span><b>${s.titulo}.</b> ${esc(s.texto)}</span></p>`).join('');
+
+  // Bom contra e Perde para: a conta de hoje, uma ponta do confronto.
+  const conf = m.confrontos ? (m.confrontos[nome] ?? { bom: [], ruim: [] }) : null;
+  const escala = Math.max(0.05, ...[...(conf?.bom ?? []), ...(conf?.ruim ?? [])].map(([, v]) => Math.abs(v)));
+  const cf = ([n, v]) => {
+    const lado = v >= 0 ? 'sobe' : 'desce';
+    return `<li><button class="cf" type="button" data-brawler="${esc(n)}">${retrato(n, 32)}<span class="cf-nome">${esc(nomePt(n))}</span>`
+      + `<span class="trilho ${lado}" aria-hidden="true"><i style="width:${Math.min(100, Math.abs(v) / escala * 100)}%"></i></span>`
+      + `<span class="cf-valor num ${lado}">${pp(v)}</span></button></li>`;
+  };
+  const lista = (qual, titulo, unidade, itens) => `<section class="bw-conf" data-lista="${qual}"><h3>${titulo} <small>${unidade}</small></h3>`
+    + (itens.length ? `<ol>${itens.map(cf).join('')}</ol>` : '<p class="bw-nota">Nada claro com as partidas que temos.</p>') + '</section>';
+  const confrontos = conf
+    ? lista('bom', 'Bom contra', 'pontos de vitória a mais contra ele', conf.bom)
+      + lista('ruim', 'Perde para', 'pontos de vitória a menos contra ele', conf.ruim)
+      + `<p class="bw-nota">Pontos de vitória a mais ou a menos que o normal dele, no confronto direto${m.parte === 'trofeu' ? ', no modo inteiro' : ''}.</p>`
+    : '<p class="bw-nota">Sem counters no Showdown: os inimigos são a sala inteira, então um confronto direto mede pouco.</p>';
+
+  const caixas = `<div class="bw-caixas">
+      <label class="caixa"><input type="checkbox" id="tenho"${meus.has(nome) ? ' checked' : ''}> Tenho no máximo</label>
+      <label class="caixa"><input type="checkbox" id="sei"${seuForte(nome) ? ' checked' : ''}> Sei jogar</label>
+    </div>`;
+  // Os três botões que mandam o brawler para o Draft. Só onde tem Draft (Ranqueado com a força).
+  const onde = Object.keys(GRUPOS).find((g) => partida[g].includes(nome));
+  const draft = m.parte === 'ranqueado' && m.forca
+    ? `<section class="bw-draft"><h3>Marcar no Draft <small>${onde ? `já está ${NA_PARTIDA[onde]}` : 'na partida em andamento'}</small></h3>
+        <div class="bw-draft-botoes">${[['bloqueios', 'Bloquear'], ['eles', 'Inimigo'], ['nos', 'Nosso']].map(([g, rotulo]) =>
+          `<button type="button" data-draft="${g}" data-nome="${esc(nome)}">${rotulo}</button>`).join('')}</div></section>`
+    : '';
+  document.getElementById('folhaBrawlerCorpo').innerHTML = numeros + avisos + confrontos + caixas + draft;
+}
+
 function abrirBrawler(nome) {
-  selecionado = nome;
-  desenharMapa();
-  abrirFolha('folhaBrawler');
+  const folha = document.getElementById('folhaBrawler');
+  const jaAberta = folha.open;
+  if (!jaAberta) quemAbriu = lembrarQuemAbriu();
+  brawlerAberto = nome;
+  desenharBrawler(atual, nome);
+  document.getElementById('folhaBrawlerCorpo').scrollTop = 0;
+  // Trocou de brawler na folha aberta: o título ganha o foco e o leitor de tela diz o nome novo.
+  if (jaAberta) document.getElementById('folhaBrawlerTitulo').focus();
+  else abrirFolha('folhaBrawler');
+}
+
+// "Bloquear", "Inimigo" e "Nosso" da folha passam todos por aqui. grupo é 'bloqueios', 'eles'
+// ou 'nos'. O brawler sai de outro grupo em que estivesse e entra neste se houver vaga.
+// Até a Task 7, depois de marcar, a folha fecha e a página rola até o Draft de hoje. A Task 7
+// troca só o fim: em vez de rolar, abre o modo Draft.
+function mandarProDraft(grupo, nome) {
+  for (const g of Object.keys(GRUPOS)) if (g !== grupo && partida[g].includes(nome)) mudar(g, nome, false);
+  if (!partida[grupo].includes(nome) && partida[grupo].length < GRUPOS[grupo].max) {
+    mudar(grupo, nome, true);
+    partida.feitos.push({ grupo, nome });
+  }
+  fecharFolha();
+  mudouPartida();
+  document.getElementById('draftModo').scrollIntoView();
+  // No PC o cursor vai para o campo do Draft; no celular não, que o teclado cobriria a tela.
+  if (telaLarga.matches) caixaDraft.focus({ preventScroll: true });
 }
 
 function desenharMapa() {
   const m = atual;
   const ranqueado = m.parte === 'ranqueado';
-  document.body.classList.toggle('trofeu', !ranqueado);
-  const bloqueados = new Set(ranqueado ? partida.bloqueios : []);
-
-  const escala = Math.max(0.08, ...m.brawlers.map((b) => Math.abs(b.adj - m.media)));
-  const porTier = { S: [], A: [], B: [], C: [] };
-  const esconder = temLista() && document.getElementById('soMeus').checked;
-  for (const b of m.brawlers) {
-    if (esconder && !tenho(b.nome)) continue;
-    porTier[tierDe(b.adj - m.media)].push(b);
-  }
-
-  const temPosicao = m.brawlers.some((b) => b.posicao != null);
-  const ultimaCabeca = ranqueado ? '<span></span>' : `<span class="val">Troféus${temPosicao ? '<small>posição</small>' : ''}</span>`;
-  const cabeca = `<div class="linha cabeca"><span>Brawler</span><span class="c-barra">vs. média</span><span class="val">Vitória</span><span class="val">Uso</span>${ultimaCabeca}</div>`;
-  let primeiro = true;
-  document.getElementById('lista').innerHTML = Object.entries(porTier).filter(([, l]) => l.length).map(([t, l]) => {
-    const linhas = l.map((b) => {
-      const d = b.adj - m.media;
-      const larg = Math.min(50, Math.abs(d) / escala * 50);
-      const bloq = bloqueados.has(b.nome);
-      const classes = ['linha', bloq && 'bloqueado', temLista() && !tenho(b.nome) && 'nao-tenho', b.nome === selecionado && 'selecionado'].filter(Boolean).join(' ');
-      const ultima = ranqueado
-        ? `<button class="bloq" type="button" data-b="${esc(b.nome)}" aria-pressed="${bloq}" aria-label="${bloq ? 'Desmarcar bloqueio de' : 'Marcar como bloqueado:'} ${esc(b.nome)}">${CADEADO}</button>`
-        : `<span class="val num">${trof(b.trofeus)}${b.posicao != null ? `<small>${posicao(b.posicao)}</small>` : ''}</span>`;
-      return `<div class="${classes}">
-        <span class="nome"><button type="button" data-ver="${esc(b.nome)}" title="Ver counters de ${esc(b.nome)}">${esc(b.nome)}</button>${tenho(b.nome) ? '<span class="max">MAX</span>' : ''}${nicho(b) ? `<span class="nicho" title="${TEXTO_NICHO}">nicho</span>` : ''}${seloIncerto(b, m)}${seloEscondido(b, m)}${seloPopular(b, m)}</span>
-        <span class="barra" title="${pp(d)} pontos vs. média do mapa"><i class="${d >= 0 ? 'pos' : 'neg'}" style="width:${larg}%"></i></span>
-        <span class="val num">${pct(b.adj)}<small>${b.n ? `${pct(b.wr)} real` : 'sem partida'}</small></span>
-        <span class="val num">${pct(b.uso)}<small>${b.n.toLocaleString('pt-BR')}</small></span>
-        ${ultima}
-      </div>`;
-    }).join('');
-    const html = `<div class="tier" data-t="${t}"><div class="tier-letra">${t}</div><div class="linhas">${primeiro ? cabeca : ''}${linhas}</div></div>`;
-    primeiro = false;
-    return html;
-  }).join('');
 
   // Fica no estudo até a Task 6 levar pra perto de "Vale maximizar".
   const fortesFora = temLista() ? m.brawlers.filter((b) => !tenho(b.nome) && forte(b, m)).slice(0, 4) : [];
@@ -2076,7 +2274,6 @@ function desenharMapa() {
   document.getElementById('guiaDraft').hidden = !ranqueado;
 
   desenharDraft(m);
-  desenharDetalhe();
 }
 
 // Só no ranqueado: a pergunta é onde gastar recurso pensando no draft.
@@ -2104,13 +2301,13 @@ function selecionar(m, mexerNoHash = true) {
   // Abrir outro mapa do ranqueado começa outra partida. Mapa do troféu não tem partida e não mexe nela.
   if (m.parte === 'ranqueado' && m.mapa !== partida.mapa) novaPartida(m.mapa);
   atual = m;
-  if (!m.brawlers.some((b) => b.nome === selecionado)) selecionado = m.brawlers[0]?.nome ?? null;
   guardar.gravar('mapa', chave(m));
   if (mexerNoHash) history.replaceState(null, '', '#' + chave(m));
   info();
   desenharCapa(m);
   desenharInvestir();
   desenharFicha(m);
+  desenharLista(m);
   desenharMapa();
   fecharFolha();
 }
@@ -2141,11 +2338,14 @@ document.addEventListener('click', (e) => {
   }
   // Até a Task 7 trocar por abrirDraft(): "Estou no draft" leva ao Draft de hoje.
   if (e.target.closest('#ligarDraft')) return document.getElementById('draftModo').scrollIntoView();
-  // Rosto da ficha: abre a folha do brawler. No modo Draft (Task 8), o mesmo rosto marca.
+  // Rosto da ficha, linha da tier list ou counter da folha: abre a folha do brawler (o
+  // counter troca o brawler na folha aberta). No modo Draft (Task 8), o rosto marca.
   const rostoTocado = e.target.closest('[data-brawler]');
   if (rostoTocado) return abrirBrawler(rostoTocado.dataset.brawler);
-  const ver = e.target.closest('[data-ver]');
-  if (ver) return abrirBrawler(ver.dataset.ver);
+  if (e.target.closest('#verBC')) return alternarBC();
+  // "Bloquear", "Inimigo" e "Nosso" da folha do brawler.
+  const manda = e.target.closest('[data-draft]');
+  if (manda) return mandarProDraft(manda.dataset.draft, manda.dataset.nome);
   // Outra partida no mesmo mapa: bloqueios e escolhas são outros.
   if (e.target.id === 'draftNova') {
     novaPartida(atual.mapa);
@@ -2178,29 +2378,25 @@ document.addEventListener('click', (e) => {
   }
   const marcando = e.target.closest('[data-marcando]');
   if (marcando) return trocarGrupo(marcando.dataset.marcando);
-  const bloq = e.target.closest('.bloq');
-  if (bloq) {
-    mudar('bloqueios', bloq.dataset.b, !partida.bloqueios.includes(bloq.dataset.b));
-    return mudouPartida();
-  }
 });
 
 document.addEventListener('change', (e) => {
+  // As duas caixas da folha do brawler valem para o brawler aberto nela.
   if (e.target.id === 'tenho') {
-    e.target.checked ? meus.add(selecionado) : meus.delete(selecionado);
+    e.target.checked ? meus.add(brawlerAberto) : meus.delete(brawlerAberto);
     salvarMeus();
     mudouMeus();
   }
   // Marcado ou desmarcado na mão, vale o que a pessoa disse, mesmo igual ao recorde.
   if (e.target.id === 'sei') {
-    sei[selecionado] = e.target.checked;
+    sei[brawlerAberto] = e.target.checked;
     guardar.gravar('sei:' + (perfil?.tag ?? ''), sei);
     desenharFicha(atual);
     desenharMapa();
   }
   if (e.target.id === 'soMeus') {
     guardar.gravar('soMeus', e.target.checked);
-    desenharMapa();
+    desenharLista(atual);
   }
 });
 
@@ -2213,8 +2409,9 @@ document.getElementById('voce').addEventListener('submit', (e) => {
 function mudouMeus() {
   info();
   desenharInvestir();
-  document.getElementById('ferramentas').hidden = !temLista();
+  document.getElementById('filtroMeus').hidden = !temLista();
   desenharFicha(atual);
+  desenharLista(atual);
   desenharMapa();
 }
 
@@ -2230,7 +2427,7 @@ if (DADOS.worker) {
     buscarPerfil(tag, true);
   }
 }
-document.getElementById('ferramentas').hidden = !temLista();
+document.getElementById('filtroMeus').hidden = !temLista();
 document.getElementById('soMeus').checked = guardar.ler('soMeus', false);
 // Links antigos (#hideout) e o mapa lembrado antes das partes apontam pro ranqueado pelo nome.
 const porChave = (k) => TODOS.find((m) => chave(m) === k)
