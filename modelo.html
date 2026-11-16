@@ -889,6 +889,9 @@ details.mais > summary .seta { margin-left: auto; }
   .dm-times { gap: 6px; }
   .dm-pecas { column-gap: 4px; }
   .dm-grade-topo { grid-template-columns: minmax(0, 1fr) auto minmax(0, 132px); }
+  /* Com o "?" ao lado, a frase da vez fica com uns 110 px e algumas quebram em 3 linhas. A
+     altura é sempre a de 3: a grade não pula quando a frase muda. */
+  .dm-dica { min-height: calc(3 * 1.2em); display: flex; align-items: center; }
   .dm-vaga-nome, .dm-peca-nome { font-stretch: 75%; letter-spacing: -.01em; }
   .dm-resto { display: none; }
   /* A escolha principal encolhe o retrato, para o nome e o motivo terem onde quebrar. */
