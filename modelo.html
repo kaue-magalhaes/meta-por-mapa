@@ -1259,12 +1259,13 @@ const curto = (modo) => MODO_CURTO[modo] ?? modoPt(modo);
 
 // Toda imagem do jogo sai daqui: tamanho fixo (a página não pula enquanto carrega), alt
 // vazio (o nome vem sempre escrito ao lado) e a inicial do nome no lugar quando falta o
-// id ou o arquivo. classe é 'retrato', 'mini-mapa' ou 'icone-modo'.
+// id ou o arquivo. classe é 'retrato', 'mini-mapa' ou 'icone-modo'. O id vem de fora
+// (BrawlAPI) e entra no src: só id inteiro vira imagem.
 const semImagem = (inicial, l, a, classe) =>
   `<span class="sem-img ${classe}${l < 36 ? ' pequena' : ''}" style="--l:${l}px;--a:${a}px" aria-hidden="true">${esc(inicial)}</span>`;
 function imagem(pasta, id, nome, l, a, classe, cedo) {
   const inicial = [...nome.trim()][0]?.toUpperCase() ?? '?';
-  if (id == null) return semImagem(inicial, l, a, classe);
+  if (!Number.isInteger(id)) return semImagem(inicial, l, a, classe);
   return `<img class="img ${classe}" src="img/${pasta}/${id}.png" width="${l}" height="${a}" alt="" data-inicial="${esc(inicial)}" data-classe="${classe}"${cedo ? '' : ' loading="lazy"'} decoding="async">`;
 }
 // O evento de erro de imagem não sobe, por isso a escuta é na captura.
@@ -1608,7 +1609,7 @@ function desenharCapa(m) {
 
   const capa = document.getElementById('capa');
   capa.innerHTML = `
-    ${icone != null ? `<img class="capa-marca" src="img/modo/${icone}.png" width="190" height="190" alt="">` : ''}
+    ${Number.isInteger(icone) ? `<img class="capa-marca" src="img/modo/${icone}.png" width="190" height="190" alt="">` : ''}
     <div class="capa-dentro">
       <figure class="figurinha">${miniatura(m, 82, true)}</figure>
       <div class="capa-texto">

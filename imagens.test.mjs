@@ -113,6 +113,20 @@ test('montarTabela usa NOME_PT e liga Larry & Lawrie ao id', () => {
   });
 });
 
+test('montarTabela deixa de fora o id que não é inteiro, que viraria caminho de arquivo e src', () => {
+  const estranho = {
+    ...api,
+    maps: [...maps, { id: '../m', name: 'Mapa Torto', gameMode: { id: 48000000 } }],
+    gmv: { ...gmv, Heist: { id: '"><img src=x>', Name: 'Heist', TID: 'TID_GAME_MODE_0' } },
+    brawlers: [...brawlers, { id: '../x', name: 'Torto' }, { id: 16000001.5, name: 'Quebrado' }],
+  };
+  const tabela = montarTabela(estranho, [{ modo: 'gemGrab', mapa: 'Mapa Torto' }, { modo: 'heist', mapa: 'Double Swoosh' }], ['Shelly', 'Torto', 'Quebrado']);
+  assert.deepEqual(Object.keys(tabela.brawlers), ['Shelly']);
+  assert.equal(tabela.mapas['gemGrab|Mapa Torto'], undefined);
+  assert.equal(tabela.modos.heist, undefined);
+  assert.deepEqual(faltando(tabela, () => false).map((i) => i.caminho).filter((c) => !/^(m|modo|b)\/\d+\.png$/.test(c)), []);
+});
+
 test('faltando lista só as imagens que não existem', () => {
   const tabela = {
     // Kroket é o mesmo mapa nos três Showdown: uma imagem só.

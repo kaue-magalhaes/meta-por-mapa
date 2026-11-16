@@ -565,12 +565,13 @@ const nomesEImagens = (partes) => atualizarNomesEImagens(dir, mapasDe(partes), b
 
 // A página é o modelo.html com as contas do Draft (draft.mjs, sem os export, pra rodar
 // como script comum) e os dados no lugar das marcas. A troca usa função porque o texto
-// trocado pode ter $, que o replace com texto leria como padrão.
+// trocado pode ter $, que o replace com texto leria como padrão. O < vira < porque
+// um texto de fora com </script> fecharia o script da página.
 async function montarPagina(dados) {
   const [modelo, draft] = await Promise.all(['modelo.html', 'draft.mjs'].map((f) => readFile(new URL(f, dir), 'utf8')));
   const pagina = modelo
     .replace('/*__DRAFT__*/', () => draft.replace(/^export /gm, ''))
-    .replace('/*__DADOS__*/null', () => JSON.stringify(dados));
+    .replace('/*__DADOS__*/null', () => JSON.stringify(dados).replace(/</g, '\\u003c'));
   await mkdir(new URL('site/', dir), { recursive: true });
   await writeFile(new URL('site/index.html', dir), pagina);
 }

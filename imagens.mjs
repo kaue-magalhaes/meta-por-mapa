@@ -44,7 +44,9 @@ export function idDoMapa(mapa, maps) {
 
 // maps e brawlers: as listas (`list`) de /v1/maps e /v1/brawlers; locations, gmv e pt: os
 // arquivos do jogo. mapasDoSite: [{ modo, mapa, id? }]; nomesDoSite: nomes dos brawlers.
-// O que a BrawlAPI não conhece fica de fora, e a página mostra o nome em inglês.
+// O que a BrawlAPI não conhece fica de fora, e a página mostra o nome em inglês. Id que
+// não é inteiro também fica de fora: ele vira caminho de arquivo (site/img/b/<id>.png) e
+// src na página, e a página já mostra a inicial no lugar da imagem.
 export function montarTabela({ maps, locations, pt, gmv, brawlers }, mapasDoSite, nomesDoSite) {
   const texto = (tid) => pt[tid]?.PT;
   const local = new Map(Object.values(locations).map((l) => [l.id, l]));
@@ -55,7 +57,7 @@ export function montarTabela({ maps, locations, pt, gmv, brawlers }, mapasDoSite
   const idDoModo = {};
   for (const m of mapasDoSite) {
     const id = idDoMapa(m, maps);
-    if (id == null) continue;
+    if (!Number.isInteger(id)) continue;
     const nome = texto(local.get(id)?.TID);
     mapas[`${m.modo}|${m.mapa}`] = { id, ...(nome && { pt: nome }) };
     idDoModo[m.modo] ??= doMapa.get(id).gameMode?.id;
@@ -67,7 +69,7 @@ export function montarTabela({ maps, locations, pt, gmv, brawlers }, mapasDoSite
   const modos = {};
   for (const modo of new Set(mapasDoSite.map((m) => m.modo))) {
     const v = Object.values(gmv).find((g) => chave(g.Name ?? '') === chave(modo)) ?? variacao.get(idDoModo[modo]);
-    if (!v) continue;
+    if (!Number.isInteger(v?.id)) continue;
     const nome = texto(v.TID);
     modos[modo] = { ...(nome && { pt: primeiraMaiuscula(nome) }), icone: v.id };
   }
@@ -76,7 +78,7 @@ export function montarTabela({ maps, locations, pt, gmv, brawlers }, mapasDoSite
   const doSite = {};
   for (const nome of nomesDoSite) {
     const b = porChave.get(chave(nome));
-    if (b) doSite[nome] = { id: b.id, pt: NOME_PT[nome] ?? nome };
+    if (Number.isInteger(b?.id)) doSite[nome] = { id: b.id, pt: NOME_PT[nome] ?? nome };
   }
   return { mapas, modos, brawlers: doSite };
 }
