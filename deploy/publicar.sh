@@ -19,7 +19,7 @@ timeout 45m node atualizar.mjs
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-cp site/index.html site/estado.json "$tmp/"
+cp site/index.html site/dados.js site/dados-trofeu.js site/estado.json "$tmp/"
 # Sem a pasta (a primeira rodada sem rede), a página sai com as iniciais no lugar das imagens.
 if [ -d site/img ]; then cp -r site/img "$tmp/"; fi
 touch "$tmp/.nojekyll"

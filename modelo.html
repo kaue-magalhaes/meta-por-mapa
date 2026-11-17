@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="carregando">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -197,6 +197,11 @@ mark { background: var(--linha-forte); color: inherit; border-radius: 3px; }
   margin: 4px 12px 0; border-radius: 22px;
   color: #fff; background: var(--capa);
 }
+/* Até os dados chegarem (dados.js), a capa vazia guarda o lugar e o resto da página fica
+   escondido: sem isso, o rodapé aparece sozinho no topo e a tela pisca. */
+.carregando .capa { min-height: 168px; }
+.carregando main > :not(.capa), .carregando .rodape { visibility: hidden; }
+.capa-erro { margin: 0; padding: 24px 16px; font-size: var(--t-corpo); font-weight: 700; }
 /* O ícone do modo de marca d'água, clareado e quase transparente. */
 .capa-marca {
   position: absolute; right: -28px; bottom: -34px; z-index: -1; width: 190px; height: auto;
@@ -1177,8 +1182,18 @@ details.mais > summary .seta { margin-left: auto; }
   <button class="balao-como" type="button" data-como="">Mais em Como funciona</button>
 </div>
 
+<!-- Os dados ficam fora da página, que assim chega leve e aparece antes. O dados.js declara
+  DADOS com tudo menos os mapas do Troféu, que vêm do dados-trofeu.js só quando alguém abre
+  esse modo (carregarTrofeu). O v muda a cada geração, pra nenhum cache misturar versões. -->
+<script src="dados.js?v=__VERSAO__"></script>
 <script>
-const DADOS = /*__DADOS__*/null;
+if (typeof DADOS === 'undefined') {
+  document.getElementById('capa').innerHTML = '<p class="capa-erro">Não deu para carregar os dados. Recarregue a página.</p>';
+  throw new Error('dados.js não carregou');
+}
+// A versão do dados.js que chegou; o dados-trofeu.js pedido depois é o da mesma geração.
+// A mesma conta está no gerador da página, que põe a versão no endereço do dados.js.
+const VERSAO = Date.parse(DADOS.geradoEm).toString(36);
 
 // Nomes como aparecem no jogo em inglês. Os nomes internos vêm do Brawl Time Ninja.
 const MODOS = {
@@ -1517,6 +1532,29 @@ for (const [id, p] of Object.entries(DADOS.partes)) for (const m of p.mapas) m.p
 const TODOS = Object.values(DADOS.partes).flatMap((p) => p.mapas);
 const chave = (m) => slug(`${m.parte} ${m.modo} ${m.mapa}`);
 
+// Os mapas do Troféu são 64% dos dados e quase ninguém abre a página nele, então chegam só
+// quando alguém pede: a aba Troféu da folha de trocar mapa, ou um link ou mapa lembrado do
+// Troféu. Até lá, DADOS.partes.trofeu tem tudo menos os mapas. O dados-trofeu.js chama
+// trofeuChegou com eles. Se falhar, o próximo pedido tenta de novo.
+const doTrofeu = (k) => typeof k === 'string' && k.startsWith('trofeu-');
+let trofeuPedido = null;
+function carregarTrofeu() {
+  const p = DADOS.partes.trofeu;
+  if (!p || p.mapas.length) return Promise.resolve();
+  return trofeuPedido ??= new Promise((pronto, falhou) => {
+    window.trofeuChegou = (mapas) => {
+      for (const m of mapas) m.parte = 'trofeu';
+      p.mapas.push(...mapas);
+      TODOS.push(...mapas);
+      pronto();
+    };
+    const s = document.createElement('script');
+    s.src = `dados-trofeu.js?v=${VERSAO}`;
+    s.onerror = () => { trofeuPedido = null; s.remove(); falhou(new Error('dados-trofeu.js não carregou')); };
+    document.head.append(s);
+  });
+}
+
 let atual = null;
 
 // A rotação do troféu é refeita de hora em hora; as estatísticas, uma vez por dia.
@@ -1806,7 +1844,8 @@ document.addEventListener('keydown', (e) => {
 const foraDoDraft = () => new Set([...partida.bloqueios, ...partida.eles, ...partida.nos]);
 // Todo brawler que aparece em alguma parte do site. Só o ranqueado não basta: brawler com
 // pouca partida no Lendário+ some de todos os mapas de lá, e a Bonnie não dava pra marcar.
-const NOMES_TODOS = [...new Set(TODOS.flatMap((m) => m.brawlers.map((b) => b.nome)))];
+// A lista vem pronta no DADOS.brawlers, porque os mapas do Troféu chegam depois.
+const NOMES_TODOS = DADOS.brawlers ?? [...new Set(TODOS.flatMap((m) => m.brawlers.map((b) => b.nome)))];
 const chaveNome = (s) => norm(s).replace(/[^a-z0-9]/g, '');
 
 // Nomes livres com o que foi digitado, do mais usado no mapa pro menos: com 2 letras
@@ -3149,7 +3188,15 @@ document.addEventListener('click', (e) => {
   if (parte) {
     parteVista = parte.dataset.parte;
     busca.value = '';
-    return desenharSeletor();
+    if (parteVista !== 'trofeu' || DADOS.partes.trofeu.mapas.length) return desenharSeletor();
+    // Primeira vez no Troféu: a aba já fica marcada e a lista avisa que está chegando.
+    for (const b of document.querySelectorAll('#partes [data-parte]')) b.setAttribute('aria-pressed', b.dataset.parte === 'trofeu');
+    navegar.hidden = false;
+    resultados.hidden = true;
+    navegar.innerHTML = '<p class="vazio-busca" role="status">Carregando os mapas do Troféu…</p>';
+    return carregarTrofeu().then(
+      () => { if (parteVista === 'trofeu') desenharSeletor(); },
+      () => { if (parteVista === 'trofeu') navegar.innerHTML = '<p class="vazio-busca" role="status">Não deu para carregar o Troféu. Toque em Troféu de novo para tentar.</p>'; });
   }
   // Mapa novo abre do topo, com a capa dele à vista.
   const mapa = e.target.closest('[data-chave]');
@@ -3264,8 +3311,9 @@ const porChave = (k) => TODOS.find((m) => chave(m) === k)
   ?? TODOS.find((m) => m.parte === 'ranqueado' && (slug(m.mapa) === k || m.mapa === k));
 // Link colado ou editado com a página aberta também troca o mapa.
 window.addEventListener('hashchange', () => {
-  const m = porChave(decodeURIComponent(location.hash.slice(1)));
-  if (m && m !== atual) selecionar(m);
+  const k = decodeURIComponent(location.hash.slice(1));
+  const trocar = () => { const m = porChave(k); if (m && m !== atual) selecionar(m); };
+  !porChave(k) && doTrofeu(k) ? carregarTrofeu().then(trocar, () => {}) : trocar();
 });
 // Voltar da entrada do modo Draft: pelo gesto do celular (o modo ainda aberto) ou pelo
 // sairDoDraft. A entrada de antes do modo tem o endereço do mapa daquela hora; se o mapa
@@ -3278,9 +3326,17 @@ window.addEventListener('popstate', () => {
   if (m && m !== atual) history.replaceState(null, '', '#' + chave(atual));
   fecharDraft();
 });
-selecionar(porChave(location.hash.slice(1)) ?? porChave(guardar.ler('mapa', null)) ?? primeiroDa(Object.keys(DADOS.partes)[0]), false);
-// Quem recarregou a página no meio do draft volta para o modo, com a partida guardada.
-if (modoLembrado()) temDraft(atual) ? abrirDraft() : lembrarModo(false);
+function abrirPrimeiro() {
+  selecionar(porChave(location.hash.slice(1)) ?? porChave(guardar.ler('mapa', null)) ?? primeiroDa(Object.keys(DADOS.partes)[0]), false);
+  document.documentElement.classList.remove('carregando');
+  // Quem recarregou a página no meio do draft volta para o modo, com a partida guardada.
+  if (modoLembrado()) temDraft(atual) ? abrirDraft() : lembrarModo(false);
+}
+// Link ou mapa lembrado do Troféu espera os mapas dele. Se não vierem, abre no Ranqueado.
+const hashInicial = location.hash.slice(1);
+!porChave(hashInicial) && (doTrofeu(hashInicial) || doTrofeu(guardar.ler('mapa', null)))
+  ? carregarTrofeu().then(abrirPrimeiro, abrirPrimeiro)
+  : abrirPrimeiro();
 </script>
 </body>
 </html>

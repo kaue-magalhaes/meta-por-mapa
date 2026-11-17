@@ -563,17 +563,32 @@ const brawlersDe = (partes) => [...new Set(Object.values(partes ?? {}).flatMap((
   p.mapas.flatMap((m) => [...m.brawlers.map((b) => b.nome), ...Object.keys(m.forca ?? {})])))].sort();
 const nomesEImagens = (partes) => atualizarNomesEImagens(dir, mapasDe(partes), brawlersDe(partes));
 
-// A página é o modelo.html com as contas do Draft (draft.mjs, sem os export, pra rodar
-// como script comum) e os dados no lugar das marcas. A troca usa função porque o texto
-// trocado pode ter $, que o replace com texto leria como padrão. O < vira < porque
-// um texto de fora com </script> fecharia o script da página.
+// O site são três arquivos. A página é o modelo.html com as contas do Draft (draft.mjs, sem
+// os export, pra rodar como script comum); a troca usa função porque o texto trocado pode
+// ter $, que o replace com texto leria como padrão. Os dados vão à parte, pra página chegar
+// leve: o dados.js tem tudo menos os mapas do Troféu (64% do peso), que ficam no
+// dados-trofeu.js e só são baixados quando alguém abre esse modo. Os dois guardam o JSON
+// num texto lido por JSON.parse, que o navegador lê mais rápido que um objeto escrito em JS.
 async function montarPagina(dados) {
   const [modelo, draft] = await Promise.all(['modelo.html', 'draft.mjs'].map((f) => readFile(new URL(f, dir), 'utf8')));
+  // A mesma conta está no modelo.html (VERSAO), que pede o dados-trofeu.js da mesma geração.
+  const versao = Date.parse(dados.geradoEm).toString(36);
   const pagina = modelo
     .replace('/*__DRAFT__*/', () => draft.replace(/^export /gm, ''))
-    .replace('/*__DADOS__*/null', () => JSON.stringify(dados).replace(/</g, '\\u003c'));
+    .replaceAll('__VERSAO__', versao);
+  const trofeu = dados.partes.trofeu?.mapas ?? [];
+  const principal = {
+    ...dados,
+    // Todo brawler que aparece em algum mapa, na ordem dos mapas: a busca do Draft acha
+    // também quem só aparece no Troféu, antes de os mapas dele chegarem.
+    brawlers: [...new Set(Object.values(dados.partes).flatMap((p) => p.mapas.flatMap((m) => m.brawlers.map((b) => b.nome))))],
+    partes: Object.fromEntries(Object.entries(dados.partes).map(([id, p]) => [id, id === 'trofeu' ? { ...p, mapas: [] } : p])),
+  };
+  const lerDepois = (json) => `JSON.parse(${JSON.stringify(json)})`;
   await mkdir(new URL('site/', dir), { recursive: true });
   await writeFile(new URL('site/index.html', dir), pagina);
+  await writeFile(new URL('site/dados.js', dir), `const DADOS = ${lerDepois(JSON.stringify(principal))};\n`);
+  await writeFile(new URL('site/dados-trofeu.js', dir), `trofeuChegou(${lerDepois(JSON.stringify(trofeu))});\n`);
 }
 
 // --so-pagina refaz o site/index.html com o dados.json que já existe, sem pedido ao BTN
