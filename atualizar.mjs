@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM, mapasNoAr, especiaisNoAr } from './calculo.mjs';
 import { atributosDaSemana } from './wiki.mjs';
 import { atualizarNomesEImagens } from './imagens.mjs';
+import { compactarTabela } from './draft.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -569,6 +570,7 @@ const nomesEImagens = (partes) => atualizarNomesEImagens(dir, mapasDe(partes), b
 // leve: o dados.js tem tudo menos os mapas do Troféu (64% do peso), que ficam no
 // dados-trofeu.js e só são baixados quando alguém abre esse modo. Os dois guardam o JSON
 // num texto lido por JSON.parse, que o navegador lê mais rápido que um objeto escrito em JS.
+// A tabela de confrontos vai compacta (compactarTabela, no draft.mjs) e a página a remonta.
 async function montarPagina(dados) {
   const [modelo, draft] = await Promise.all(['modelo.html', 'draft.mjs'].map((f) => readFile(new URL(f, dir), 'utf8')));
   // A mesma conta está no modelo.html (VERSAO), que pede o dados-trofeu.js da mesma geração.
@@ -576,13 +578,14 @@ async function montarPagina(dados) {
   const pagina = modelo
     .replace('/*__DRAFT__*/', () => draft.replace(/^export /gm, ''))
     .replaceAll('__VERSAO__', versao);
-  const trofeu = dados.partes.trofeu?.mapas ?? [];
+  const compactos = (mapas) => mapas.map((m) => (m.tabela ? { ...m, tabela: compactarTabela(m.tabela) } : m));
+  const trofeu = compactos(dados.partes.trofeu?.mapas ?? []);
   const principal = {
     ...dados,
     // Todo brawler que aparece em algum mapa, na ordem dos mapas: a busca do Draft acha
     // também quem só aparece no Troféu, antes de os mapas dele chegarem.
     brawlers: [...new Set(Object.values(dados.partes).flatMap((p) => p.mapas.flatMap((m) => m.brawlers.map((b) => b.nome))))],
-    partes: Object.fromEntries(Object.entries(dados.partes).map(([id, p]) => [id, id === 'trofeu' ? { ...p, mapas: [] } : p])),
+    partes: Object.fromEntries(Object.entries(dados.partes).map(([id, p]) => [id, id === 'trofeu' ? { ...p, mapas: [] } : { ...p, mapas: compactos(p.mapas) }])),
   };
   const lerDepois = (json) => `JSON.parse(${JSON.stringify(json)})`;
   await mkdir(new URL('site/', dir), { recursive: true });

@@ -1527,8 +1527,13 @@ function semPerfil() {
 }
 
 // Cada mapa sabe de qual parte veio: o mesmo nome existe em duas partes
-// (Shooting Star) ou em dois modos (Rockwall Brawl no Solo e no Duo Showdown).
-for (const [id, p] of Object.entries(DADOS.partes)) for (const m of p.mapas) m.parte = id;
+// (Shooting Star) ou em dois modos (Rockwall Brawl no Solo e no Duo Showdown). A tabela de
+// confrontos chega compacta e é remontada aqui (expandirTabela, nas contas do Draft).
+function receberMapa(m, parte) {
+  m.parte = parte;
+  if (m.tabela) m.tabela = expandirTabela(m.tabela);
+}
+for (const [id, p] of Object.entries(DADOS.partes)) for (const m of p.mapas) receberMapa(m, id);
 const TODOS = Object.values(DADOS.partes).flatMap((p) => p.mapas);
 const chave = (m) => slug(`${m.parte} ${m.modo} ${m.mapa}`);
 
@@ -1543,7 +1548,7 @@ function carregarTrofeu() {
   if (!p || p.mapas.length) return Promise.resolve();
   return trofeuPedido ??= new Promise((pronto, falhou) => {
     window.trofeuChegou = (mapas) => {
-      for (const m of mapas) m.parte = 'trofeu';
+      for (const m of mapas) receberMapa(m, 'trofeu');
       p.mapas.push(...mapas);
       TODOS.push(...mapas);
       pronto();

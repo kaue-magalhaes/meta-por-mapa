@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PESO_FORCA, SD_SEM_MARGEM, pesoNoDraft, confrontoLido, recomendar, comEmpate, leitura, maiorPerigo, quemGanhaDele } from './draft.mjs';
+import { PESO_FORCA, SD_SEM_MARGEM, pesoNoDraft, confrontoLido, recomendar, comEmpate, leitura, maiorPerigo, quemGanhaDele, compactarTabela, expandirTabela } from './draft.mjs';
 
 // Mapa de brinquedo. A ganha de E por uma ponta (+0,01) e perde pela outra (E contra A
 // +0,03, com a força de A de volta): pela conta da nota, A perde de E. B ganha de E e de F
@@ -144,4 +144,28 @@ test('leitura separa quem caça e quem evita pelo corte, e avisa sem dado', () =
   assert.equal(a.caca, null);
   assert.equal(a.evita[0], 'F'); // -0,06 é pior que -0,02
   assert.deepEqual(leitura(brinquedo, 'C', ['E', 'F']), { caca: null, evita: null, semDado: true });
+});
+
+// A tabela vai para o site compacta (nomes uma vez, números em milésimos) e a página a
+// remonta ao carregar. A volta precisa dar a mesma tabela: linha vazia continua existindo,
+// célula sem número continua sem número, e nome que só aparece como adversário não vira linha.
+test('tabela compacta volta igual à original', () => {
+  const original = {
+    'Mr. P': { Emz: -0.053, Bo: 0, Bolt: 0.126 },
+    Emz: { 'Mr. P': -0.082 },
+    Bo: {},
+    Bolt: { Emz: 0.004, Shelly: -0.1 },
+  };
+  assert.deepEqual(expandirTabela(compactarTabela(original)), original);
+});
+
+test('tabela compacta guarda os números como inteiros em milésimos', () => {
+  const c = compactarTabela({ A: { B: -0.052, C: 0.011 }, B: { A: 0.04 }, C: {} });
+  assert.deepEqual(c, { nomes: ['A', 'B', 'C'], linhas: [',-52,11', '40,,', ''] });
+});
+
+test('o Draft dá a mesma nota com a tabela remontada', () => {
+  const remontado = { ...brinquedo, tabela: expandirTabela(compactarTabela(brinquedo.tabela)) };
+  const [antes, depois] = [pesoNoDraft(brinquedo), pesoNoDraft(remontado)];
+  for (const x of ['A', 'B', 'C', 'E', 'F']) assert.equal(depois(x, ['E', 'F']), antes(x, ['E', 'F']));
 });

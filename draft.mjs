@@ -135,3 +135,29 @@ export function quemGanhaDele(m, perigo, fora, quantos = 3) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, quantos);
 }
+
+// A tabela de confrontos é a maior parte do dados.js: 108 brawlers contra uns 100, em
+// cada mapa, com os dois nomes escritos em cada número. No site ela vai compacta: os
+// nomes uma vez, e cada linha como os números em milésimos, separados por vírgula, na
+// ordem dos nomes (vazio onde não há número). Os números já vêm com 3 casas, então a
+// volta é exata. As linhas são as primeiras entradas de nomes; um nome depois delas só
+// aparece como adversário. A página remonta a tabela ao carregar, e as contas acima não
+// mudam.
+export function compactarTabela(tabela) {
+  const linhas = Object.keys(tabela);
+  const nomes = [...new Set([...linhas, ...linhas.flatMap((a) => Object.keys(tabela[a]))])];
+  return {
+    nomes,
+    linhas: linhas.map((a) => (Object.keys(tabela[a]).length
+      ? nomes.map((b) => (tabela[a][b] == null ? '' : Math.round(tabela[a][b] * 1000))).join(',')
+      : '')),
+  };
+}
+
+export function expandirTabela({ nomes, linhas }) {
+  return Object.fromEntries(linhas.map((linha, i) => {
+    const contra = {};
+    if (linha) linha.split(',').forEach((v, j) => { if (v !== '') contra[nomes[j]] = Number(v) / 1000; });
+    return [nomes[i], contra];
+  }));
+}
