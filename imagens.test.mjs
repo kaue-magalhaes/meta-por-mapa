@@ -206,6 +206,36 @@ test('atualizarNomesEImagens usa o id do BTN para a imagem do mapa que a BrawlAP
   assert.equal(torto.mapas['gemGrab|Mapa Torto'], undefined);
 });
 
+test('atualizarNomesEImagens pega na API oficial o id do brawler que a BrawlAPI não conhece', async () => {
+  const dir = await pasta();
+  const { pedidos, buscar } = servidor();
+  // A API oficial escreve o nome em maiúsculas (THUNDER FROGS, 22/11).
+  let oficiais = 0;
+  const brawlersOficiais = async () => {
+    oficiais++;
+    return [{ id: 16000038, name: 'SURGE' }, { id: 16000111, name: 'THUNDER FROGS' }, { id: '../x', name: 'TORTO' }];
+  };
+  const tabela = await atualizarNomesEImagens(dir, [], ['Surge', 'Thunder Frogs', 'Torto'], { buscar, brawlersOficiais });
+  assert.deepEqual(tabela.brawlers['Thunder Frogs'], { id: 16000111, pt: 'Thunder Frogs' });
+  // O que a BrawlAPI respondeu não muda, e o id que não é inteiro continua de fora.
+  assert.deepEqual(tabela.brawlers.Surge, { id: 16000038, pt: 'Wattson' });
+  assert.equal(tabela.brawlers.Torto, undefined);
+  assert.ok(pedidos.some((p) => p.url === 'https://cdn.brawlify.com/brawlers/borderless/16000111.png'));
+
+  // Com todo brawler conhecido pela BrawlAPI, a API oficial não é chamada.
+  oficiais = 0;
+  await atualizarNomesEImagens(await pasta(), [], ['Surge'], { buscar, brawlersOficiais });
+  assert.equal(oficiais, 0);
+
+  // A API oficial fora do ar não derruba a rodada: o brawler fica com a inicial.
+  const semOficial = await atualizarNomesEImagens(await pasta(), [], ['Surge', 'Thunder Frogs'], {
+    buscar,
+    brawlersOficiais: async () => { throw new Error('HTTP 403'); },
+  });
+  assert.equal(semOficial.brawlers['Thunder Frogs'], undefined);
+  assert.deepEqual(semOficial.brawlers.Surge, { id: 16000038, pt: 'Wattson' });
+});
+
 test('atualizarNomesEImagens segue com o cache quando a rede falha', async () => {
   const dir = await pasta();
   await atualizarNomesEImagens(dir, doSite, [], servidor());

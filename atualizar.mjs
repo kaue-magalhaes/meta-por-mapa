@@ -563,7 +563,8 @@ async function main() {
 const mapasDe = (partes) => Object.values(partes ?? {}).flatMap((p) => p.mapas.map(({ modo, mapa, id }) => ({ modo, mapa, id })));
 const brawlersDe = (partes) => [...new Set(Object.values(partes ?? {}).flatMap((p) =>
   p.mapas.flatMap((m) => [...m.brawlers.map((b) => b.nome), ...Object.keys(m.forca ?? {})])))].sort();
-const nomesEImagens = (partes) => atualizarNomesEImagens(dir, mapasDe(partes), brawlersDe(partes));
+const nomesEImagens = (partes) =>
+  atualizarNomesEImagens(dir, mapasDe(partes), brawlersDe(partes), { brawlersOficiais: async () => (await oficial('/brawlers')).items });
 
 // O site são três arquivos. A página é o modelo.html com as contas do Draft (draft.mjs, sem
 // os export, pra rodar como script comum); a troca usa função porque o texto trocado pode

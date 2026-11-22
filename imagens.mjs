@@ -110,9 +110,10 @@ function precisaPerguntar(cache, mapasDoSite, nomesDoSite, agora) {
   return semDados && agora - Date.parse(cache.geradoEm) > DIAS_PARA_PERGUNTAR_DE_NOVO * 864e5;
 }
 
-// dir: URL da raiz do projeto. buscar: o fetch, trocado nos testes. Devolve a tabela de
-// montarTabela. Falha de rede não derruba a rodada: avisa e segue com o cache.
-export async function atualizarNomesEImagens(dir, mapasDoSite, nomesDoSite, { buscar = fetch, agora = Date.now() } = {}) {
+// dir: URL da raiz do projeto. buscar: o fetch, trocado nos testes. brawlersOficiais: devolve
+// a lista [{ id, name }] da API oficial; só é chamada quando falta brawler na tabela.
+// Devolve a tabela de montarTabela. Falha de rede não derruba a rodada: avisa e segue com o cache.
+export async function atualizarNomesEImagens(dir, mapasDoSite, nomesDoSite, { buscar = fetch, agora = Date.now(), brawlersOficiais = null } = {}) {
   let pedidos = 0;
   const pedir = async (url) => {
     pedidos++;
@@ -154,6 +155,23 @@ export async function atualizarNomesEImagens(dir, mapasDoSite, nomesDoSite, { bu
   for (const m of mapasDoSite) {
     const k = `${m.modo}|${m.mapa}`;
     if (!tabela.mapas[k] && Number.isInteger(m.id)) tabela.mapas[k] = { id: m.id };
+  }
+
+  // Brawler novo tem o mesmo atraso, e o BTN não manda o id dele. A API oficial manda (o
+  // Thunder Frogs, 16000111, em 22/11), com o nome em maiúsculas. O CDN responde para ids
+  // que ainda não são de ninguém, então o id só vem da API oficial. Também fora do nomes.json.
+  const semId = nomesDoSite.filter((n) => !tabela.brawlers[n]);
+  if (semId.length && brawlersOficiais) {
+    try {
+      const porChave = new Map((await brawlersOficiais()).map((b) => [chave(b.name), b.id]));
+      tabela = { ...tabela, brawlers: { ...tabela.brawlers } };
+      for (const nome of semId) {
+        const id = porChave.get(chave(nome));
+        if (Number.isInteger(id)) tabela.brawlers[nome] = { id, pt: NOME_PT[nome] ?? nome };
+      }
+    } catch (e) {
+      console.warn(`brawlers da API oficial falharam, ${semId.join(', ')} fica com a inicial: ${e.message}`);
+    }
   }
 
   const img = new URL('site/img/', dir);
