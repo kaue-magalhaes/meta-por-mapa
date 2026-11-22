@@ -146,6 +146,16 @@ export async function atualizarNomesEImagens(dir, mapasDoSite, nomesDoSite, { bu
     }
   }
 
+  // A BrawlAPI fica semanas atrás do jogo, mas o CDN tem a imagem do mapa novo em dias.
+  // O mapa que ela não conhece usa o id do BTN, sem nome em português: a página mostra o
+  // nome em inglês até a BrawlAPI conhecer o mapa. Fica fora do nomes.json, que guarda
+  // só o que a BrawlAPI respondeu.
+  tabela = { ...tabela, mapas: { ...tabela.mapas } };
+  for (const m of mapasDoSite) {
+    const k = `${m.modo}|${m.mapa}`;
+    if (!tabela.mapas[k] && Number.isInteger(m.id)) tabela.mapas[k] = { id: m.id };
+  }
+
   const img = new URL('site/img/', dir);
   const falta = faltando(tabela, (caminho) => existsSync(new URL(caminho, img)));
   // Com o CDN fora do ar, cada imagem esperaria o tempo do pedido inteiro, e as 261 da

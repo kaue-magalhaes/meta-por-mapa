@@ -189,6 +189,23 @@ test('atualizarNomesEImagens não pergunta de novo pelo mapa que a BrawlAPI não
   assert.equal(pedidos.filter((p) => p.url.includes('api.brawlapi.com')).length, 5);
 });
 
+test('atualizarNomesEImagens usa o id do BTN para a imagem do mapa que a BrawlAPI não conhece', async () => {
+  const dir = await pasta();
+  const { pedidos, buscar } = servidor();
+  const comNovo = [...doSite, { modo: 'gemGrab', mapa: 'Mapa Novo', id: 15001387 }];
+  const tabela = await atualizarNomesEImagens(dir, comNovo, [], { buscar });
+  // Sem nome em português: a página mostra o nome em inglês até a BrawlAPI conhecer o mapa.
+  assert.deepEqual(tabela.mapas['gemGrab|Mapa Novo'], { id: 15001387 });
+  assert.ok(pedidos.some((p) => p.url === 'https://cdn.brawlify.com/maps/regular/15001387.png'));
+  // A rodada seguinte, com a BrawlAPI ainda sem o mapa, usa o cache e não pede nada.
+  pedidos.length = 0;
+  assert.deepEqual((await atualizarNomesEImagens(dir, comNovo, [], { buscar })).mapas['gemGrab|Mapa Novo'], { id: 15001387 });
+  assert.equal(pedidos.length, 0);
+  // Id que não é inteiro continua de fora: viraria caminho de arquivo e src.
+  const torto = await atualizarNomesEImagens(await pasta(), [{ modo: 'gemGrab', mapa: 'Mapa Torto', id: '../m' }], [], { buscar });
+  assert.equal(torto.mapas['gemGrab|Mapa Torto'], undefined);
+});
+
 test('atualizarNomesEImagens segue com o cache quando a rede falha', async () => {
   const dir = await pasta();
   await atualizarNomesEImagens(dir, doSite, [], servidor());
