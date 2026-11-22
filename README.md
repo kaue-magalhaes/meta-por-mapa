@@ -27,7 +27,9 @@ fica atrás do Cloudflare, que barra os servidores do GitHub.
 A rotação vem da API oficial da Supercell. Ela não lista a aba Especial do jogo (os
 Mega Showdown), que vem do Brawl Time Ninja: o mapa jogado por último em cada modo que
 não está na API nem no Ranqueado.
-A chave, criada em developer.brawlstars.com e presa ao IP de casa, fica em
+O pedido passa pelo proxy da RoyaleAPI (`bsproxy.royaleapi.dev`), como o da Worker,
+porque a chave fica presa a um IP e o IP de casa muda sem aviso. A chave, criada em
+developer.brawlstars.com com o IP do proxy (`45.79.218.79`), fica em
 `~/.config/brawlstars-api/token`. Se o Brawl Time Ninja falhar, o site sai mesmo
 assim, com as estatísticas da última vez e a rotação atualizada.
 

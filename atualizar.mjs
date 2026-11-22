@@ -120,13 +120,15 @@ const diasAtras = (dias) => new Date(Date.now() - dias * 864e5).toISOString().sl
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
 
 // A rotação vem da API oficial da Supercell, e não do BTN. A chave é criada em
-// developer.brawlstars.com e fica presa ao IP de casa; se o IP mudar, a API responde
-// 403 e é preciso criar outra. A Worker (worker/) usa outra chave, pelo proxy.
+// developer.brawlstars.com e fica presa a um IP. Até 22/11 era o IP de casa, que muda
+// sem aviso e derrubava a rotação; agora o pedido passa pelo proxy da RoyaleAPI, como o
+// da Worker (worker/), e a chave leva o IP fixo dele, 45.79.218.79.
 const CHAVE_OFICIAL = join(homedir(), '.config/brawlstars-api/token');
+const API_OFICIAL = 'https://bsproxy.royaleapi.dev/v1';
 
 async function oficial(caminho) {
   const chave = (await readFile(CHAVE_OFICIAL, 'utf8')).trim();
-  const r = await fetch(`https://api.brawlstars.com/v1${caminho}`, { headers: { authorization: `Bearer ${chave}` } });
+  const r = await fetch(`${API_OFICIAL}${caminho}`, { headers: { authorization: `Bearer ${chave}` } });
   const d = await r.json().catch(() => null);
   if (!r.ok) throw new Error(`API oficial recusou ${caminho} (HTTP ${r.status}): ${d?.reason ?? ''} ${d?.message ?? ''}`.trim());
   return d;
