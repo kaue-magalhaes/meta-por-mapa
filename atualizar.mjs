@@ -23,6 +23,7 @@ import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos
 import { atributosDaSemana } from './wiki.mjs';
 import { atualizarNomesEImagens } from './imagens.mjs';
 import { compactarTabela } from './draft.mjs';
+import { separarRotacao, versaoDe, versaoEm, montarEstado } from './publicacao.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -555,8 +556,6 @@ async function main() {
   const json = JSON.stringify(dados);
   await writeFile(new URL('dados.json', dir), json);
   await montarPagina(dados);
-  const estatisticasEm = Object.values(partes).map((p) => p.geradoEm).sort()[0];
-  await writeFile(new URL('site/estado.json', dir), JSON.stringify({ publicadoEm: dados.geradoEm, estatisticasEm }));
   console.log(`ok: site/index.html gerado (${(json.length / 1e6).toFixed(2)} MB de dados, ${pedidosBtn} pedidos ao BTN)`);
 }
 
@@ -573,27 +572,29 @@ const nomesEImagens = (partes) => atualizarNomesEImagens(dir, mapasDe(partes), b
 // dados-trofeu.js e só são baixados quando alguém abre esse modo. Os dois guardam o JSON
 // num texto lido por JSON.parse, que o navegador lê mais rápido que um objeto escrito em JS.
 // A tabela de confrontos vai compacta (compactarTabela, no draft.mjs) e a página a remonta.
+// A rotação vai só no estado.json, com a versão dos dados (publicacao.mjs).
 async function montarPagina(dados) {
   const [modelo, draft] = await Promise.all(['modelo.html', 'draft.mjs'].map((f) => readFile(new URL(f, dir), 'utf8')));
-  // A mesma conta está no modelo.html (VERSAO), que pede o dados-trofeu.js da mesma geração.
-  const versao = Date.parse(dados.geradoEm).toString(36);
+  const { principal, trofeu, rotacao } = separarRotacao(dados, compactarTabela);
+  const jsonPrincipal = JSON.stringify(principal);
+  const jsonTrofeu = JSON.stringify(trofeu);
+  const versao = versaoDe(jsonPrincipal, jsonTrofeu);
+  const anterior = await readFile(new URL('site/estado.json', dir), 'utf8').then(JSON.parse).catch(() => null);
+  const em = versaoEm(anterior, versao, new Date().toISOString());
   const pagina = modelo
     .replace('/*__DRAFT__*/', () => draft.replace(/^export /gm, ''))
     .replaceAll('__VERSAO__', versao);
-  const compactos = (mapas) => mapas.map((m) => (m.tabela ? { ...m, tabela: compactarTabela(m.tabela) } : m));
-  const trofeu = compactos(dados.partes.trofeu?.mapas ?? []);
-  const principal = {
-    ...dados,
-    // Todo brawler que aparece em algum mapa, na ordem dos mapas: a busca do Draft acha
-    // também quem só aparece no Troféu, antes de os mapas dele chegarem.
-    brawlers: [...new Set(Object.values(dados.partes).flatMap((p) => p.mapas.flatMap((m) => m.brawlers.map((b) => b.nome))))],
-    partes: Object.fromEntries(Object.entries(dados.partes).map(([id, p]) => [id, id === 'trofeu' ? { ...p, mapas: [] } : { ...p, mapas: compactos(p.mapas) }])),
-  };
+  // O texto vai num JSON.parse: a versão entra no fim do objeto, sem refazer o JSON inteiro.
   const lerDepois = (json) => `JSON.parse(${JSON.stringify(json)})`;
+  const comVersao = `${jsonPrincipal.slice(0, -1)},"versao":${JSON.stringify(versao)},"versaoEm":${JSON.stringify(em)}}`;
   await mkdir(new URL('site/', dir), { recursive: true });
   await writeFile(new URL('site/index.html', dir), pagina);
-  await writeFile(new URL('site/dados.js', dir), `const DADOS = ${lerDepois(JSON.stringify(principal))};\n`);
-  await writeFile(new URL('site/dados-trofeu.js', dir), `trofeuChegou(${lerDepois(JSON.stringify(trofeu))});\n`);
+  await writeFile(new URL('site/dados.js', dir), `const DADOS = ${lerDepois(comVersao)};\n`);
+  // A versão vai junto: a borda do GitHub Pages ignora o ?v= e pode entregar o arquivo de
+  // outra geração a uma página aberta há horas, que então confere se saiu versão nova.
+  await writeFile(new URL('site/dados-trofeu.js', dir), `trofeuChegou(${lerDepois(jsonTrofeu)}, ${JSON.stringify(versao)});\n`);
+  const estado = montarEstado({ publicadoEm: new Date().toISOString(), partes: dados.partes, versao, versaoEm: em, rotacao });
+  await writeFile(new URL('site/estado.json', dir), JSON.stringify(estado));
 }
 
 // --so-pagina refaz o site/index.html com o dados.json que já existe, sem pedido ao BTN

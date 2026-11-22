@@ -749,6 +749,20 @@ dialog.folha::backdrop { background: rgb(12 10 18 / .55); }
    para o Tab ir do "?" para o texto, e o posiciona embaixo do "?", ou em cima quando
    embaixo não cabe. --seta é onde fica a ponta, sob o "?". */
 .ajuda[aria-expanded="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--papel-base); }
+/* Aviso de estatísticas novas: preso embaixo, por cima do modo Draft também. */
+.aviso-versao {
+  position: fixed; z-index: 70; left: 50%; bottom: calc(var(--margem) + env(safe-area-inset-bottom));
+  translate: -50% 0; width: min(420px, calc(100vw - 2 * var(--margem)));
+  display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 16px;
+  border-radius: var(--raio); border: 1.5px solid var(--linha-forte);
+  background: var(--cartao); color: var(--tinta); box-shadow: 0 4px 0 var(--linha-forte);
+}
+.aviso-versao[hidden] { display: none; }
+.aviso-versao p { flex: 1; margin: 0; font-size: var(--t-pequeno); font-weight: 700; text-wrap: pretty; }
+.aviso-versao-atualizar {
+  min-height: var(--alvo); padding: 0 16px; border-radius: 12px;
+  background: var(--tinta); color: var(--papel); font-weight: 800;
+}
 .balao {
   position: absolute; z-index: 25; width: min(340px, calc(100vw - 2 * var(--margem)));
   padding: 12px 14px 2px; border-radius: var(--raio); border: 1.5px solid var(--linha-forte);
@@ -1182,18 +1196,27 @@ details.mais > summary .seta { margin-left: auto; }
   <button class="balao-como" type="button" data-como="">Mais em Como funciona</button>
 </div>
 
+<!-- Saiu versão nova das estatísticas com a pessoa no meio do uso (conferirVersao). -->
+<div class="aviso-versao" id="avisoVersao" role="status" hidden>
+  <p>Saíram estatísticas novas.</p>
+  <button class="aviso-versao-atualizar" id="atualizarVersao" type="button">Atualizar</button>
+  <button class="icone" id="fecharVersao" type="button" aria-label="Fechar o aviso">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
+</div>
+
 <!-- Os dados ficam fora da página, que assim chega leve e aparece antes. O dados.js declara
   DADOS com tudo menos os mapas do Troféu, que vêm do dados-trofeu.js só quando alguém abre
-  esse modo (carregarTrofeu). O v muda a cada geração, pra nenhum cache misturar versões. -->
+  esse modo (carregarTrofeu). O v muda quando as estatísticas mudam (publicacao.mjs); a
+  rotação, que muda de hora em hora, vem do estado.json (conferirVersao). -->
 <script src="dados.js?v=__VERSAO__"></script>
 <script>
 if (typeof DADOS === 'undefined') {
   document.getElementById('capa').innerHTML = '<p class="capa-erro">Não deu para carregar os dados. Recarregue a página.</p>';
   throw new Error('dados.js não carregou');
 }
-// A versão do dados.js que chegou; o dados-trofeu.js pedido depois é o da mesma geração.
-// A mesma conta está no gerador da página, que põe a versão no endereço do dados.js.
-const VERSAO = Date.parse(DADOS.geradoEm).toString(36);
+// A versão do dados.js que chegou, posta pelo gerador.
+const VERSAO = DADOS.versao;
 
 // Nomes como aparecem no jogo em inglês. Os nomes internos vêm do Brawl Time Ninja.
 const MODOS = {
@@ -1542,15 +1565,27 @@ const chave = (m) => slug(`${m.parte} ${m.modo} ${m.mapa}`);
 // Troféu. Até lá, DADOS.partes.trofeu tem tudo menos os mapas. O dados-trofeu.js chama
 // trofeuChegou com eles. Se falhar, o próximo pedido tenta de novo.
 const doTrofeu = (k) => typeof k === 'string' && k.startsWith('trofeu-');
+
+// A rotação do Troféu não vem nos dados: chega do estado.json (conferirVersao) e é aplicada
+// aos mapas que já chegaram e aos que chegarem depois. em: a hora em que o gerador a leu.
+let rotacao = { em: null, mapas: new Set() };
+function aplicarRotacao(mapas = DADOS.partes.trofeu?.mapas ?? []) {
+  for (const m of mapas) m.rotacao = rotacao.mapas.has(`${m.modo}|${m.mapa}`);
+}
+
 let trofeuPedido = null;
 function carregarTrofeu() {
   const p = DADOS.partes.trofeu;
   if (!p || p.mapas.length) return Promise.resolve();
   return trofeuPedido ??= new Promise((pronto, falhou) => {
-    window.trofeuChegou = (mapas) => {
+    window.trofeuChegou = (mapas, versao) => {
       for (const m of mapas) receberMapa(m, 'trofeu');
+      aplicarRotacao(mapas);
       p.mapas.push(...mapas);
       TODOS.push(...mapas);
+      // A borda do GitHub Pages ignora o ?v=: numa página aberta há horas, os mapas podem
+      // ser de uma geração mais nova que o DADOS. Aí vale conferir se saiu versão nova.
+      if (versao && versao !== VERSAO) conferirVersao(false);
       pronto();
     };
     const s = document.createElement('script');
@@ -1563,7 +1598,7 @@ function carregarTrofeu() {
 let atual = null;
 
 // A rotação do troféu é refeita de hora em hora; as estatísticas, uma vez por dia.
-const quandoRot = (parte) => hora(DADOS.partes[parte].rotacaoEm ?? DADOS.partes[parte].geradoEm);
+const quandoRot = (parte) => hora((parte === 'trofeu' && rotacao.em) || DADOS.partes[parte].geradoEm);
 const modosDa = (parte) => [...new Set(DADOS.partes[parte].mapas.map((m) => m.modo))]
   .sort((a, b) => posModo({ modo: a }) - posModo({ modo: b }));
 
@@ -3337,6 +3372,65 @@ function abrirPrimeiro() {
   // Quem recarregou a página no meio do draft volta para o modo, com a partida guardada.
   if (modoLembrado()) temDraft(atual) ? abrirDraft() : lembrarModo(false);
 }
+// ---------- Versão nova e rotação ----------
+// O site sai de novo a cada hora, mas uma aba aberta não pede nada sozinha: no celular, a
+// aba volta da memória (ou do cache, se o navegador a descartou) com a rotação de ontem.
+// A página consulta o estado.json sem cache ao abrir, quando a aba volta para a frente e a
+// cada 10 minutos com ela na tela, como o SvelteKit e o Nuxt fazem. Pesquisa de 22/11:
+// ~/.claude/spec/brawl-meta/ferramenta-meta/2026-11-22-cache-da-pagina.md.
+// A borda do GitHub Pages guarda cada arquivo até 10 minutos e ignora o ?t=, então
+// consultar mais vezes não adianta; o ?t= fica contra cache no meio do caminho.
+const avisoVersao = document.getElementById('avisoVersao');
+let conferidaEm = 0;
+async function conferirVersao(podeRecarregar) {
+  // Na volta pelo voltar do celular, visibilitychange e pageshow chegam juntos.
+  if (Date.now() - conferidaEm < 5000) return;
+  conferidaEm = Date.now();
+  let estado;
+  try {
+    estado = await (await fetch(`estado.json?t=${Date.now()}`, { cache: 'no-store' })).json();
+  } catch {
+    return;
+  }
+  // Só anda pra frente: a borda pode devolver um estado.json mais velho que o da última vez.
+  if (Array.isArray(estado.rotacao) && Date.parse(estado.rotacaoEm) > (Date.parse(rotacao.em) || 0)) {
+    rotacao = { em: estado.rotacaoEm, mapas: new Set(estado.rotacao) };
+    aplicarRotacao();
+    if (atual?.parte === 'trofeu') desenharCapa(atual);
+    if (document.getElementById('folhaMapa').open && parteVista === 'trofeu') desenharSeletor();
+  }
+  // O estado.json da borda pode ser mais velho que a página: só vale versão mais nova.
+  if (estado.versao && estado.versao !== VERSAO && Date.parse(estado.versaoEm) > Date.parse(DADOS.versaoEm)) {
+    novaVersao(estado.versao, podeRecarregar);
+  }
+}
+// Quem acabou de abrir ou de voltar para a aba ainda não começou a ler: a página recarrega
+// sozinha. No meio do Draft, ou com a aba na tela, aparece o aviso, e a pessoa escolhe a
+// hora (WCAG G76). A partida do Draft fica guardada e volta depois da recarga.
+function novaVersao(versao, podeRecarregar) {
+  if (podeRecarregar && !draftAberto() && primeiraRecargaPara(versao)) return location.reload();
+  avisoVersao.hidden = false;
+}
+// Trava contra recarga em laço, como a do Nuxt: logo depois de uma publicação, a borda pode
+// ter o estado.json novo e a página velha, e a recarga traria a página velha de novo.
+function primeiraRecargaPara(versao) {
+  try {
+    if (sessionStorage.getItem('recarregouPara') === versao) return false;
+    sessionStorage.setItem('recarregouPara', versao);
+    return true;
+  } catch {
+    return false;
+  }
+}
+document.getElementById('atualizarVersao').addEventListener('click', () => location.reload());
+document.getElementById('fecharVersao').addEventListener('click', () => { avisoVersao.hidden = true; });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) conferirVersao(true); });
+window.addEventListener('pageshow', (e) => { if (e.persisted) conferirVersao(true); });
+setInterval(() => { if (!document.hidden) conferirVersao(false); }, 10 * 60e3);
+// Ao abrir, antes dos mapas do Troféu: cobre também a aba que o celular descartou e
+// restaurou do cache com a página velha.
+conferirVersao(true);
+
 // Link ou mapa lembrado do Troféu espera os mapas dele. Se não vierem, abre no Ranqueado.
 const hashInicial = location.hash.slice(1);
 !porChave(hashInicial) && (doTrofeu(hashInicial) || doTrofeu(guardar.ler('mapa', null)))
