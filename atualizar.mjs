@@ -3,8 +3,9 @@
 // hora, com os mapas da rotação marcados. O perfil de quem usa a página vem da Worker
 // em worker/, buscado pela tag na hora; o endereço dela vai junto nos dados.
 //
-// Roda de hora em hora, mas as estatísticas do BTN só são coletadas uma vez por dia
-// (pedido do dono do site). Nas outras rodadas mudam só a rotação, que vem
+// Roda de hora em hora, mas as estatísticas do BTN só são coletadas uma vez por dia,
+// escolha nossa pra pesar pouco no site (as regras do dono estão em API_BTN). Nas outras
+// rodadas mudam só a rotação, que vem
 // da API oficial, e os mapas da aba Especial, num pedido pequeno ao BTN.
 //
 // Uso: node atualizar.mjs [--parte ranqueado|trofeu] [--rank 16] [--blocos 2] [--limite N] [--so-pagina]
@@ -58,11 +59,14 @@ const DIAS_MAPA = 14;
 const HORAS_ENTRE_COLETAS = 23;
 
 // Desde 21/10/2026 o BTN barra quem não tem token; o nosso veio em 27/10, por DM ao
-// schneefux, dono do site, no Discord dele. As regras dele: User-Agent com o nome do app e
-// um contato, poucos pedidos a cada poucos minutos e só as tabelas já somadas, que são
-// rápidas e vêm em blocos de duas semanas. A tabela de partidas, usada até 21/10, é
-// lenta. Uma coleta faz uns 55 pedidos, um a cada INTERVALO, e roda uma vez por dia. Fora
-// dela sai um pedido por hora, o dos mapas da aba Especial (desde 07/11).
+// schneefux, dono do site, no Discord dele. As três regras dele, na DM: User-Agent com o
+// nome do app e um contato; pedidos espalhados ("a few requests every few minutes instead
+// of ~500 requests in a short timespan"); e pedir do mesmo jeito que o site pede, porque
+// resposta que vem do cache (cabeçalho com HIT) sai quase de graça pra ele. Ele não pediu
+// uma vez por dia: isso é escolha nossa. Usamos só as tabelas já somadas, que vêm em blocos
+// de duas semanas; a tabela de partidas, usada até 21/10, é lenta. Uma coleta faz uns 55
+// pedidos, um a cada INTERVALO. Fora dela sai um pedido por hora, o dos mapas da aba
+// Especial (desde 07/11).
 const API_BTN = 'https://brawltime.ninja/api';
 const TOKEN_BTN = join(homedir(), '.config/brawltime-ninja/token');
 const AGENTE = 'meta-por-mapa (https://kaue-magalhaes.github.io/meta-por-mapa/; kauedemagalhaes27@gmail.com)';
@@ -84,8 +88,21 @@ async function btn(procedimento, entrada) {
     await esperar(ultimoPedido + INTERVALO - Date.now());
     ultimoPedido = Date.now();
     pedidosBtn++;
-    const r = await fetch(url, { headers: { 'User-Agent': AGENTE, Authorization: `Bearer ${tokenBtn}` } });
-    const texto = await r.text();
+    // Falha de rede não traz status, e o "fetch failed" sozinho não dizia qual pedido caiu
+    // (22/11, no 7º pedido da coleta). Tenta de novo como no site ocupado.
+    let r;
+    let texto;
+    try {
+      r = await fetch(url, { headers: { 'User-Agent': AGENTE, Authorization: `Bearer ${tokenBtn}` } });
+      texto = await r.text();
+    } catch (e) {
+      if (tentativa < 3) {
+        console.warn(`${procedimento}: falha de rede (${e.cause?.code ?? e.cause?.message ?? e.message}), tentando de novo`);
+        await esperar(60_000 * tentativa);
+        continue;
+      }
+      throw new Error(`${procedimento}: falha de rede (${e.cause?.code ?? e.cause?.message ?? e.message}), pedido ${JSON.stringify(entrada?.query?.cubeId ?? '')} ${JSON.stringify(entrada?.query?.dimensionsIds ?? [])}`);
+    }
     // Quando o site barra o acesso (proteção contra robôs), a resposta é uma página HTML.
     if (texto.startsWith('<')) {
       throw new Error(`o BTN barrou ${procedimento} (HTTP ${r.status}): ${texto.slice(0, 120).replace(/\s+/g, ' ')}`);
