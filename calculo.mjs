@@ -137,6 +137,10 @@ const pesoDaIdade = (dia, agora, meiaVida, dias) => {
 // patches é o Map do efeitoDosPatches: cada dia anda a soma dos efeitos dos patches que
 // vieram depois dele, e o dia de um patch, que mistura antes e depois, sai. O peso dos
 // dias de antes não muda, porque o patch mexe no nível do brawler, não em onde ele é bom.
+// Troféus por partida e posição (do Troféu) saem na média com o mesmo peso, sem o patch:
+// o efeito medido é em vitória.
+const MEDIAS_EXTRAS = ['trophyChange', 'rank'];
+
 export function pesarPorIdade(linhas, agora, patches = new Map(), meiaVida = MEIA_VIDA, dias = DIAS_PERIODO) {
   const soma = new Map();
   for (const r of linhas) {
@@ -146,10 +150,30 @@ export function pesarPorIdade(linhas, agora, patches = new Map(), meiaVida = MEI
     if (!w || doBrawler.some((p) => p.dia === dia)) continue;
     const n = Number(r.picks) * w;
     const wr = Number(r.winRate) + somaDepoisDe(dia, doBrawler);
-    const x = soma.get(r.brawler) ?? { n: 0, v: 0 };
-    soma.set(r.brawler, { n: x.n + n, v: x.v + n * wr });
+    const x = soma.get(r.brawler) ?? { n: 0, v: 0, extras: {} };
+    x.n += n;
+    x.v += n * wr;
+    for (const k of MEDIAS_EXTRAS) {
+      if (r[k] == null) continue;
+      const e = (x.extras[k] ??= { n: 0, s: 0 });
+      e.n += n;
+      e.s += n * Number(r[k]);
+    }
+    soma.set(r.brawler, x);
   }
-  return [...soma].map(([brawler, { n, v }]) => ({ brawler, picks: n, winRate: n ? v / n : 0 }));
+  return [...soma].map(([brawler, { n, v, extras }]) => ({
+    brawler,
+    picks: n,
+    winRate: n ? v / n : 0,
+    ...Object.fromEntries(Object.entries(extras).filter(([, e]) => e.n).map(([k, e]) => [k, e.s / e.n])),
+  }));
+}
+
+// Nomes de mapa em grupos de até porGrupo, cada nome num grupo só, pra dividir uma
+// consulta grande em pedidos que caibam no limite de linhas do BTN.
+export function gruposDeMapas(nomes, porGrupo) {
+  const unicos = [...new Set(nomes)];
+  return Array.from({ length: Math.ceil(unicos.length / porGrupo) }, (_, i) => unicos.slice(i * porGrupo, (i + 1) * porGrupo));
 }
 
 // Quanto um dia anda pra chegar ao nível de hoje: a soma dos efeitos dos patches depois dele.

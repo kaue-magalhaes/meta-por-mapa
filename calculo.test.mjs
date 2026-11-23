@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, duplasDeAliados, mapasNoAr, especiaisNoAr } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, gruposDeMapas, duplasDeAliados, mapasNoAr, especiaisNoAr } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -146,6 +146,28 @@ test('pesarPorIdade soma o efeito de todos os patches que vieram depois do dia',
   const total = w(6) + w(3) + w(0);
   perto(r[0].picks, 100 * total);
   perto(r[0].winRate, ((0.5 + 0.1 - 0.05) * w(6) + (0.7 - 0.05) * w(3) + 0.6 * w(0)) / total);
+});
+
+test('pesarPorIdade faz a média pesada dos troféus e da posição, sem andar o patch neles', () => {
+  const agora = Date.parse('2026-10-17T12:00:00Z');
+  const r = pesarPorIdade([
+    { brawler: 'COLT', day: '2026-10-17T00:00:00.000', picks: '100', winRate: '0.5', trophyChange: '4', rank: '3' },
+    { brawler: 'COLT', day: '2026-10-03T00:00:00.000', picks: '100', winRate: '0.6', trophyChange: '1', rank: '6' },
+    { brawler: 'BEA', day: '2026-10-17T00:00:00.000', picks: '10', winRate: '0.5', trophyChange: null, rank: null },
+  ], agora, new Map([['COLT', [{ dia: '2026-10-10', efeito: -0.1 }]]]));
+  const colt = r.find((x) => x.brawler === 'COLT');
+  // Hoje vale 1 e 14 dias atrás vale 0,5. O patch anda a vitória do dia 3, e não os troféus.
+  perto(colt.winRate, (0.5 + 0.5 * 0.5) / 1.5);
+  perto(colt.trophyChange, (4 + 0.5 * 1) / 1.5);
+  perto(colt.rank, (3 + 0.5 * 6) / 1.5);
+  const bea = r.find((x) => x.brawler === 'BEA');
+  assert.equal(bea.trophyChange, undefined);
+  assert.equal(bea.rank, undefined);
+});
+
+test('gruposDeMapas divide os nomes sem repetir mapa em dois grupos', () => {
+  assert.deepEqual(gruposDeMapas(['A', 'B', 'A', 'C', 'D', 'E'], 2), [['A', 'B'], ['C', 'D'], ['E']]);
+  assert.deepEqual(gruposDeMapas([], 2), []);
 });
 
 const diaDe = (brawler, day, picks, winRate) => ({ brawler, day: `${day}T00:00:00.000`, picks: String(picks), winRate: String(winRate) });

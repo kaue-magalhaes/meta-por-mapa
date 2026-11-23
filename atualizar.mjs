@@ -19,7 +19,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM, mapasNoAr, especiaisNoAr } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, gruposDeMapas,resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM, mapasNoAr, especiaisNoAr } from './calculo.mjs';
 import { atributosDaSemana } from './wiki.mjs';
 import { atualizarNomesEImagens } from './imagens.mjs';
 import { compactarTabela } from './draft.mjs';
@@ -311,6 +311,33 @@ async function mapasDoRanqueado() {
     .sort((a, b) => pos(a.modo) - pos(b.modo) || a.modo.localeCompare(b.modo) || a.mapa.localeCompare(b.mapa));
 }
 
+// O efeito de cada patch fica no log, pra conferir o chute contra a medida depois.
+function logPatches(parte, patches) {
+  if (!patches.size) return;
+  const pontos = (x) => `${x > 0 ? '+' : ''}${(x * 100).toFixed(1)}`;
+  const efeitos = [...patches].map(([b, lista]) => `${nomeBonito(b)} ${lista.map((p) => `${pontos(p.efeito)} (${p.dia.slice(8)}/${p.dia.slice(5, 7)})`).join(' ')}`);
+  console.log(`${parte}: efeito dos patches, em pontos: ${efeitos.join(', ')}`);
+}
+
+// O troféu tem uns 190 mapas, e com os blocos de seis semanas a consulta de todos de uma
+// vez passa das 50 mil linhas. Cada mapa dá umas 500 (120 brawlers em 4 blocos), então
+// vão 80 mapas por pedido; grupo que ainda bater o limite é partido ao meio.
+const MAPAS_POR_PEDIDO = 80;
+
+async function porGruposDeMapas(nomes, pedir) {
+  const linhas = [];
+  const buscar = async (grupo) => {
+    const parte = await pedir(grupo);
+    if (parte.length < LIMITE_LINHAS) return juntar(linhas, parte);
+    if (grupo.length === 1) throw new Error(`${grupo[0]}: um mapa só bateu o limite de ${LIMITE_LINHAS} linhas`);
+    const meio = Math.ceil(grupo.length / 2);
+    await buscar(grupo.slice(0, meio));
+    await buscar(grupo.slice(meio));
+  };
+  for (const grupo of gruposDeMapas(nomes, MAPAS_POR_PEDIDO)) await buscar(grupo);
+  return linhas;
+}
+
 // No ranqueado, a vitória de cada brawler pesa as partidas pela idade (pesarPorIdade),
 // com o efeito dos patches da lista do config.json. Duplas e counters continuam com os
 // blocos juntos.
@@ -339,11 +366,7 @@ async function gerarRanqueado(desde, anterior) {
 
   // O efeito de cada patch sai do ranqueado inteiro e vale igual em todo mapa e no fundo.
   const patches = efeitoDosPatches(doModo, config.patches ?? [], agora);
-  if (patches.size) {
-    const pontos = (x) => `${x > 0 ? '+' : ''}${(x * 100).toFixed(1)}`;
-    const efeitos = [...patches].map(([b, lista]) => `${nomeBonito(b)} ${lista.map((p) => `${pontos(p.efeito)} (${p.dia.slice(8)}/${p.dia.slice(5, 7)})`).join(' ')}`);
-    console.log(`ranqueado: efeito dos patches, em pontos: ${efeitos.join(', ')}`);
-  }
+  logPatches('ranqueado', patches);
   const pesar = (linhas) => porBrawler(pesarPorIdade(linhas, agora, patches));
   const modos = [...new Set(lista.map((m) => m.modo))];
   const doModoX = (linhas, modo) => linhas.filter((r) => r.mode === modo);
@@ -444,10 +467,22 @@ async function gerarTrofeu(desde, rotacao) {
   console.log(`troféu: ${lista.length} mapas em ${modos.length} modos; na rotação: ${naRotacao.map((k) => k.split('|')[1]).join(', ') || 'nenhum'}`);
   const presentes = [...new Set(lista.map((m) => m.modo))];
 
-  // Todos os mapas de uma vez, sem peso por idade; a posição só vale no Showdown.
-  const linhas = await consulta('map', ['brawler', 'mode', 'map'], ['picks', 'winRate', 'trophyChange', 'rank'], { ...base, season: [desde] });
-  const doModoTodo = new Map(presentes.map((modo) => [modo, somarPorBrawler(linhas.filter((r) => r.mode === modo))]));
-  const trofeu = somarPorBrawler(linhas);
+  // Como no ranqueado: seis semanas, com peso por idade e o efeito dos patches, medido nas
+  // partidas do próprio troféu. Até 22/11 eram os blocos juntos, sem peso, e partida de
+  // antes de um nerf contava igual à de depois. A posição só vale no Showdown.
+  const agora = Date.now();
+  const periodo = { ...base, season: [diasAtras(DIAS_PERIODO)] };
+  const porModo = diasDosBlocos(await consulta('map', ['brawler', 'mode', 'season'], ['picks', 'winRate'], periodo), agora);
+  const patches = efeitoDosPatches(porModo, config.patches ?? [], agora);
+  logPatches('troféu', patches);
+  const pesar = (linhas) => pesarPorIdade(linhas, agora, patches);
+  const doMapa = diasDosBlocos(
+    await porGruposDeMapas(lista.map((m) => m.mapa), (grupo) =>
+      consultaCortavel('map', ['brawler', 'mode', 'map', 'season'], ['picks', 'winRate', 'trophyChange', 'rank'], { ...periodo, map: grupo })),
+    agora,
+  );
+  const doModoTodo = new Map(presentes.map((modo) => [modo, somarPorBrawler(pesar(porModo.filter((r) => r.mode === modo)))]));
+  const trofeu = somarPorBrawler(pesar(porModo));
   const ehShowdown = (modo) => modo.endsWith('Showdown');
 
   // Duplas e counters do troféu são do modo inteiro, e não de cada mapa. Mapa a mapa,
@@ -468,9 +503,7 @@ async function gerarTrofeu(desde, rotacao) {
       modo,
       mapa,
       {
-        brawlers: linhas
-          .filter((r) => r.mode === modo && r.map === mapa)
-          .map((r) => (ehShowdown(modo) ? r : { ...r, rank: null })),
+        brawlers: pesar(doMapa.filter((r) => r.mode === modo && r.map === mapa)).map((r) => (ehShowdown(modo) ? r : { ...r, rank: null })),
         aliados: aliados.get(modo),
         confrontos: confrontos.get(modo) ?? [],
       },
@@ -488,6 +521,8 @@ async function gerarTrofeu(desde, rotacao) {
   return {
     geradoEm: new Date().toISOString(),
     desde,
+    dias: DIAS_PERIODO,
+    meiaVida: MEIA_VIDA,
     faixa: FAIXA_TROFEU,
     nicho: LIMITE_NICHO,
     modos: modos.filter((m) => presentes.includes(m)),

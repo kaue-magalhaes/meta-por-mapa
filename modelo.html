@@ -1628,9 +1628,11 @@ function info() {
   const gerado = new Date(p.geradoEm);
   const fmt = (d, o) => d.toLocaleDateString('pt-BR', o);
   const desdeTxt = fmt(desde, { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
-  // No ranqueado a tier list pesa as partidas pela idade; duplas e counters usam os blocos.
+  // A tier list pesa as partidas pela idade; duplas e counters usam os blocos. O Troféu
+  // ganhou o peso em 22/11; dado de antes disso não tem dias.
+  const doModo = atual.parte === 'trofeu' ? 'do modo inteiro, ' : '';
   const periodo = p.dias
-    ? [`Tier list das últimas ${p.dias / 7} semanas, as recentes valem mais`, `Duplas e counters desde ${desdeTxt}`]
+    ? [`Tier list das últimas ${p.dias / 7} semanas, as recentes valem mais`, `Duplas e counters ${doModo}desde ${desdeTxt}`]
     : [`Partidas desde ${desdeTxt}`, 'Duplas e counters do modo inteiro'];
   const frases = [
     `Atualizado em ${fmt(gerado, { day: '2-digit', month: '2-digit' })} às ${hora(p.geradoEm)}`,
@@ -2355,7 +2357,7 @@ const AJUDA = {
 // parágrafos em HTML; os números saem das constantes da conta, para não mentir quando ela muda.
 const ASSUNTOS = [
   { chave: 'dados', titulo: 'De onde vêm os dados', texto: () => [
-    `Das partidas registradas pelo <a href="https://brawltime.ninja" target="_blank" rel="noopener">Brawl Time Ninja</a>, no período e na faixa que aparecem no rodapé. No Ranqueado, a tier list usa as últimas ${semanas(DIAS_RANQ)}, e uma partida de ${semanas(MEIA_VIDA_RANQ)} atrás vale metade de uma de hoje; o número de partidas mostrado já vem com esse peso. No Troféu, duplas e counters são do modo inteiro.`,
+    `Das partidas registradas pelo <a href="https://brawltime.ninja" target="_blank" rel="noopener">Brawl Time Ninja</a>, no período e na faixa que aparecem no rodapé. ${DADOS.partes.trofeu?.dias ? 'Nas duas listas' : 'No Ranqueado'}, a tier list usa as últimas ${semanas(DIAS_RANQ)}, e uma partida de ${semanas(MEIA_VIDA_RANQ)} atrás vale metade de uma de hoje; o número de partidas mostrado já vem com esse peso. Depois de um balanceamento, as partidas de antes entram corrigidas pelo efeito dele, medido nos dias seguintes. No Troféu, duplas e counters são do modo inteiro.`,
     'As contas (vitória ajustada, tiers, duplas, counters) são desta página. Não é um site oficial da Supercell: o aviso e a Política de Conteúdo de Fãs estão no rodapé.',
   ] },
   { chave: 'lista', titulo: 'A ordem da lista e a média acima de 50%', texto: () => [
