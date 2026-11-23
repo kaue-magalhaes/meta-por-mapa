@@ -29,6 +29,16 @@ export function pesoNoDraft(m) {
   return (x, inimigos) => PESO_FORCA * f(x) + PESO_CONFRONTO * inimigos.reduce((s, e) => s + contra(x, e) - contra(e, x), 0);
 }
 
+// A nota que ordena a recomendação: a do pesoNoDraft com a força trocada pela nota da
+// tier list (m.nota), que tem o freio por uso desde 23/11 (freioDeUso, no calculo.mjs).
+// Sem isso, o Draft punha no topo brawler raro que a lista já tinha tirado do S. A chance
+// continua com o pesoNoDraft puro: foi ele que a regressão calibrou.
+export function notaNoDraft(m) {
+  const peso = pesoNoDraft(m);
+  if (!m.nota) return peso;
+  return (x, inimigos) => peso(x, inimigos) + PESO_FORCA * ((m.nota[x] ?? 0) - (m.forca[x] ?? 0));
+}
+
 // Confronto de x contra e na leitura da partida: a média das linhas que existem no
 // mapa, a de x contra e e a de e contra x com o sinal trocado, cada uma com a força do
 // adversário de volta, como no pesoNoDraft. A chance conta a linha que falta como zero;
@@ -43,9 +53,9 @@ export function confrontoLido(m, x, e) {
   return lados.length ? lados.reduce((s, v) => s + v, 0) / lados.length : null;
 }
 
-// Os brawlers livres que mais sobem a chance do nosso time, pela mesma conta dela. Antes
-// de 2026-10-20 a força e o confronto somavam com o mesmo peso, e o 1º da lista podia
-// baixar a chance. O próprio time não entra: em 2026-10-17 a dupla quase não rendeu além
+// Os brawlers livres com a maior nota (notaNoDraft): a conta da chance, com a força da
+// tier list. Antes de 2026-10-20 a força e o confronto somavam com o mesmo peso, e o 1º da
+// lista podia baixar a chance. O próprio time não entra: em 2026-10-17 a dupla quase não rendeu além
 // da força dos dois. São 5 porque nem todo colega tem cada um. Entra todo brawler com
 // força, não só os da tier list: em mapa novo ela tem dois ou três nomes.
 //
@@ -55,7 +65,7 @@ export function confrontoLido(m, x, e) {
 // conta. Até 15/11 o motivo lia só a linha do brawler contra o inimigo, e a tela dizia
 // "contra Emz −5,3" no Mr. P em Double Swoosh, que pela conta ganha da Emz.
 export function recomendar(m, fora, inimigos, quantos = 5) {
-  const peso = pesoNoDraft(m);
+  const peso = notaNoDraft(m);
   const posicao = new Map(m.brawlers.map((b, i) => [b.nome, i + 1]));
   const sd = new Map(m.brawlers.map((b) => [b.nome, b.sd]));
   const motivo = (nome) => {

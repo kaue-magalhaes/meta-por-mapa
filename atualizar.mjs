@@ -267,6 +267,8 @@ function processarMapa(modo, mapa, { brawlers, aliados, confrontos }, extras) {
     confrontos: confrontos.map((c) => [nomeBonito(c.brawler), nomeBonito(c.enemy), Number(c.picks), Number(c.winRate)]),
     duplas,
     forca: new Map([...forca].map(([nome, { delta }]) => [nome, delta])),
+    // A força com o freio por uso, de todo brawler: ordena o Draft como a tier list.
+    nota: new Map([...forca].map(([nome, { delta }]) => [nome, freio(delta, (doMapa.get(nome)?.n ?? 0) / total)])),
     media,
   };
   const listaDuplas = Object.entries(duplas)
@@ -450,6 +452,8 @@ async function gerarRanqueado(desde, anterior) {
       // A força de todo brawler, não só de quem tem partidas pra tier list. Sem ela, no
       // Draft quem ficava de fora contava como mediano, e esses ganham 47%.
       forca: Object.fromEntries([...bruto.forca].map(([nome, delta]) => [nome, r4(delta)])),
+      // O Draft ordena por esta (notaNoDraft, no draft.mjs) e calcula a chance pela forca.
+      nota: Object.fromEntries([...bruto.nota].map(([nome, v]) => [nome, r4(v)])),
     };
   });
   return { geradoEm: new Date().toISOString(), desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, rank: RANK, mapas };

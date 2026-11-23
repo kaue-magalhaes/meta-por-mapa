@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PESO_FORCA, SD_SEM_MARGEM, pesoNoDraft, confrontoLido, recomendar, comEmpate, leitura, maiorPerigo, quemGanhaDele, compactarTabela, expandirTabela } from './draft.mjs';
+import { PESO_FORCA, SD_SEM_MARGEM, pesoNoDraft, confrontoLido, recomendar, comEmpate, chanceDoTime, leitura, maiorPerigo, quemGanhaDele, compactarTabela, expandirTabela } from './draft.mjs';
 
 // Mapa de brinquedo. A ganha de E por uma ponta (+0,01) e perde pela outra (E contra A
 // +0,03, com a força de A de volta): pela conta da nota, A perde de E. B ganha de E e de F
@@ -91,6 +91,23 @@ test('recomendar ordena pela nota e corta em quantos', () => {
   assert.equal(r.length, 2);
   const notas = Object.keys(brinquedo.forca).filter((n) => n !== 'E').map((n) => peso(n, ['E'])).sort((a, b) => b - a);
   assert.deepEqual(r.map((x) => x.nota), notas.slice(0, 2));
+});
+
+// O mesmo brinquedo com a nota da tier list (freio por uso): A é forte mas quase ninguém
+// usa, e a nota dele cai a zero.
+const comNota = { ...brinquedo, nota: { ...brinquedo.forca, A: 0 } };
+
+test('recomendar ordena pela nota da tier list quando o mapa tem uma', () => {
+  const ordem = recomendar(comNota, new Set(), [], Infinity).map((r) => r.nome);
+  assert.ok(ordem.indexOf('A') > ordem.indexOf('B'), ordem.join(','));
+  assert.equal(recomendar(brinquedo, new Set(), [], Infinity)[0].nome, 'A');
+  // O confronto continua o mesmo: só a parte da força troca.
+  const a = recomendar(comNota, new Set(['E']), ['E'], Infinity).find((r) => r.nome === 'A');
+  assert.ok(Math.abs(a.nota - (pesoNoDraft(brinquedo)('A', ['E']) - PESO_FORCA * 0.02)) < 1e-12);
+});
+
+test('chanceDoTime não usa a nota da tier list, só a força calibrada', () => {
+  assert.equal(chanceDoTime(comNota, ['A'], ['E']), chanceDoTime(brinquedo, ['A'], ['E']));
 });
 
 test('recomendar inclui brawler sem posição na tier list', () => {

@@ -2391,7 +2391,7 @@ const ASSUNTOS = [
   ] },
   { chave: 'draft', titulo: 'Draft e teclado', texto: () => [
     'Só no Ranqueado. Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O botão "Estou no draft" liga o modo Draft. Basta marcar quem o inimigo pegou, com um toque nos mais escolhidos do mapa ou digitando o nome em "Outro"; bloqueios e o nosso time são opcionais e tiram nomes da lista.',
-    '"Melhor agora" mostra os 5 que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com os inimigos já escolhidos: três à vista e mais dois a um toque. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois.',
+    '"Melhor agora" mostra os 5 melhores pela força no mapa e pelos confrontos com os inimigos já escolhidos: três à vista e mais dois a um toque. A força é a da tier list, com o uso no mapa: brawler que quase ninguém escolhe precisa de confronto muito bom para subir. A chance mostrada usa só a vitória, porque é a conta que foi conferida com partidas reais; por isso um brawler raro de especialista pode dar mais chance que o 1º da lista. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois.',
     'Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. Nos empatados aparece também o seu recorde de troféus com ele. "Seu forte" é quem você marcou com "Sei jogar" na folha do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo.',
     '"Chance e alcance" mostra a chance de vitória do nosso time, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos.',
     'Com pelo menos um brawler de cada lado, a leitura por brawler diz quem cada um do nosso time caça e evita, pelos mesmos confrontos; com o nosso time completo, ela vira o "Plano da partida". A tabela compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. A linha do maior perigo mostra o inimigo mais forte no mapa e quem ganha dele. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.',
@@ -2682,7 +2682,11 @@ function blocoSeusFortes(m, lista, escolhas, selos) {
   const base = chanceDoTime(m, [...nos, melhor], eles);
   const custo = (n) => {
     const pontos = Math.round(100 * (base - chanceDoTime(m, [...nos, n], eles)));
-    return pontos > 0 ? `${pontos} ${pontos === 1 ? 'ponto' : 'pontos'} de chance a menos que ${esc(nomePt(melhor))}` : `mesma chance que ${esc(nomePt(melhor))}`;
+    // O melhor sai da nota com o freio por uso, e a chance não tem o freio: um forte raro da
+    // pessoa pode dar mais chance que ele, e aí a tela diz isso.
+    const qtos = (p) => `${p} ${p === 1 ? 'ponto' : 'pontos'}`;
+    if (pontos > 0) return `${qtos(pontos)} de chance a menos que ${esc(nomePt(melhor))}`;
+    return pontos < 0 ? `${qtos(-pontos)} de chance a mais que ${esc(nomePt(melhor))}` : `mesma chance que ${esc(nomePt(melhor))}`;
   };
   return `<section class="dm-fortes" id="draftFortes" aria-labelledby="draftFortesTitulo">
     <h3 id="draftFortesTitulo">Dos seus fortes</h3>
