@@ -20,7 +20,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, gruposDeMapas,resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM, mapasNoAr, especiaisNoAr } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, gruposDeMapas,resumirConfrontos, especialistas, forcaNaCascata, freioDeUso, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM, mapasNoAr, especiaisNoAr } from './calculo.mjs';
 import { atributosDaSemana } from './wiki.mjs';
 import { atualizarNomesEImagens } from './imagens.mjs';
 import { compactarTabela } from './draft.mjs';
@@ -251,11 +251,14 @@ function processarMapa(modo, mapa, { brawlers, aliados, confrontos }, extras) {
   const conhecidos = estimada
     ? [...semEste.keys()].filter((nome) => doModo(nome) && !doMapa.has(nome)).map((nome) => ({ nome, n: 0, wr: null, uso: 0 }))
     : [];
+  // O uso entra na nota (freioDeUso). Mapa estimado tem pouca partida e uso de sorte: ali
+  // fica só a vitória.
+  const freio = estimada ? (delta) => delta : freioDeUso(linhas.filter((r) => r.n >= MIN_PARTIDAS).map((r) => r.n / total));
   const lista = [...linhas.map((r) => ({ ...r, uso: r.n / total })), ...conhecidos]
     .map((r) => {
       const { delta, variancia } = forca.get(r.nome);
       // A margem só foi validada no ranqueado; a página marca o S que pode ser B.
-      return { ...r, adj: media + delta, ...(extras.margem && { sd: r4(FOLGA_MARGEM * Math.sqrt(variancia)) }) };
+      return { ...r, adj: media + freio(delta, r.uso), ...(extras.margem && { sd: r4(FOLGA_MARGEM * Math.sqrt(variancia)) }) };
     })
     .sort((a, b) => b.adj - a.adj);
   const principais = lista.filter((r) => r.n >= MIN_PARTIDAS || (estimada && doModo(r.nome)));

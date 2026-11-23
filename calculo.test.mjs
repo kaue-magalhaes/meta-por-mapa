@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, gruposDeMapas, duplasDeAliados, mapasNoAr, especiaisNoAr } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, gruposDeMapas, duplasDeAliados, mapasNoAr, especiaisNoAr, freioDeUso } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -410,4 +410,28 @@ test('especiaisNoAr sem partida nenhuma devolve lista vazia', () => {
 
 test('mapasNoAr sem partida nenhuma devolve lista vazia', () => {
   assert.deepEqual(mapasNoAr([], (ultima) => ultima), []);
+});
+
+test('freioDeUso quase não mexe em brawler com uso grande e comum no mapa', () => {
+  const freio = freioDeUso([0.05, 0.05]);
+  // 0,05 × 0,05 / (0,05 + 0,005), sem bônus porque o uso é o usual do mapa
+  assert.ok(Math.abs(freio(0.05, 0.05) - 0.05 * 0.05 / 0.055) < 1e-9);
+});
+
+test('freioDeUso tira a maior parte da vantagem de brawler raro', () => {
+  const freio = freioDeUso([0.01, 0.01]);
+  // 0,08 × 0,0025 / 0,0075 + 0,01 × ln(0,0025 / 0,01)
+  const esperado = 0.08 * (0.0025 / 0.0075) + 0.01 * Math.log(0.25);
+  assert.ok(Math.abs(freio(0.08, 0.0025) - esperado) < 1e-9);
+  assert.ok(freio(0.08, 0.0025) < 0.02);
+});
+
+test('freioDeUso dá um bônus pequeno a quem muita gente escolhe', () => {
+  const freio = freioDeUso([0.01, 0.01]);
+  assert.ok(Math.abs(freio(0, 0.08) - 0.01 * Math.log(8)) < 1e-9);
+});
+
+test('freioDeUso aguenta uso zero e mapa sem referência', () => {
+  assert.ok(Number.isFinite(freioDeUso([0.01])(0.05, 0)));
+  assert.equal(freioDeUso([])(0.05, 0.01), 0.05);
 });

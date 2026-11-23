@@ -1333,8 +1333,9 @@ const telaLarga = matchMedia('(min-width: 900px)');
 const TEXTO_NICHO = 'Menos de 0,5% de uso. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, então a vitória mede também a mão desses jogadores.';
 const nicho = (b) => atual.parte === 'trofeu' && b.uso < (DADOS.partes.trofeu.nicho ?? 0.005);
 
-// Onde cada tier começa, em diferença pra média do mapa. Com a cascata, as duas
-// partes dão a mesma quantidade de S e A por mapa com as mesmas faixas.
+// Onde cada tier começa, em diferença pra média do mapa, já com o freio por uso
+// (freioDeUso, no calculo.mjs). Com os dados de 23/11, a mediana ficou em 7 S por mapa
+// nas duas partes; sem o freio eram 13 no Troféu e 7 no Ranqueado.
 const FAIXAS = { S: 0.04, A: 0.02, B: -0.01 };
 
 function tierDe(delta) {
@@ -2321,7 +2322,7 @@ const AJUDA = {
   inimigo: { topico: 'counters', texto: () => [
     'Os 5 mais escolhidos neste mapa, os inimigos mais prováveis, e os 3 que mais ganham de cada um no confronto direto. O número é o efeito do confronto, não só a força de quem responde.'] },
   lista: { topico: 'lista', texto: () => [
-    'A ordem é a da vitória ajustada: ela parte da força no modo inteiro e vira a do mapa conforme o brawler junta partidas. Os tiers são faixas de pontos acima ou abaixo da média do mapa, e o "!" avisa que o número merece cuidado.'] },
+    'A ordem é a da vitória ajustada: ela parte da força no modo inteiro e vira a do mapa conforme o brawler junta partidas, e brawler pouco escolhido no mapa tem a vantagem encolhida. Os tiers são faixas de pontos acima ou abaixo da média do mapa, e o "!" avisa que o número merece cuidado.'] },
   duplas: { topico: 'duplas', texto: () => [atual.parte === 'ranqueado'
     ? 'A ordem vem da força dos dois na lista mais o que a dupla rende junta além disso. Essa parte a mais é pequena, então quase sempre são dois brawlers fortes juntos.'
     : 'No Troféu, as duplas são do modo inteiro, porque a maioria dos mapas tem poucas partidas. O número é a vitória da dupla, sem ajuste.'] },
@@ -2362,6 +2363,7 @@ const ASSUNTOS = [
   ] },
   { chave: 'lista', titulo: 'A ordem da lista e a média acima de 50%', texto: () => [
     'A lista é ordenada pela vitória ajustada. Ela parte da força do brawler no modo inteiro e vai virando a do mapa conforme ele junta partidas: com 400 partidas aqui, metade vem do mapa e metade do modo. Assim um brawler com 9 partidas e 8 vitórias não vai pro topo, e mapa novo já tem lista. Na folha do brawler, a vitória real é o que ele fez no período, sem esse ajuste.',
+    'Depois entra o uso no mapa. Brawler que quase ninguém escolhe tem a vantagem encolhida, e quem é muito escolhido ganha um pouco. A vitória de brawler raro mede quem escolhe ele, quase sempre um especialista, e não o que acontece na sua mão. E o que os jogadores bons escolhem também diz algo: em 23/11, o uso no Ranqueado concordou com a presença dos brawlers no Mundial de 2026 bem mais do que a vitória.',
     'Os tiers são faixas de pontos acima ou abaixo da média do mapa. Quem tem poucas partidas e ganhou bem acima da média aparece em "Pouca amostra", em "Para estudar".',
     '<b>Por que a média passa de 50%.</b> O Brawl Time Ninja só registra partidas de quem já pesquisou o próprio perfil lá, e essa turma joga melhor que a média. Por isso cada mapa tem a própria média, e o "+N" do Pegue e a barra da lista, no PC, mostram quanto o brawler fica acima ou abaixo dela.',
   ] },
@@ -2402,7 +2404,7 @@ const ASSUNTOS = [
     'Com essa lista, o Pegue mostra só quem você tem no máximo, o Draft apaga quem você não tem e "Vale maximizar" mostra quem ainda falta: quem está no tier S ou A em mais mapas do Ranqueado e os fortes deste mapa. "Sei jogar", na folha do brawler, marca os seus fortes, que o Draft põe na frente.',
   ].filter(Boolean) },
   { chave: 'outros', titulo: 'Por que outros sites ordenam diferente', texto: () => [
-    'Alguns sites dão uma nota que mistura vitória com uso, e aí brawler muito escolhido sobe mesmo ganhando pouco. Aqui a ordem é só pela vitória ajustada. Em 11/11, o Hank tinha a segunda maior vitória do Mítico num desses sites, 58%, e aparecia em 83º de 108, porque quase ninguém joga com ele. No Ranqueado desta página, ele ficava entre os 3 primeiros em metade dos mapas onde aparece. Aqui, quanto o brawler é escolhido aparece no número de partidas e, no Ranqueado, no selo "popular", sem mexer na ordem.',
+    'Os sites grandes de LoL e de Marvel Rivals misturam vitória com uso, uns com mais peso no uso, outros com menos. Desde 23/11 esta página também mistura, com peso pequeno: a vitória continua mandando, mas brawler com menos de 0,5% de uso precisa ganhar bem mais para chegar ao S. Até então a ordem era só pela vitória, e o S tinha brawlers que quase ninguém joga e que nenhum profissional escolhe. Site que dá mais peso ao uso põe brawler muito escolhido no topo mesmo ganhando pouco.',
   ] },
 ];
 

@@ -52,6 +52,29 @@ export function ajustada(vitorias, partidas, media, peso = PESO_MEDIA) {
   return (vitorias + media * peso) / (partidas + peso);
 }
 
+// Freio por uso (23/11/2026). A vitória de brawler raro mede quem o escolhe: o especialista
+// e, no Ranqueado, quem pega só quando o outro time não tem o counter. Em 23/11 o S do
+// Troféu tinha brawlers com 0,2% de uso, e a presença no Mundial de 2026 (escolha mais
+// banimento) concordou 0,60 com o uso no Ranqueado e -0,16 com a vitória. Como LoL e
+// Marvel Rivals fazem, o uso entra na nota: a vantagem encolhe com uso abaixo de USO_FREIO,
+// e quem tem mais uso que o típico do mapa ganha um bônus (PESO_USO por vez que o uso
+// multiplica por e, cerca de 2,7). Com os dados de 23/11, o S por mapa foi de 13 para 7 no
+// Troféu e ficou em 7 no Ranqueado; a concordância com o Mundial foi de -0,16 para +0,27 no
+// Ranqueado e de -0,04 para +0,11 no Troféu. PESO_USO 0,005 mexia quase nada nela (+0,06);
+// 0,02 chega a +0,43, mas dobra o S por mapa. Primeiro chute, ajustado no jogo.
+export const USO_FREIO = 0.005;
+export const PESO_USO = 0.01;
+const USO_MINIMO = 1e-4;
+const logDoUso = (uso) => Math.log(Math.max(uso, USO_MINIMO));
+
+// usos: o uso de cada brawler da tier list do mapa, que dá o uso típico. Devolve a conta
+// (delta, uso) -> delta com o freio; sem referência, o delta passa como veio.
+export function freioDeUso(usos) {
+  if (!usos.length) return (delta) => delta;
+  const tipico = usos.reduce((s, u) => s + logDoUso(u), 0) / usos.length;
+  return (delta, uso) => (delta * uso) / (uso + USO_FREIO) + PESO_USO * (logDoUso(uso) - tipico);
+}
+
 // As contas da cascata recebem Map nome -> { n, v }, com v = vitórias.
 export const mediaDe = (linhas) => {
   let n = 0;
