@@ -35,9 +35,9 @@ Gerados, fora do git, nunca editados à mão: a pasta `site/`, o `dados.json`, o
 ## Antes de afirmar ou decidir
 
 - Antes de afirmar como um trecho funciona, abra o trecho. Comentário, handoff e diagnóstico antigos podem estar errados: em 24/11 um diagnóstico disse que o freio por uso era aplicado duas vezes, e não era.
-- Todo número que você escreve (comentário, commit, resposta) diz de onde veio: o teste, os dados de uma data, a fonte. Os comentários do `calculo.mjs` mostram o padrão.
-- O que você não conseguiu conferir, diga que não conferiu. Não complete com o que parece plausível.
-- Regra de negócio nova (o que entra na nota, um corte, um peso, quem aparece no S) é decisão do Kauê. Leve como pergunta curta, "A ou B?", com a sua sugestão. Ajuste de peso vem do teste dele no jogo.
+- Todo número que você escreve (comentário, commit, resposta) diz de onde veio: o teste, os dados de uma data, a fonte. Sem a fonte, ninguém refaz a conta quando os dados mudam. Os comentários do `calculo.mjs` mostram o padrão.
+- O que você não conseguiu conferir, diga que não conferiu. Não complete com o que parece plausível: o Kauê decide pelo que você relata, e palpite dito como fato vira decisão errada.
+- Regra de negócio nova (o que entra na nota, um corte, um peso, quem aparece no S) é decisão do Kauê, porque é ele quem testa a tier list no jogo e responde pelo que o site recomenda. Leve como pergunta curta, "A ou B?", com a sua sugestão. Ajuste de peso vem do teste dele no jogo.
 - Dependência nova, framework ou troca de tecnologia também é decisão dele.
 - Comentário explica o porquê que o código não diz, com a data e o dado. Não conte a conversa nem as tentativas descartadas.
 
