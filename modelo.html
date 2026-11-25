@@ -1408,8 +1408,9 @@ const GRUPOS = {
 };
 // As teclas que escolhem o grupo da vez no modo Draft. Ficam lado a lado no teclado (B, I e
 // N ficavam longe), e funcionam com o cursor no campo porque nenhum nome de brawler tem
-// esses números.
-const GRUPO_DA_TECLA = { 1: 'eles', 2: 'nos', 3: 'bloqueios' };
+// esses números. Seguem a ordem das vagas na tela (desenharVagas): bloqueios, nosso time,
+// inimigo (Kauê, 25/11/2026).
+const GRUPO_DA_TECLA = { 1: 'bloqueios', 2: 'nos', 3: 'eles' };
 
 // A partida do ranqueado em andamento, uma por vez: quem foi bloqueado, quem o inimigo
 // pegou e quem o nosso time pegou. O modo Draft e os botões da folha do brawler
