@@ -8,12 +8,14 @@
 // quando o conteúdo muda.
 
 import { createHash } from 'node:crypto';
+import { nomeBonito } from './calculo.mjs';
 
 const chaveDoMapa = (m) => `${m.modo}|${m.mapa}`;
 
-// dados: o mesmo objeto do dados.json. Devolve o conteúdo do dados.js (principal) e do
-// dados-trofeu.js (trofeu), os dois sem a rotação, e a rotação à parte. A tabela de
-// confrontos sai como compactar devolver.
+// dados: o objeto do dados.json, mais o que a montagem da página acrescenta (a lista do
+// listaDoMaximo). Devolve o conteúdo do dados.js (principal) e do dados-trofeu.js
+// (trofeu), os dois sem a rotação, e a rotação à parte. A tabela de confrontos sai como
+// compactar devolver.
 export function separarRotacao(dados, compactar = (tabela) => tabela) {
   const compactos = (mapas) => mapas.map(({ rotacao, ...m }) => (m.tabela ? { ...m, tabela: compactar(m.tabela) } : m));
   const doTrofeu = dados.partes.trofeu;
@@ -64,4 +66,20 @@ export function montarEstado({ publicadoEm, partes, versao, versaoEm: em, rotaca
     rotacaoEm: rotacao.em,
     rotacao: rotacao.mapas,
   };
+}
+
+// A lista do máximo no Ranqueado (maxNoRanqueado, no config.json) como o dados.js leva:
+// o fim da temporada e os nomes como a página os usa. Config torto não derruba a rodada,
+// que deixaria o site sem publicar: sai sem lista, e a página não marca ninguém. Nome que
+// não aparece em conhecidos (os brawlers dos dados) entra, mas vai para os avisos, porque
+// um erro de digitação faria o brawler nunca ser marcado.
+export function listaDoMaximo(max, conhecidos) {
+  if (max == null) return { lista: null, avisos: [] };
+  if (!Array.isArray(max.brawlers) || Number.isNaN(Date.parse(max.ate))) {
+    return { lista: null, avisos: ['precisa de ate (uma data) e brawlers (uma lista); a página não marca ninguém'] };
+  }
+  const brawlers = max.brawlers.map((n) => nomeBonito(String(n)));
+  const existe = new Set(conhecidos);
+  const avisos = brawlers.filter((n) => !existe.has(n)).map((n) => `${n} não aparece nos dados`);
+  return { lista: { ate: max.ate, brawlers }, avisos };
 }

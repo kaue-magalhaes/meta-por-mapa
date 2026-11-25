@@ -24,7 +24,7 @@ import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, gruposDeMapas,res
 import { atributosDaSemana } from './wiki.mjs';
 import { atualizarNomesEImagens } from './imagens.mjs';
 import { compactarTabela } from './draft.mjs';
-import { separarRotacao, versaoDe, versaoEm, montarEstado } from './publicacao.mjs';
+import { separarRotacao, versaoDe, versaoEm, montarEstado, listaDoMaximo } from './publicacao.mjs';
 
 const dir = new URL('.', import.meta.url);
 const config = JSON.parse(await readFile(new URL('config.json', dir), 'utf8'));
@@ -637,8 +637,8 @@ const nomesEImagens = (partes) =>
 // leve a lista nova do config.json.
 async function montarPagina(dados) {
   const [modelo, draft] = await Promise.all(['modelo.html', 'draft.mjs'].map((f) => readFile(new URL(f, dir), 'utf8')));
-  const max = config.maxNoRanqueado;
-  const maxNoRanqueado = max ? { ate: max.ate, brawlers: max.brawlers.map(nomeBonito) } : null;
+  const { lista: maxNoRanqueado, avisos } = listaDoMaximo(config.maxNoRanqueado, brawlersDe(dados.partes));
+  for (const aviso of avisos) console.warn(`maxNoRanqueado, no config.json: ${aviso}`);
   const { principal, trofeu, rotacao } = separarRotacao({ ...dados, maxNoRanqueado }, compactarTabela);
   const jsonPrincipal = JSON.stringify(principal);
   const jsonTrofeu = JSON.stringify(trofeu);

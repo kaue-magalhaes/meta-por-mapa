@@ -6,7 +6,7 @@ O `README.md` explica as fontes de dados, os tokens, o deploy e o que fazer depo
 
 ## Como conferir o trabalho
 
-- `node --test` na raiz roda todos os testes, inclusive os da Worker. Sem rede, em menos de 1 segundo (106 testes em 24/11/2026).
+- `node --test` na raiz roda todos os testes, inclusive os da Worker. Sem rede, em menos de 1 segundo (106 testes em 25/11/2026).
 - Um arquivo: `node --test calculo.test.mjs`. Um caso: `node --test --test-name-pattern="freioDeUso"`.
 - Leia o número de testes na saída. Fora da raiz, `node --test` não acha nenhum arquivo e sai com sucesso e `tests 0`.
 - Mudança no `modelo.html` ou no `draft.mjs` só aparece depois de gerar a página. Peça ao Kauê para rodar `! node atualizar.mjs --so-pagina` (o plugin descrito abaixo não deixa você rodar). Depois sirva a pasta com `python3 -m http.server 8765 --bind 127.0.0.1 -d site` e confira a tela.
@@ -27,10 +27,11 @@ Gerados, fora do git, nunca editados à mão: a pasta `site/`, o `dados.json`, o
 ## Armadilhas
 
 - Um plugin de privacidade recusa todo comando Bash que contenha o nome do gerador (`atualizar.mjs`), porque o arquivo guarda o e-mail do User-Agent do BTN. Leia e edite esse arquivo pelas ferramentas Read e Edit. Rodar o gerador é com o Kauê, pelo `!`. Não contorne o plugin com outro nome ou script equivalente.
-- Pedido ao BTN gasta a cota que o dono do site cedeu. Só com o ok do Kauê e fora dos minutos 8 a 35 de cada hora: o timer começa no minuto 10 e a coleta do dia leva uns 20 minutos. As regras do dono estão no comentário de `API_BTN`. Toda rodada do gerador sem `--so-pagina` faz pelo menos um pedido.
+- Pedido ao BTN gasta a cota que o dono do site cedeu. Só com o ok do Kauê e fora dos minutos 8 a 35 de cada hora: o timer começa no minuto 10, com até 5 de atraso, e a rodada com a coleta do dia levou 16 minutos de 21 a 25/11/2026 (journal do timer). As regras do dono estão no comentário de `API_BTN`. Toda rodada do gerador sem `--so-pagina` faz pelo menos um pedido.
 - Os cortes de tier (`FAIXAS`, no `modelo.html`) foram calibrados junto com `USO_FREIO` e `PESO_USO` (`calculo.mjs`). Mudar um lado sem o outro desmonta a tier list, e nenhum teste avisa.
 - Campo do `site/estado.json` pode entrar, nunca sair. O robô `.github/workflows/aviso-site-parado.yml` lê `estatisticasEm` para abrir a issue de site parado. Sem o campo, ele usa a data do último commit do `gh-pages`, que muda toda hora, e o aviso nunca mais abre.
 - Mudou o `nomeBonito`? A Worker precisa de deploy novo (`cd worker && npx wrangler deploy`), com o ok do Kauê. O timer só publica a página, nunca a Worker.
+- O timer gera e publica a partir desta pasta (`deploy/publicar.sh`), com o que estiver no disco, commitado ou não. Mudança no `modelo.html`, no `draft.mjs`, no `config.json` ou nas contas vai ao ar na rodada seguinte, entre os minutos 10 e 15. Confira a tela antes disso, ou guarde a mudança com `git stash` até a rodada passar.
 
 ## Antes de afirmar ou decidir
 

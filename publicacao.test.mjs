@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { separarRotacao, versaoDe, versaoEm, montarEstado } from './publicacao.mjs';
+import { separarRotacao, versaoDe, versaoEm, montarEstado, listaDoMaximo } from './publicacao.mjs';
 
 const mapa = (modo, nome, extra = {}) => ({ modo, mapa: nome, brawlers: [{ nome: 'Shelly' }], ...extra });
 
@@ -76,4 +76,20 @@ test('montarEstado mantém os campos que o robô de site parado lê', () => {
     rotacaoEm: '2026-11-22T18:00:00.000Z',
     rotacao: ['gemGrab|Emotional Detachment'],
   });
+});
+
+test('listaDoMaximo leva a lista do config com o nome da página e avisa do que não confere', () => {
+  const conhecidos = ['Frank', 'Mr. P'];
+  assert.deepEqual(listaDoMaximo({ ate: '2026-12-16T05:00:00-03:00', brawlers: ['FRANK', 'MR. P'] }, conhecidos),
+    { lista: { ate: '2026-12-16T05:00:00-03:00', brawlers: ['Frank', 'Mr. P'] }, avisos: [] });
+  // Nome digitado errado entra na lista, mas avisa: senão o brawler nunca seria marcado, em silêncio.
+  assert.deepEqual(listaDoMaximo({ ate: '2026-12-16', brawlers: ['FRANKK'] }, conhecidos).avisos, ['Frankk não aparece nos dados']);
+  // Sem a chave, nada a avisar.
+  assert.deepEqual(listaDoMaximo(undefined, conhecidos), { lista: null, avisos: [] });
+  // Config torto não derruba a rodada: sai sem lista, com aviso.
+  for (const torto of [{ ate: '2026-12-16', brawlers: 'FRANK' }, { ate: 'dia 16', brawlers: ['FRANK'] }]) {
+    const r = listaDoMaximo(torto, conhecidos);
+    assert.equal(r.lista, null);
+    assert.equal(r.avisos.length, 1);
+  }
 });
