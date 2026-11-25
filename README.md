@@ -70,6 +70,10 @@ Logo depois de um patch, quase todas as partidas do período são de antes dele,
 
 As partidas de antes do patch andam o efeito estimado dele, igual em todos os mapas, e o dia do patch sai. O Brawl Time Ninja dá as partidas em blocos de duas semanas, então elas são divididas igualmente pelos dias do bloco; o bloco que tem o patch no meio não entra na medida do efeito. O efeito começa no tamanho típico daquela mudança (`CHUTE_PATCH` em `calculo.mjs`) e vira o efeito medido conforme chegam os dias de depois. Brawler alterado em dois patches seguidos anda a soma dos dois. Cada efeito é medido só até o patch seguinte, então dois patches a menos de duas semanas um do outro ficam no tamanho típico até chegar um bloco inteiro depois do segundo. Patch que já saiu das 6 semanas pode ser apagado da lista.
 
+## Virada da temporada do Ranqueado
+
+No Ranqueado, o jogo deixa alguns brawlers no nível máximo para todo mundo até o fim da temporada. A página os trata como se a pessoa os tivesse no máximo. A cada temporada, troque `maxNoRanqueado` no `config.json`: em `brawlers`, os nomes como no jogo (em maiúsculas, como nos patches); em `ate`, a hora em que a temporada acaba, pelo contador do jogo. Depois dessa hora a página para de marcar, até a lista nova entrar.
+
 ## Perfil pela tag
 
 A página busca o perfil numa Cloudflare Worker (`worker/`), que guarda uma chave da

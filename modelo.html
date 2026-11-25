@@ -1454,13 +1454,6 @@ const MENSAGENS = {
   ocupado: 'Muita gente buscando agora. Tenta de novo em alguns minutos.',
   fora: 'Não consegui falar com o jogo agora.',
 };
-// Até 08/11/2026 a pessoa escolhia um membro do clube, e a tag dele ficava em 'perfil'.
-// A tag tem o mesmo formato, então os ajustes e o "Sei jogar" continuam valendo.
-// A chave antiga é apagada na migração; sem isso, quem esvazia o campo ganharia a tag de volta.
-if (typeof guardar.ler('perfil', null) === 'string') {
-  if (!guardar.ler('tag', null)) guardar.gravar('tag', guardar.ler('perfil', null));
-  guardar.gravar('perfil', null);
-}
 // Perfil no formato que a Worker devolve. Resposta torta ou perfil guardado estragado
 // não entra, senão quebraria a página a cada visita.
 function perfilValido(p) {
@@ -1478,11 +1471,9 @@ const temLista = () => meus.size > 0;
 let sei = {};
 
 // No ranqueado o jogo deixa alguns brawlers no máximo pra todo mundo até o fim da
-// temporada, mesmo pra quem não tem. Trocar a cada temporada (Kauê, 01/11/2026). Em
-// 01/11 o contador do jogo dizia 16 dias, então vale até o fim de 17/11. A atualização
-// de 03/11 subiu de 3 pra 6; a lista é a que o Kauê leu no jogo nesse dia (o Edgar de
-// antes era engano).
-const MAX_NO_RANQUEADO = new Date() < new Date(2026, 10, 18) ? new Set(['Pearl', 'Byron', 'Sirius', 'Bull', 'Melodie', 'Squeak']) : new Set();
+// temporada, mesmo pra quem não tem. A lista e o fim vêm do config.json (maxNoRanqueado,
+// trocado a cada temporada); passado o fim, ninguém é marcado até a lista nova entrar.
+const MAX_NO_RANQUEADO = new Set(DADOS.maxNoRanqueado && new Date() < new Date(DADOS.maxNoRanqueado.ate) ? DADOS.maxNoRanqueado.brawlers : []);
 // Se a pessoa joga com o brawler no máximo neste mapa. A caixa "Tenho no máximo" e o
 // que fica guardado continuam valendo só o que é dela.
 const tenho = (nome) => meus.has(nome) || (atual?.parte === 'ranqueado' && MAX_NO_RANQUEADO.has(nome));
@@ -1888,7 +1879,7 @@ const foraDoDraft = () => new Set([...partida.bloqueios, ...partida.eles, ...par
 // Todo brawler que aparece em alguma parte do site. Só o ranqueado não basta: brawler com
 // pouca partida no Lendário+ some de todos os mapas de lá, e a Bonnie não dava pra marcar.
 // A lista vem pronta no DADOS.brawlers, porque os mapas do Troféu chegam depois.
-const NOMES_TODOS = DADOS.brawlers ?? [...new Set(TODOS.flatMap((m) => m.brawlers.map((b) => b.nome)))];
+const NOMES_TODOS = DADOS.brawlers;
 const chaveNome = (s) => norm(s).replace(/[^a-z0-9]/g, '');
 
 // Nomes livres com o que foi digitado, do mais usado no mapa pro menos: com 2 letras

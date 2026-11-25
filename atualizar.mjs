@@ -632,10 +632,14 @@ const nomesEImagens = (partes) =>
 // dados-trofeu.js e só são baixados quando alguém abre esse modo. Os dois guardam o JSON
 // num texto lido por JSON.parse, que o navegador lê mais rápido que um objeto escrito em JS.
 // A tabela de confrontos vai compacta (compactarTabela, no draft.mjs) e a página a remonta.
-// A rotação vai só no estado.json, com a versão dos dados (publicacao.mjs).
+// A rotação vai só no estado.json, com a versão dos dados (publicacao.mjs). A lista do
+// máximo no Ranqueado entra aqui, e não no dados.json, pra que o --so-pagina também
+// leve a lista nova do config.json.
 async function montarPagina(dados) {
   const [modelo, draft] = await Promise.all(['modelo.html', 'draft.mjs'].map((f) => readFile(new URL(f, dir), 'utf8')));
-  const { principal, trofeu, rotacao } = separarRotacao(dados, compactarTabela);
+  const max = config.maxNoRanqueado;
+  const maxNoRanqueado = max ? { ate: max.ate, brawlers: max.brawlers.map(nomeBonito) } : null;
+  const { principal, trofeu, rotacao } = separarRotacao({ ...dados, maxNoRanqueado }, compactarTabela);
   const jsonPrincipal = JSON.stringify(principal);
   const jsonTrofeu = JSON.stringify(trofeu);
   const versao = versaoDe(jsonPrincipal, jsonTrofeu);

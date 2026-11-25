@@ -3,11 +3,11 @@
 // as palavras "export ", então ele roda também como script comum: nada de import, de
 // DOM nem de nome que já exista no modelo.html.
 
-// Pesos da regressão logística ajustada em 2026-10-20 com 33.221 partidas do Ranqueado
+// Coeficientes da regressão logística ajustada em 2026-10-20 com 33.221 partidas do Ranqueado
 // (Mítico a Mestre), que acertou 56,5% delas. A força pesa quase 4 vezes o confronto
 // porque o número de confronto tem mais ruído.
-export const PESO_FORCA = 3.88;
-export const PESO_CONFRONTO = 1.04;
+export const COEF_FORCA = 3.88;
+export const COEF_CONFRONTO = 1.04;
 
 // Empate: a conta não separa nomes com diferença de nota menor que a margem da força (o
 // sd da tier list, o mesmo do selo "incerto"). Brawler sem sd, com poucas partidas no
@@ -26,7 +26,7 @@ export const CORTE_LEITURA = 0.015;
 export function pesoNoDraft(m) {
   const f = (n) => m.forca[n] ?? 0;
   const contra = (x, e) => (m.tabela?.[x]?.[e] == null ? 0 : m.tabela[x][e] + f(e));
-  return (x, inimigos) => PESO_FORCA * f(x) + PESO_CONFRONTO * inimigos.reduce((s, e) => s + contra(x, e) - contra(e, x), 0);
+  return (x, inimigos) => COEF_FORCA * f(x) + COEF_CONFRONTO * inimigos.reduce((s, e) => s + contra(x, e) - contra(e, x), 0);
 }
 
 // A nota que ordena a recomendação: a do pesoNoDraft com a força trocada pela nota da
@@ -36,7 +36,7 @@ export function pesoNoDraft(m) {
 export function notaNoDraft(m) {
   const peso = pesoNoDraft(m);
   if (!m.nota) return peso;
-  return (x, inimigos) => peso(x, inimigos) + PESO_FORCA * ((m.nota[x] ?? 0) - (m.forca[x] ?? 0));
+  return (x, inimigos) => peso(x, inimigos) + COEF_FORCA * ((m.nota[x] ?? 0) - (m.forca[x] ?? 0));
 }
 
 // Confronto de x contra e na leitura da partida: a média das linhas que existem no
@@ -54,8 +54,7 @@ export function confrontoLido(m, x, e) {
 }
 
 // Os brawlers livres com a maior nota (notaNoDraft): a conta da chance, com a força da
-// tier list. Antes de 2026-10-20 a força e o confronto somavam com o mesmo peso, e o 1º da
-// lista podia baixar a chance. O próprio time não entra: em 2026-10-17 a dupla quase não rendeu além
+// tier list. O próprio time não entra: em 2026-10-17 a dupla quase não rendeu além
 // da força dos dois. São 5 porque nem todo colega tem cada um. Entra todo brawler com
 // força, não só os da tier list: em mapa novo ela tem dois ou três nomes.
 //
@@ -87,7 +86,7 @@ export function recomendar(m, fora, inimigos, quantos = 5) {
 // página, que sabe do perfil e do "Sei jogar".
 export function comEmpate(lista, { seuForte, recorde }) {
   let n = 1;
-  while (n < lista.length && lista[0].nota - lista[n].nota < PESO_FORCA * Math.hypot(lista[0].sd, lista[n].sd)) n++;
+  while (n < lista.length && lista[0].nota - lista[n].nota < COEF_FORCA * Math.hypot(lista[0].sd, lista[n].sd)) n++;
   const grupo = lista.slice(0, n).sort((a, b) => seuForte(b.nome) - seuForte(a.nome) || recorde(b.nome) - recorde(a.nome) || b.nota - a.nota);
   return { lista: [...grupo, ...lista.slice(n)], empatados: Math.min(n, lista.length) };
 }

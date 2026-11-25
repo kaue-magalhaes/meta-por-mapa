@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeBonito, ajustada, duplasDeTimes, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, gruposDeMapas, duplasDeAliados, mapasNoAr, especiaisNoAr, freioDeUso } from './calculo.mjs';
+import { nomeBonito, ajustada, resumirConfrontos, especialistas, forcaNaCascata, semOMapa, somar, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, diasDosBlocos, gruposDeMapas, duplasDeAliados, mapasNoAr, especiaisNoAr, freioDeUso } from './calculo.mjs';
 
 test('nomeBonito troca maiúsculas por nome normal', () => {
   assert.equal(nomeBonito('EL PRIMO'), 'El Primo');
@@ -10,12 +10,6 @@ test('nomeBonito troca maiúsculas por nome normal', () => {
 test('ajustada puxa a taxa pra média do mapa com peso de 100 partidas', () => {
   // 60 vitórias em 100 partidas, média 50%: (60 + 50) / 200
   assert.equal(ajustada(60, 100, 0.5), 0.55);
-});
-
-test('duplasDeTimes quebra cada time em pares ordenados', () => {
-  const d = duplasDeTimes([{ team: ['COLT', 'BEA', 'EL PRIMO'], picks: '10', winRate: '0.6' }]);
-  assert.deepEqual(Object.keys(d).sort(), ['Bea|Colt', 'Bea|El Primo', 'Colt|El Primo']);
-  assert.deepEqual(d['Bea|Colt'], { n: 10, v: 6 });
 });
 
 test('resumirConfrontos devolve efeito relativo à taxa do próprio brawler', () => {
@@ -356,7 +350,7 @@ test('efeitoDosPatches não mede no bloco que mistura antes e depois do patch', 
   perto(e.get('COLT')[0].efeito, (velho * -0.02 + novo * (0.04 - 0.1)) / (velho + novo));
 });
 
-test('duplasDeAliados junta os dois lados da dupla, como duplasDeTimes', () => {
+test('duplasDeAliados junta os dois lados da dupla', () => {
   const d = duplasDeAliados([
     { brawler: 'COLT', ally: 'BEA', picks: '10', winRate: '0.6' },
     { brawler: 'BEA', ally: 'COLT', picks: '30', winRate: '0.4' },

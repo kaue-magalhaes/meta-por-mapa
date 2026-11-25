@@ -2,6 +2,10 @@
   "worker": "https://meta-por-mapa-perfil.kaue-magalhaes.workers.dev",
   "rank": 16,
   "blocos": 2,
+  "maxNoRanqueado": {
+    "ate": "2026-12-16T05:00:00-03:00",
+    "brawlers": ["FRANK", "MICO", "SPIKE", "BONNIE", "MAX", "AMBER"]
+  },
   "patches": [
     {
       "data": "2026-09-16",

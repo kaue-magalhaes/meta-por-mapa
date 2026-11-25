@@ -13,7 +13,8 @@ name: Aviso de site parado
 
 on:
   schedule:
-    # A geração começa às :17 (com até 5 min de atraso) e leva poucos minutos.
+    # A geração começa às :10, com até 5 min de atraso (deploy/meta-por-mapa.timer). A
+    # rodada com a coleta do dia levou 16 min de 21 a 25/11/2026 (journal do timer).
     - cron: '45 * * * *'
   workflow_dispatch:
 

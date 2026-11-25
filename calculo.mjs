@@ -264,29 +264,9 @@ export function efeitoDosPatches(linhas, patches, agora, tabela = CHUTE_PATCH, m
   return saida;
 }
 
-// Times inteiros têm amostra pequena demais; quebrando em duplas a amostra sobe.
-// Recebe linhas { team, picks, winRate } e devolve { 'A|B': { n, v } }.
-export function duplasDeTimes(times) {
-  const duplas = {};
-  for (const t of times) {
-    const n = Number(t.picks);
-    const v = Number(t.winRate) * n;
-    const m = t.team.map(nomeBonito).sort();
-    for (let i = 0; i < m.length; i++) {
-      for (let j = i + 1; j < m.length; j++) {
-        const k = `${m[i]}|${m[j]}`;
-        duplas[k] ??= { n: 0, v: 0 };
-        duplas[k].n += n;
-        duplas[k].v += v;
-      }
-    }
-  }
-  return duplas;
-}
-
-// O mesmo, a partir da tabela de aliados do BTN ({ brawler, ally, picks, winRate }).
-// Cada dupla aparece duas vezes, uma do lado de cada um; as duas somam, como os times
-// somavam cada par uma vez por partida do jogador rastreado.
+// Duplas a partir da tabela de aliados do BTN ({ brawler, ally, picks, winRate }), no
+// formato { 'A|B': { n, v } }. Cada dupla aparece duas vezes, uma do lado de cada um, e
+// as duas somam: cada lado conta as partidas de um jogador rastreado diferente.
 export function duplasDeAliados(linhas) {
   const duplas = {};
   for (const r of linhas) {

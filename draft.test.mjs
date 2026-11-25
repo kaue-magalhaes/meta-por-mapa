@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PESO_FORCA, SD_SEM_MARGEM, pesoNoDraft, confrontoLido, recomendar, comEmpate, chanceDoTime, leitura, maiorPerigo, quemGanhaDele, compactarTabela, expandirTabela } from './draft.mjs';
+import { COEF_FORCA, SD_SEM_MARGEM, pesoNoDraft, confrontoLido, recomendar, comEmpate, chanceDoTime, leitura, maiorPerigo, quemGanhaDele, compactarTabela, expandirTabela } from './draft.mjs';
 
 // Mapa de brinquedo. A ganha de E por uma ponta (+0,01) e perde pela outra (E contra A
 // +0,03, com a força de A de volta): pela conta da nota, A perde de E. B ganha de E e de F
@@ -103,7 +103,7 @@ test('recomendar ordena pela nota da tier list quando o mapa tem uma', () => {
   assert.equal(recomendar(brinquedo, new Set(), [], Infinity)[0].nome, 'A');
   // O confronto continua o mesmo: só a parte da força troca.
   const a = recomendar(comNota, new Set(['E']), ['E'], Infinity).find((r) => r.nome === 'A');
-  assert.ok(Math.abs(a.nota - (pesoNoDraft(brinquedo)('A', ['E']) - PESO_FORCA * 0.02)) < 1e-12);
+  assert.ok(Math.abs(a.nota - (pesoNoDraft(brinquedo)('A', ['E']) - COEF_FORCA * 0.02)) < 1e-12);
 });
 
 test('chanceDoTime não usa a nota da tier list, só a força calibrada', () => {
@@ -141,7 +141,7 @@ test('comEmpate põe o seu forte na frente dentro do grupo empatado', () => {
     { nome: 'Z', nota: 0.0, sd: 0.01 },
   ];
   // X e Y empatam: 0,01 < 3,88 * hypot(0,01, 0,01). Z fica fora do grupo.
-  assert.ok(0.01 < PESO_FORCA * Math.hypot(0.01, 0.01));
+  assert.ok(0.01 < COEF_FORCA * Math.hypot(0.01, 0.01));
   const r = comEmpate(lista, { seuForte: (n) => n === 'Y' || n === 'Z', recorde: () => 0 });
   assert.deepEqual(r.lista.map((x) => x.nome), ['Y', 'X', 'Z']);
   assert.equal(r.empatados, 2);

@@ -53,8 +53,8 @@ export const versaoDe = (...conteudos) => {
 // estado.json pode chegar mais velho que a página, e versão só diferente não basta.
 export const versaoEm = (anterior, versao, agora) => (anterior?.versao === versao && anterior.versaoEm ? anterior.versaoEm : agora);
 
-// O estado.json. publicadoEm e estatisticasEm são lidos pelo robô de site parado
-// (.github/workflows/aviso-site-parado.yml): os campos podem crescer, nunca sumir.
+// O estado.json. O robô de site parado (.github/workflows/aviso-site-parado.yml) lê o
+// estatisticasEm: os campos podem crescer, nunca sumir.
 export function montarEstado({ publicadoEm, partes, versao, versaoEm: em, rotacao }) {
   return {
     publicadoEm,
