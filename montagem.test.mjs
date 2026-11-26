@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { listaDoMapa, mapasDoRanqueado, mapasDoTrofeu, montarRanqueado, montarTrofeu, deveColetar, MIN_PARTIDAS } from './montagem.mjs';
+import { listaDoMapa, mapasDoRanqueado, mapasDoTrofeu, montarRanqueado, montarTrofeu, deveColetar, pesoDaParte, MIN_PARTIDAS } from './montagem.mjs';
 
 // Um dia de referência para todas as contas com idade. Os blocos do BTN terminam no dia do
 // rótulo (season); o de 24/11 cobre de 10/11 a 23/11.
@@ -169,4 +169,41 @@ test('montarTrofeu: duplas e counters do modo, e o Showdown sem counters nem pos
   assert.equal(solo.confrontos, null);
   assert.ok(solo.brawlers.every((b) => b.posicao === 3));
   assert.equal(gem.tabela, undefined);
+});
+
+// Um nerf grande na Shelly em 17/11, com três blocos: antes (10/11), o do patch (24/11) e
+// o em andamento (08/12, que até 25/11 só tem dois dias). Ela cai de 56% para 50%.
+const NERF = [{ data: '2026-11-17', mudancas: [{ brawler: 'SHELLY', direcao: 'nerf', tamanho: 'grande' }] }];
+const comNerf = (mode) => [
+  ['2026-11-10T00:00:00.000Z', 0.56], ['2026-11-24T00:00:00.000Z', 0.53], ['2026-12-08T00:00:00.000Z', 0.5],
+].flatMap(([season, wr]) => [
+  { brawler: 'SHELLY', mode, season, picks: 5000, winRate: wr },
+  { brawler: 'COLT', mode, season, picks: 5000, winRate: 0.5 },
+]);
+
+test('pesoDaParte mede o nerf e pesa as partidas de antes com ele', () => {
+  const linhas = comNerf('gemGrab');
+  const { patches, pesar } = pesoDaParte(linhas, NERF, AGORA);
+  const [nerf] = patches.get('SHELLY');
+  assert.equal(nerf.dia, '2026-11-17');
+  assert.ok(nerf.efeito < 0);
+  // Sem o patch, as partidas de antes do nerf puxariam a Shelly para cima.
+  const semPatch = pesoDaParte(linhas, [], AGORA).pesar(linhas).find((r) => r.brawler === 'SHELLY');
+  const comPatch = pesar(linhas).find((r) => r.brawler === 'SHELLY');
+  assert.ok(comPatch.winRate < semPatch.winRate);
+});
+
+test('Troféu e Ranqueado medem o mesmo efeito de patch com as mesmas partidas', () => {
+  // Regra de 22/11/2026: mesmo período, mesma meia-vida e mesma correção nas duas partes.
+  const linhas = comNerf('gemGrab');
+  const comMapa = linhas.map((r) => ({ ...r, map: 'A' }));
+  const { patches: doRanqueado } = montarRanqueado(
+    { lista: [{ modo: 'gemGrab', mapa: 'A', id: 1 }], doModo: linhas, comAbaixo: linhas, doMapa: comMapa, aliados: [], confrontos: [] },
+    { agora: AGORA, patches: NERF, desde: '2026-11-10', rank: 16 },
+  );
+  const { patches: doTrofeu } = montarTrofeu(
+    { lista: [{ modo: 'gemGrab', mapa: 'A', id: 1, rotacao: false }], modos: ['gemGrab'], porModo: linhas, doMapa: comMapa, aliados: new Map([['gemGrab', []]]), confrontos: new Map([['gemGrab', []]]) },
+    { agora: AGORA, patches: NERF, desde: '2026-11-10' },
+  );
+  assert.deepEqual(doTrofeu, doRanqueado);
 });

@@ -134,6 +134,18 @@ export function listaDoMapa(modo, mapa, brawlers, { geral, cascata }) {
   };
 }
 
+// O peso das partidas de uma parte. Troféu e Ranqueado usam o mesmo período, a mesma
+// meia-vida e a mesma correção de patch, e mudança aqui vale nas duas (22/11/2026,
+// memória mesmo-peso-nas-duas-partes); cada parte mede o efeito dos patches nas
+// próprias partidas. doModo: as linhas do BTN da parte inteira por { brawler, mode,
+// season }, como vieram; patchesDoConfig: a lista do config.json.
+// Devolve os patches medidos e pesar, que leva outras linhas cruas da mesma parte a uma
+// linha por brawler, no formato do pesarPorIdade.
+export function pesoDaParte(doModo, patchesDoConfig, agora) {
+  const patches = efeitoDosPatches(diasDosBlocos(doModo, agora), patchesDoConfig, agora);
+  return { patches, pesar: (linhas) => pesarPorIdade(diasDosBlocos(linhas, agora), agora, patches) };
+}
+
 // Mapas do ranqueado no ar, das linhas { mode, map, eventId, timestamp } do BTN, na ordem
 // em que a página mostra: os modos de ORDEM_RANQUEADO primeiro, depois por nome.
 export function mapasDoRanqueado(linhas) {
@@ -145,38 +157,36 @@ export function mapasDoRanqueado(linhas) {
     .sort((a, b) => pos(a.modo) - pos(b.modo) || a.modo.localeCompare(b.modo) || a.mapa.localeCompare(b.mapa));
 }
 
-// No ranqueado, a vitória de cada brawler pesa as partidas pela idade (pesarPorIdade),
-// com o efeito dos patches da lista do config.json. Duplas e counters continuam com os
-// blocos juntos.
-// brutos: as linhas do BTN, como vieram. doModo e comAbaixo por { brawler, mode, season },
-//   doMapa por { brawler, mode, map, season }, aliados e confrontos por mapa.
+// A parte do ranqueado. As partidas pesam pelo pesoDaParte; duplas e counters continuam
+// com os blocos juntos, sem peso.
+// O primeiro argumento leva as linhas do BTN como vieram: doModo e comAbaixo por
+//   { brawler, mode, season }, doMapa por { brawler, mode, map, season }, aliados e
+//   confrontos por mapa.
 // Devolve a parte sem o geradoEm, que é a hora em que a casca terminou, e os patches
 // medidos, que a casca escreve no log.
-export function montarRanqueado({ lista, doModo: doModoBruto, comAbaixo: comAbaixoBruto, doMapa: doMapaBruto, aliados, confrontos }, { agora, patches: patchesDoConfig, desde, rank }) {
-  const doModo = diasDosBlocos(doModoBruto, agora);
-  // A liga logo abaixo (Mítico, com o rank padrão) entra como fundo da cascata. A tabela
-  // só filtra "dessa faixa pra cima", então o Mítico sai da diferença entre as duas.
-  const comAbaixo = diasDosBlocos(comAbaixoBruto, agora);
-  const doMapa = diasDosBlocos(doMapaBruto, agora);
+export function montarRanqueado({ lista, doModo, comAbaixo, doMapa, aliados, confrontos }, { agora, patches: patchesDoConfig, desde, rank }) {
   // O efeito de cada patch sai do ranqueado inteiro e vale igual em todo mapa e no fundo.
-  const patches = efeitoDosPatches(doModo, patchesDoConfig, agora);
-  const pesar = (linhas) => porBrawler(pesarPorIdade(linhas, agora, patches));
+  const { patches, pesar } = pesoDaParte(doModo, patchesDoConfig, agora);
+  const porNome = (linhas) => porBrawler(pesar(linhas));
   const modos = [...new Set(lista.map((m) => m.modo))];
   const doModoX = (linhas, modo) => linhas.filter((r) => r.mode === modo);
-  const geral = new Map(modos.map((modo) => [modo, pesar(doModoX(doModo, modo))]));
+  const geral = new Map(modos.map((modo) => [modo, porNome(doModoX(doModo, modo))]));
+  const vitoriasDoModo = new Map([...geral].map(([modo, m]) => [modo, comVitorias(m)]));
+  // A liga logo abaixo (Mítico, com o rank padrão) entra como fundo da cascata. A tabela
+  // só filtra "dessa faixa pra cima", então o Mítico sai da diferença entre as duas.
   const fundo = new Map(
-    modos.map((modo) => [modo, somar(comVitorias(pesar(doModoX(comAbaixo, modo))), comVitorias(geral.get(modo)), -1)]),
+    modos.map((modo) => [modo, somar(comVitorias(porNome(doModoX(comAbaixo, modo))), vitoriasDoModo.get(modo), -1)]),
   );
-  const ranqueado = comVitorias(pesar(doModo));
+  const ranqueado = comVitorias(porNome(doModo));
 
   const montados = lista.map(({ modo, mapa, id }) => {
     const { mapa: m, media, forca, nota } = listaDoMapa(
       modo,
       mapa,
-      pesarPorIdade(doMapa.filter((r) => r.mode === modo && r.map === mapa), agora, patches),
+      pesar(doMapa.filter((r) => r.mode === modo && r.map === mapa)),
       {
         geral: geral.get(modo),
-        cascata: { modo: comVitorias(geral.get(modo)), fundo: fundo.get(modo), parte: ranqueado, mapas: lista.filter((x) => x.modo === modo).length },
+        cascata: { modo: vitoriasDoModo.get(modo), fundo: fundo.get(modo), parte: ranqueado, mapas: lista.filter((x) => x.modo === modo).length },
       },
     );
     // A margem só foi validada no ranqueado; a página marca o S que pode ser B.
@@ -251,21 +261,19 @@ export function mapasDoTrofeu(linhas, rotacao, limite = Infinity) {
   return { lista, modos: modos.filter((m) => presentes.has(m)), naRotacao };
 }
 
-// Como no ranqueado: seis semanas, com peso por idade e o efeito dos patches, medido nas
-// partidas do próprio troféu. Até 22/11 eram os blocos juntos, sem peso, e partida de
-// antes de um nerf contava igual à de depois. A posição só vale no Showdown.
+// A parte do troféu. As partidas pesam pelo pesoDaParte, como no ranqueado. Até 22/11
+// eram os blocos juntos, sem peso, e partida de antes de um nerf contava igual à de
+// depois. A posição só vale no Showdown.
 // Duplas e counters do troféu são do modo inteiro, e não de cada mapa. Mapa a mapa,
 // com 162 mapas, eram uns 300 pedidos por dia; e a maioria dos mapas tem tão poucas
 // partidas que quase nenhuma dupla passava do mínimo. O ranqueado continua por mapa.
-// brutos: lista e modos do mapasDoTrofeu; as linhas do BTN como vieram, porModo por
-//   { brawler, mode, season } e doMapa por { brawler, mode, map, season }; aliados e
-//   confrontos em Map modo -> linhas (o Showdown não tem confrontos).
+// O primeiro argumento leva lista e modos do mapasDoTrofeu e as linhas do BTN como
+//   vieram: porModo por { brawler, mode, season } e doMapa por { brawler, mode, map,
+//   season }; aliados e confrontos em Map modo -> linhas, com todo modo da lista (nos
+//   confrontos, o modo sem confronto direto vem como null).
 // Devolve a parte sem o geradoEm e os patches medidos, para o log.
-export function montarTrofeu({ lista, modos, porModo: porModoBruto, doMapa: doMapaBruto, aliados, confrontos }, { agora, patches: patchesDoConfig, desde }) {
-  const porModo = diasDosBlocos(porModoBruto, agora);
-  const patches = efeitoDosPatches(porModo, patchesDoConfig, agora);
-  const pesar = (linhas) => pesarPorIdade(linhas, agora, patches);
-  const doMapa = diasDosBlocos(doMapaBruto, agora);
+export function montarTrofeu({ lista, modos, porModo, doMapa, aliados, confrontos }, { agora, patches: patchesDoConfig, desde }) {
+  const { patches, pesar } = pesoDaParte(porModo, patchesDoConfig, agora);
   const doModoTodo = new Map(modos.map((modo) => [modo, somarPorBrawler(pesar(porModo.filter((r) => r.mode === modo)))]));
   const trofeu = somarPorBrawler(pesar(porModo));
 
