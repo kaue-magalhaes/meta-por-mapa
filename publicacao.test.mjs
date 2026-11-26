@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { separarRotacao, versaoDe, versaoEm, montarEstado, listaDoMaximo } from './publicacao.mjs';
+import { separarRotacao, versaoDe, versaoEm, montarEstado, listaDoMaximo, enderecoDaWorker } from './publicacao.mjs';
 
 const mapa = (modo, nome, extra = {}) => ({ modo, mapa: nome, brawlers: [{ nome: 'Shelly' }], ...extra });
 
@@ -91,5 +91,15 @@ test('listaDoMaximo leva a lista do config com o nome da página e avisa do que 
     const r = listaDoMaximo(torto, conhecidos);
     assert.equal(r.lista, null);
     assert.equal(r.avisos.length, 1);
+  }
+});
+
+test('enderecoDaWorker leva o endereço https do config.json e recusa o torto sem derrubar', () => {
+  assert.deepEqual(enderecoDaWorker('https://perfil.exemplo.workers.dev'), { worker: 'https://perfil.exemplo.workers.dev', avisos: [] });
+  assert.deepEqual(enderecoDaWorker(undefined), { worker: null, avisos: [] });
+  for (const torto of ['http://perfil.exemplo.dev', 'perfil.exemplo.dev', 42]) {
+    const { worker, avisos } = enderecoDaWorker(torto);
+    assert.equal(worker, null);
+    assert.equal(avisos.length, 1);
   }
 });

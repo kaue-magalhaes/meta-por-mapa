@@ -28,7 +28,7 @@ import { nomeBonito, gruposDeMapas, DIAS_PERIODO, especiaisNoAr } from './calcul
 import { atributosDaSemana } from './wiki.mjs';
 import { atualizarNomesEImagens } from './imagens.mjs';
 import { compactarTabela } from './draft.mjs';
-import { separarRotacao, versaoDe, versaoEm, montarEstado, listaDoMaximo } from './publicacao.mjs';
+import { separarRotacao, versaoDe, versaoEm, montarEstado, listaDoMaximo, enderecoDaWorker } from './publicacao.mjs';
 import { MIN_PARTIDAS, FAIXA_TROFEU, DIAS_MAPA, ORDEM_RANQUEADO, ehShowdown, deveColetar, mapasDoRanqueado, montarRanqueado, mapasDoTrofeu, montarTrofeu } from './montagem.mjs';
 
 const dir = new URL('.', import.meta.url);
@@ -341,8 +341,6 @@ async function main() {
     geradoEm: new Date().toISOString(),
     blocos: BLOCOS,
     minPartidas: MIN_PARTIDAS,
-    // Endereço da Worker que busca o perfil pela tag. Sem ele, a página esconde o campo.
-    worker: config.worker ?? null,
     atributos: atributos && { geradoEm: atributos.geradoEm, brawlers: atributos.brawlers },
     // Nome em português e id da imagem de cada mapa, modo e brawler (imagens.mjs).
     nomes,
@@ -369,13 +367,15 @@ const nomesEImagens = (partes) =>
 // num texto lido por JSON.parse, que o navegador lê mais rápido que um objeto escrito em JS.
 // A tabela de confrontos vai compacta (compactarTabela, no draft.mjs) e a página a remonta.
 // A rotação vai só no estado.json, com a versão dos dados (publicacao.mjs). A lista do
-// máximo no Ranqueado entra aqui, e não no dados.json, pra que o --so-pagina também
-// leve a lista nova do config.json.
+// máximo no Ranqueado e o endereço da Worker entram aqui, e não no dados.json, pra que o
+// --so-pagina também leve o que mudou no config.json.
 async function montarPagina(dados) {
   const [modelo, draft] = await Promise.all(['modelo.html', 'draft.mjs'].map((f) => readFile(new URL(f, dir), 'utf8')));
   const { lista: maxNoRanqueado, avisos } = listaDoMaximo(config.maxNoRanqueado, brawlersDe(dados.partes));
   for (const aviso of avisos) console.warn(`maxNoRanqueado, no config.json: ${aviso}`);
-  const { principal, trofeu, rotacao } = separarRotacao({ ...dados, maxNoRanqueado }, compactarTabela);
+  const { worker, avisos: avisosWorker } = enderecoDaWorker(config.worker);
+  for (const aviso of avisosWorker) console.warn(`worker, no config.json: ${aviso}`);
+  const { principal, trofeu, rotacao } = separarRotacao({ ...dados, maxNoRanqueado, worker }, compactarTabela);
   const jsonPrincipal = JSON.stringify(principal);
   const jsonTrofeu = JSON.stringify(trofeu);
   const versao = versaoDe(jsonPrincipal, jsonTrofeu);

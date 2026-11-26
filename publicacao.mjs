@@ -13,7 +13,7 @@ import { nomeBonito } from './calculo.mjs';
 const chaveDoMapa = (m) => `${m.modo}|${m.mapa}`;
 
 // dados: o objeto do dados.json, mais o que a montagem da página acrescenta (a lista do
-// listaDoMaximo). Devolve o conteúdo do dados.js (principal) e do dados-trofeu.js
+// listaDoMaximo e o endereço do enderecoDaWorker). Devolve o conteúdo do dados.js (principal) e do dados-trofeu.js
 // (trofeu), os dois sem a rotação, e a rotação à parte. A tabela de confrontos sai como
 // compactar devolver.
 export function separarRotacao(dados, compactar = (tabela) => tabela) {
@@ -82,4 +82,15 @@ export function listaDoMaximo(max, conhecidos) {
   const existe = new Set(conhecidos);
   const avisos = brawlers.filter((n) => !existe.has(n)).map((n) => `${n} não aparece nos dados`);
   return { lista: { ate: max.ate, brawlers }, avisos };
+}
+
+// O endereço da Worker que busca o perfil pela tag (worker, no config.json) como o
+// dados.js leva. Entra na montagem, como a listaDoMaximo, para o --so-pagina também levar
+// um endereço novo. Sem endereço, ou com um que não é https, a página esconde o campo do
+// perfil; o torto vai para os avisos, sem derrubar a rodada.
+export function enderecoDaWorker(endereco) {
+  if (endereco == null) return { worker: null, avisos: [] };
+  const https = typeof endereco === 'string' && URL.parse(endereco)?.protocol === 'https:';
+  if (!https) return { worker: null, avisos: [`${JSON.stringify(endereco)} não é um endereço https; a página esconde o perfil`] };
+  return { worker: endereco, avisos: [] };
 }

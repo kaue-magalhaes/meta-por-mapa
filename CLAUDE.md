@@ -6,7 +6,7 @@ O `README.md` explica as fontes de dados, os tokens, o deploy e o que fazer depo
 
 ## Como conferir o trabalho
 
-- `node --test` na raiz roda todos os testes, inclusive os da Worker. Sem rede, em menos de 1 segundo (119 testes em 26/11/2026).
+- `node --test` na raiz roda todos os testes, inclusive os da Worker. Sem rede, em menos de 1 segundo (121 testes em 26/11/2026).
 - Um arquivo: `node --test calculo.test.mjs`. Um caso: `node --test --test-name-pattern="freioDeUso"`.
 - Leia o número de testes na saída. Fora da raiz, `node --test` não acha nenhum arquivo e sai com sucesso e `tests 0`.
 - Mudança no `modelo.html` ou no `draft.mjs` só aparece depois de gerar a página. Peça ao Kauê para rodar `! node atualizar.mjs --so-pagina` (o plugin descrito abaixo não deixa você rodar). Depois sirva a pasta com `python3 -m http.server 8765 --bind 127.0.0.1 -d site` e confira a tela.
@@ -50,6 +50,7 @@ Não reabra sem o Kauê pedir. Cada uma diz onde está o porquê.
 - A tier list é para o jogador comum: o uso entra na nota (`freioDeUso`) para especialista raro não virar S (23/11/2026). Porquê e pendências: memória `tier-list-para-jogador-comum` e o comentário do `freioDeUso`.
 - Troféu e Ranqueado usam o mesmo período, a mesma meia-vida e a mesma correção de patch, e mudança numa parte entra nas duas. Cada parte mede o efeito do patch nas próprias partidas (22/11/2026). Porquê: memória `mesmo-peso-nas-duas-partes`.
 - A rotação mora só no `site/estado.json`, e a versão dos dados é um resumo do conteúdo (22/11/2026). Porquê: o comentário do topo do `publicacao.mjs` e `2026-11-22-cache-da-pagina.md`.
+- Quem decide não buscar um dado de um modo grava `null` no Map, e a montagem trata modo ausente como erro, nunca como lista vazia (26/11/2026). Porquê: memória `modo-sem-dado-grava-null` e o comentário do `doModoNaCasca`.
 
 ## Onde está o resto
 
