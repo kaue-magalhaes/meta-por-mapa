@@ -51,6 +51,7 @@ Não reabra sem o Kauê pedir. Cada uma diz onde está o porquê.
 - Troféu e Ranqueado usam o mesmo período, a mesma meia-vida e a mesma correção de patch, e mudança numa parte entra nas duas. Cada parte mede o efeito do patch nas próprias partidas (22/11/2026). Porquê: memória `mesmo-peso-nas-duas-partes`.
 - A rotação mora só no `site/estado.json`, e a versão dos dados é um resumo do conteúdo (22/11/2026). Porquê: o comentário do topo do `publicacao.mjs` e `2026-11-22-cache-da-pagina.md`.
 - Quem decide não buscar um dado de um modo grava `null` no Map, e a montagem trata modo ausente como erro, nunca como lista vazia (26/11/2026). Porquê: memória `modo-sem-dado-grava-null` e o comentário do `doModoNaCasca`.
+- Função do `montagem.mjs` não recebe opção que muda o caminho da conta: ela devolve os valores do meio e cada parte decide o que é dela. Opção que é dado, como o `limite` do `mapasDoTrofeu`, pode (26/11/2026). Porquê: memória `montagem-nucleo-puro`.
 
 ## Onde está o resto
 
