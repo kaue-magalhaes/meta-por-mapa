@@ -85,8 +85,8 @@ test('textos dos selos e dos tiers iguais aos de 27/11/2026', () => {
 
 // A calibragem: os cortes (FAIXAS) e os pesos do freio (USO_FREIO, PESO_USO) foram ajustados
 // juntos, e este teste avisa quando um lado muda sem o outro. A entrada são mapas gravados,
-// com a força antes do freio (tier.fixture.json, coleta de 26/11/2026; o campo origem diz
-// como foi feita). Ele não olha os dados ao vivo: depois de um balanceamento, o site pode
+// com a força antes do freio (tier.fixture.json, coleta de 26/11/2026, refeita pelo
+// tier.fixture.mjs). Ele não olha os dados ao vivo: depois de um balanceamento, o site pode
 // mostrar S demais com este teste verde.
 // A faixa é decisão do Kauê (27/11/2026): a calibragem de 23/11 deu mediana de 7 S por mapa,
 // e a coleta de 26/11 deu 7 no Ranqueado e 8 no Troféu.
