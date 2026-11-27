@@ -359,18 +359,20 @@ const brawlersDe = (partes) => [...new Set(Object.values(partes ?? {}).flatMap((
 const nomesEImagens = (partes) =>
   atualizarNomesEImagens(dir, mapasDe(partes), brawlersDe(partes), { brawlersOficiais: async () => (await oficial('/brawlers')).items });
 
-// O site são três arquivos. A página é o modelo.html com as contas do Draft (draft.mjs, sem
-// os export, pra rodar como script comum); a troca usa função porque o texto trocado pode
-// ter $, que o replace com texto leria como padrão. Os dados vão à parte, pra página chegar
-// leve: o dados.js tem tudo menos os mapas do Troféu (64% do peso), que ficam no
-// dados-trofeu.js e só são baixados quando alguém abre esse modo. Os dois guardam o JSON
-// num texto lido por JSON.parse, que o navegador lê mais rápido que um objeto escrito em JS.
+// O site são três arquivos. A página é o modelo.html com as regras da tier list (tier.mjs) e
+// as contas do Draft (draft.mjs), os dois sem os export, pra rodar como script comum; a
+// troca usa função porque o texto trocado pode ter $, que o replace com texto leria como
+// padrão. Os dados vão à parte, pra página chegar leve: o dados.js tem tudo menos os mapas
+// do Troféu (64% do peso), que ficam no dados-trofeu.js e só são baixados quando alguém
+// abre esse modo. Os dois guardam o JSON num texto lido por JSON.parse, que o navegador lê
+// mais rápido que um objeto escrito em JS.
 // A tabela de confrontos vai compacta (compactarTabela, no draft.mjs) e a página a remonta.
 // A rotação vai só no estado.json, com a versão dos dados (publicacao.mjs). A lista do
 // máximo no Ranqueado e o endereço da Worker entram aqui, e não no dados.json, pra que o
 // --so-pagina também leve o que mudou no config.json.
 async function montarPagina(dados) {
-  const [modelo, draft] = await Promise.all(['modelo.html', 'draft.mjs'].map((f) => readFile(new URL(f, dir), 'utf8')));
+  const [modelo, tier, draft] = await Promise.all(['modelo.html', 'tier.mjs', 'draft.mjs'].map((f) => readFile(new URL(f, dir), 'utf8')));
+  const semExport = (texto) => texto.replace(/^export /gm, '');
   const { lista: maxNoRanqueado, avisos } = listaDoMaximo(config.maxNoRanqueado, brawlersDe(dados.partes));
   for (const aviso of avisos) console.warn(`maxNoRanqueado, no config.json: ${aviso}`);
   const { worker, avisos: avisosWorker } = enderecoDaWorker(config.worker);
@@ -382,7 +384,8 @@ async function montarPagina(dados) {
   const anterior = await readFile(new URL('site/estado.json', dir), 'utf8').then(JSON.parse).catch(() => null);
   const em = versaoEm(anterior, versao, new Date().toISOString());
   const pagina = modelo
-    .replace('/*__DRAFT__*/', () => draft.replace(/^export /gm, ''))
+    .replace('/*__TIER__*/', () => semExport(tier))
+    .replace('/*__DRAFT__*/', () => semExport(draft))
     .replaceAll('__VERSAO__', versao);
   // O texto vai num JSON.parse: a versão entra no fim do objeto, sem refazer o JSON inteiro.
   const lerDepois = (json) => `JSON.parse(${JSON.stringify(json)})`;
@@ -398,7 +401,7 @@ async function montarPagina(dados) {
 }
 
 // --so-pagina refaz o site/index.html com o dados.json que já existe, sem pedido ao BTN
-// nem ao wiki: serve pra ver mudança no modelo.html ou no draft.mjs. Os nomes e as
+// nem ao wiki: serve pra ver mudança no modelo.html, no tier.mjs ou no draft.mjs. Os nomes e as
 // imagens do jogo entram também, e o dados.json é regravado com eles.
 async function soPagina() {
   const dados = JSON.parse(await readFile(new URL('dados.json', dir), 'utf8'));

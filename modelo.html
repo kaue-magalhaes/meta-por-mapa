@@ -1262,7 +1262,6 @@ const RANKS = { 10: 'Diamante I', 13: 'Mítico I', 16: 'Lendário I', 19: 'Mestr
 const CADEADO = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="none"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
 const SETA = '<svg class="seta" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>';
 
-const pct = (x, d = 1) => (x * 100).toFixed(d).replace('.', ',') + '%';
 const pp = (x) => (x >= 0 ? '+' : '−') + Math.abs(x * 100).toFixed(1).replace('.', ',');
 // Troféus por partida com sinal e uma casa ("+6,1"). Quem chama confere antes se o número existe.
 const trof = (x) => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1).replace('.', ',');
@@ -1332,65 +1331,9 @@ const iconeModo = (modo, tamanho = 24, cedo = false) =>
 // O mesmo número (900px) está no CSS.
 const telaLarga = matchMedia('(min-width: 900px)');
 
-// Só no troféu: brawler raro a 1.000 troféus costuma estar na mão de especialista.
-const TEXTO_NICHO = 'Menos de 0,5% de uso. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, então a vitória mede também a mão desses jogadores.';
-const nicho = (b) => atual.parte === 'trofeu' && b.uso < (DADOS.partes.trofeu.nicho ?? 0.005);
-
-// Onde cada tier começa, em diferença pra média do mapa, já com o freio por uso
-// (freioDeUso, no calculo.mjs). Com os dados de 23/11, a mediana ficou em 7 S por mapa
-// nas duas partes; sem o freio eram 13 no Troféu e 7 no Ranqueado.
-const FAIXAS = { S: 0.04, A: 0.02, B: -0.01 };
-
-function tierDe(delta) {
-  if (delta >= FAIXAS.S) return 'S';
-  if (delta >= FAIXAS.A) return 'A';
-  if (delta >= FAIXAS.B) return 'B';
-  return 'C';
-}
-
-const forte = (b, m) => b.adj - m.media >= FAIXAS.A;
-
-// Distribuição normal acumulada (aproximação de Abramowitz e Stegun, erro abaixo de 1e-7).
-function normal(z) {
-  const t = 1 / (1 + 0.3275911 * Math.abs(z) / Math.SQRT2);
-  const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z / 2);
-  return z >= 0 ? (1 + y) / 2 : (1 - y) / 2;
-}
-
-// Só no ranqueado: S com mais que essa chance de ser B ou pior, pela margem da conta.
-const CHANCE_INCERTO = 0.1;
-const TEXTO_INCERTO = 'Pode não ser S: com as partidas que tem, a chance de ser B ou pior passa de 10%.';
-const incerto = (b, m) => b.sd != null && tierDe(b.adj - m.media) === 'S'
-  && normal((FAIXAS.A - (b.adj - m.media)) / b.sd) > CHANCE_INCERTO;
-
-// Só no ranqueado. Escondido: força de S, quase ninguém escolhe e sem dúvida de ser S.
-// Em 10/11, com 58 mil partidas do Lendário+, o confronto real desses brawlers foi até
-// um pouco pior que contra um time sorteado: a vitória é força, não sorte de confronto.
-const USO_ESCONDIDO = 0.01;
-const TEXTO_ESCONDIDO = `Ganha como um S e quase ninguém escolhe aqui (menos de ${pct(USO_ESCONDIDO, 0)} das escolhas). Parte da vitória pode ser a mão de quem treina ele: se você não joga com ele, treine antes de levar à ranqueada.`;
-const escondido = (b, m) => m.parte === 'ranqueado' && tierDe(b.adj - m.media) === 'S'
-  && b.uso < USO_ESCONDIDO && !incerto(b, m);
-
-// Só no ranqueado. Popular: entre os mais escolhidos do mapa inteiro e abaixo da média.
-// O top não muda com "só os meus", bloqueio ou Draft: é um fato do mapa.
-const TOP_POPULAR = 10;
-const TEXTO_POPULAR = `Está entre os ${TOP_POPULAR} mais escolhidos deste mapa e ganha menos que a média. Não precisa ir com ele só porque todo mundo vai.`;
-const topDoMapa = new WeakMap();
-function maisUsados(m) {
-  if (!topDoMapa.has(m)) topDoMapa.set(m, new Set([...m.brawlers].sort((a, b) => b.uso - a.uso).slice(0, TOP_POPULAR).map((b) => b.nome)));
-  return topDoMapa.get(m);
-}
-const popular = (b, m) => m.parte === 'ranqueado' && b.adj < m.media && maisUsados(m).has(b.nome);
-
-// Os quatro selos de confiança. Na tier list viram um "!" só; a folha do brawler diz qual é
-// e por quê. O Pegue usa os dois que cabem no topo da lista (incerto e escondido).
-const SELOS = {
-  incerto: { titulo: 'Incerto', texto: TEXTO_INCERTO, vale: incerto },
-  escondido: { titulo: 'Escondido', texto: TEXTO_ESCONDIDO, vale: escondido },
-  popular: { titulo: 'Popular', texto: TEXTO_POPULAR, vale: popular },
-  nicho: { titulo: 'Nicho', texto: TEXTO_NICHO, vale: (b) => nicho(b) },
-};
-const selosDe = (b, m) => Object.entries(SELOS).filter(([, s]) => s.vale(b, m)).map(([chave, s]) => ({ chave, ...s }));
+// As regras da tier list (cortes de cada tier, selos e os textos que dependem de número)
+// vêm do tier.mjs, que o atualizar.mjs cola no lugar desta marca.
+/*__TIER__*/
 
 const guardar = {
   ler(k, padrao) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : padrao; } catch { return padrao; } },
@@ -2335,7 +2278,7 @@ const AJUDA = {
     const empate = caixa.querySelector('.dm-selo[data-selo="empatado"]');
     const minuscula = (s) => s[0].toLowerCase() + s.slice(1);
     return [
-      'Os que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com quem o inimigo já pegou. A força pesa quase 4 vezes o confronto.',
+      `Os que mais sobem a chance do nosso time, pela força no mapa e pelos confrontos com quem o inimigo já pegou. A força pesa quase ${FORCA_VEZES_CONFRONTO} vezes o confronto.`,
       empate && `Empatados: ${minuscula(empate.title)}`,
       caixa.querySelector('.dm-selo[data-selo="escondido"]') && `Escondido: ${minuscula(TEXTO_ESCONDIDO)}`,
     ].filter(Boolean);
@@ -2364,7 +2307,7 @@ const ASSUNTOS = [
   ] },
   { chave: 'selos', titulo: 'Os selos', texto: () => [
     'Na lista, um "!" junta os selos de confiança, e a folha do brawler diz qual é e por quê. No Pegue, o "!" aparece no incerto e no escondido.',
-    `<b>Nicho</b> (Troféu). Marca brawler com menos de ${pct(DADOS.partes.trofeu?.nicho ?? 0.005)} de uso no mapa. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, e a vitória alta mede a mão desses jogadores tanto quanto a força do brawler. O número está certo: quem joga com ele de fato ganha isso. Mas, se você não treina esse brawler, não conte com a mesma vitória. Na dúvida, prefira um brawler sem o selo no mesmo tier.`,
+    `<b>Nicho</b> (Troféu). Marca brawler com menos de ${pct(LIMITE_NICHO)} de uso no mapa. Quem leva brawler pouco usado a 1.000 troféus costuma ser especialista nele, e a vitória alta mede a mão desses jogadores tanto quanto a força do brawler. O número está certo: quem joga com ele de fato ganha isso. Mas, se você não treina esse brawler, não conte com a mesma vitória. Na dúvida, prefira um brawler sem o selo no mesmo tier.`,
     `<b>Incerto</b> (Ranqueado). Marca brawler do S que ainda pode ser B ou pior, com mais de ${pct(CHANCE_INCERTO, 0)} de chance. Acontece com quem tem poucas partidas no mapa, ou que ficou bem perto do corte do S. A conta já puxa esses brawlers pra força deles no modo, então o S costuma se confirmar; o selo avisa quando a dúvida é maior. Se for treinar um brawler novo, prefira um S sem o selo.`,
     `<b>Escondido</b> (Ranqueado). Marca brawler do S com menos de ${pct(USO_ESCONDIDO, 0)} de uso no mapa e sem o selo "incerto". Na ranqueada, quem escolhe por último poderia levar um brawler raro só quando o confronto é bom, e aí a vitória viria do confronto, não da força. Isso foi testado em 10/11 com 58 mil partidas do Lendário pra cima: o confronto real desses brawlers foi até um pouco pior que contra um time inimigo sorteado, e eles ganharam 53,9%. O que o teste não separa é a mão de quem joga, porque quem escolhe brawler raro pode ser especialista nele. Se você não joga com ele, treine antes de levar à ranqueada.`,
     `<b>Popular</b> (Ranqueado). Marca brawler entre os ${TOP_POPULAR} mais escolhidos do mapa que ganha abaixo da média. O mapa inteiro vai com ele, mas a vitória não acompanha. O selo não muda nenhuma conta: chama atenção pra um número que já está na lista. O top conta o mapa todo, então não muda com "só os meus" nem com bloqueio.`,
@@ -2386,7 +2329,7 @@ const ASSUNTOS = [
   ] },
   { chave: 'draft', titulo: 'Draft e teclado', texto: () => [
     'Só no Ranqueado. Do Mítico pra cima a escolha é por turnos, e quem escolhe depois já vê o que o inimigo pegou. O botão "Estou no draft" liga o modo Draft. Basta marcar quem o inimigo pegou, com um toque nos mais escolhidos do mapa ou digitando o nome em "Outro"; bloqueios e o nosso time são opcionais e tiram nomes da lista.',
-    '"Melhor agora" mostra os 5 melhores pela força no mapa e pelos confrontos com os inimigos já escolhidos: três à vista e mais dois a um toque. A força é a da tier list, com o uso no mapa: brawler que quase ninguém escolhe precisa de confronto muito bom para subir. A chance mostrada usa só a vitória, porque é a conta que foi conferida com partidas reais; por isso um brawler raro de especialista pode dar mais chance que o 1º da lista. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase 4 vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois.',
+    `"Melhor agora" mostra os 5 melhores pela força no mapa e pelos confrontos com os inimigos já escolhidos: três à vista e mais dois a um toque. A força é a da tier list, com o uso no mapa: brawler que quase ninguém escolhe precisa de confronto muito bom para subir. A chance mostrada usa só a vitória, porque é a conta que foi conferida com partidas reais; por isso um brawler raro de especialista pode dar mais chance que o 1º da lista. Brawler com poucas partidas no mapa aparece com "pouco jogado aqui": a força dele vem quase toda dos outros mapas do mesmo modo. A força pesa quase ${FORCA_VEZES_CONFRONTO} vezes mais que o confronto, porque foi assim que as duas previram o resultado de 33 mil partidas do Mítico pra cima. Os brawlers do seu time não mudam a lista, porque a dupla quase não rende além da força dos dois.`,
     'Quando a diferença entre os primeiros da lista é menor que a margem da conta, eles aparecem marcados como empatados, e entre eles vêm antes os seus fortes. Nos empatados aparece também o seu recorde de troféus com ele. "Seu forte" é quem você marcou com "Sei jogar" na folha do brawler ou, sem marcação, quem está no quarto de cima dos seus recordes de troféus. A marcação vale mais que o recorde, porque o recorde mede o troféu e não o ranqueado. "Dos seus fortes" mostra os que ficaram fora dos 5, com quantos pontos de chance o time perde em relação ao melhor que você tem no máximo.',
     '"Chance e alcance" mostra a chance de vitória do nosso time, pela mesma conta. Ela fica quase sempre entre 37% e 64%, porque o draft muda poucos pontos e quem joga decide o resto. A porcentagem é honesta: nas partidas do Mítico pra cima, quando ela dizia 44%, os times ganharam 44%. Mas um time com 46% ganha quase metade das vezes, e jogar bem com o brawler pesa mais que poucos pontos.',
     'Com pelo menos um brawler de cada lado, a leitura por brawler diz quem cada um do nosso time caça e evita, pelos mesmos confrontos; com o nosso time completo, ela vira o "Plano da partida". A tabela compara alcance, vida e recarga dos seis, pelo wiki do Brawl Stars. A linha do maior perigo mostra o inimigo mais forte no mapa e quem ganha dele. No Mítico os confrontos quase não preveem o resultado, então a leitura orienta a partida e não promete vitória.',
@@ -2399,7 +2342,7 @@ const ASSUNTOS = [
     'Com essa lista, o Pegue mostra só quem você tem no máximo, o Draft apaga quem você não tem e "Vale maximizar" mostra quem ainda falta: quem está no tier S ou A em mais mapas do Ranqueado e os fortes deste mapa. "Sei jogar", na folha do brawler, marca os seus fortes, que o Draft põe na frente.',
   ].filter(Boolean) },
   { chave: 'outros', titulo: 'Por que outros sites ordenam diferente', texto: () => [
-    'Os sites grandes de LoL e de Marvel Rivals misturam vitória com uso, uns com mais peso no uso, outros com menos. Desde 23/11 esta página também mistura, com peso pequeno: a vitória continua mandando, mas brawler com menos de 0,5% de uso precisa ganhar bem mais para chegar ao S. Até então a ordem era só pela vitória, e o S tinha brawlers que quase ninguém joga e que nenhum profissional escolhe. Site que dá mais peso ao uso põe brawler muito escolhido no topo mesmo ganhando pouco.',
+    `Os sites grandes de LoL e de Marvel Rivals misturam vitória com uso, uns com mais peso no uso, outros com menos. Desde 23/11 esta página também mistura, com peso pequeno: a vitória continua mandando, mas brawler com menos de ${pct(USO_FREIO)} de uso precisa ganhar bem mais para chegar ao S. Até então a ordem era só pela vitória, e o S tinha brawlers que quase ninguém joga e que nenhum profissional escolhe. Site que dá mais peso ao uso põe brawler muito escolhido no topo mesmo ganhando pouco.`,
   ] },
 ];
 
@@ -2848,14 +2791,6 @@ function alternarChance() {
 // não muda com a partida em andamento, então só é redesenhada quando muda o mapa ou a lista
 // de quem a pessoa tem no máximo.
 
-// O que cada tier quer dizer, em pontos de vitória contra a média, saído das FAIXAS.
-const ptsFaixa = (x) => Math.round(Math.abs(x) * 100);
-const TEXTO_TIER = {
-  S: `${ptsFaixa(FAIXAS.S)} pontos ou mais acima da média`,
-  A: `de ${ptsFaixa(FAIXAS.A)} a ${ptsFaixa(FAIXAS.S)} pontos acima`,
-  B: `perto da média, de −${ptsFaixa(FAIXAS.B)} a +${ptsFaixa(FAIXAS.A)} pontos`,
-  C: `mais de ${ptsFaixa(FAIXAS.B)} ponto abaixo da média`,
-};
 // B e C abertos ou não. Fica igual ao trocar de mapa, durante a visita.
 let abertoBC = false;
 

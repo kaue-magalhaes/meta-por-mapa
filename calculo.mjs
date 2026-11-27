@@ -1,10 +1,9 @@
 // Contas puras do atualizar.mjs. Ficam separadas pra dar pra testar sem rede.
+import { USO_FREIO, PESO_USO } from './tier.mjs';
 
 // Peso da média do mapa na taxa ajustada das duplas, em partidas. Dupla com poucas
 // partidas fica perto da média; com muitas, fica perto da taxa real dela.
 export const PESO_MEDIA = 100;
-// Uso abaixo disso ganha selo de nicho na página do troféu.
-export const LIMITE_NICHO = 0.005;
 // Peso, em partidas, da taxa normal do brawler na conta do confronto. Evita que
 // um confronto com 35 partidas vire counter por sorte.
 export const PESO_CONFRONTO = 60;
@@ -58,12 +57,8 @@ export function ajustada(vitorias, partidas, media, peso = PESO_MEDIA) {
 // banimento) concordou 0,60 com o uso no Ranqueado e -0,16 com a vitória. Como LoL e
 // Marvel Rivals fazem, o uso entra na nota: a vantagem encolhe com uso abaixo de USO_FREIO,
 // e quem tem mais uso que o típico do mapa ganha um bônus (PESO_USO por vez que o uso
-// multiplica por e, cerca de 2,7). Com os dados de 23/11, o S por mapa foi de 13 para 7 no
-// Troféu e ficou em 7 no Ranqueado; a concordância com o Mundial foi de -0,16 para +0,27 no
-// Ranqueado e de -0,04 para +0,11 no Troféu. PESO_USO 0,005 mexia quase nada nela (+0,06);
-// 0,02 chega a +0,43, mas dobra o S por mapa. Primeiro chute, ajustado no jogo.
-export const USO_FREIO = 0.005;
-export const PESO_USO = 0.01;
+// multiplica por e, cerca de 2,7). Os dois pesos moram no tier.mjs, ao lado dos cortes de
+// tier, porque foram calibrados juntos.
 const USO_MINIMO = 1e-4;
 const logDoUso = (uso) => Math.log(Math.max(uso, USO_MINIMO));
 

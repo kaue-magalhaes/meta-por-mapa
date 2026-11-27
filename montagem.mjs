@@ -3,7 +3,7 @@
 // atualizar.mjs, que chama estas funções entre um pedido e outro. Assim as contas têm
 // teste sem gastar a cota do BTN (montagem.test.mjs).
 
-import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, freioDeUso, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, mapasNoAr, MIN_CONFRONTO, LIMITE_NICHO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
+import { nomeBonito, ajustada, duplasDeAliados, diasDosBlocos, resumirConfrontos, especialistas, forcaNaCascata, freioDeUso, semOMapa, somar, mediaDe, pesarPorIdade, efeitoDosPatches, confrontosEmCascata, escolherConfrontos, tabelaDeConfrontos, duplasPelaForca, mapasNoAr, MIN_CONFRONTO, PESO_FUNDO, DIAS_PERIODO, MEIA_VIDA, FOLGA_MARGEM } from './calculo.mjs';
 
 // Abaixo disso o brawler sai da lista principal e só aparece em "pouca amostra".
 export const MIN_PARTIDAS = 150;
@@ -302,7 +302,7 @@ export function montarTrofeu({ lista, modos, porModo, doMapa, aliados, confronto
       rotacao,
     };
   });
-  return { parte: { desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, faixa: FAIXA_TROFEU, nicho: LIMITE_NICHO, modos, mapas }, patches };
+  return { parte: { desde, dias: DIAS_PERIODO, meiaVida: MEIA_VIDA, faixa: FAIXA_TROFEU, modos, mapas }, patches };
 }
 
 // O que a casca buscou para o modo. Modo que falta é erro: lista vazia faria a página

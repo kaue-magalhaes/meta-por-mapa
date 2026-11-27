@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { COEF_FORCA, SD_SEM_MARGEM, pesoNoDraft, confrontoLido, recomendar, comEmpate, chanceDoTime, leitura, maiorPerigo, quemGanhaDele, compactarTabela, expandirTabela } from './draft.mjs';
+import { COEF_FORCA, COEF_CONFRONTO, FORCA_VEZES_CONFRONTO, SD_SEM_MARGEM, pesoNoDraft, confrontoLido, recomendar, comEmpate, chanceDoTime, leitura, maiorPerigo, quemGanhaDele, compactarTabela, expandirTabela } from './draft.mjs';
 
 // Mapa de brinquedo. A ganha de E por uma ponta (+0,01) e perde pela outra (E contra A
 // +0,03, com a força de A de volta): pela conta da nota, A perde de E. B ganha de E e de F
@@ -185,4 +185,10 @@ test('o Draft dá a mesma nota com a tabela remontada', () => {
   const remontado = { ...brinquedo, tabela: expandirTabela(compactarTabela(brinquedo.tabela)) };
   const [antes, depois] = [pesoNoDraft(brinquedo), pesoNoDraft(remontado)];
   for (const x of ['A', 'B', 'C', 'E', 'F']) assert.equal(depois(x, ['E', 'F']), antes(x, ['E', 'F']));
+});
+
+// A ajuda da página diz que a força pesa "quase FORCA_VEZES_CONFRONTO vezes" o confronto: o
+// número arredondado precisa ficar acima da razão, ou o "quase" mente.
+test('a força pesa quase FORCA_VEZES_CONFRONTO vezes o confronto', () => {
+  assert.ok(COEF_FORCA / COEF_CONFRONTO < FORCA_VEZES_CONFRONTO);
 });

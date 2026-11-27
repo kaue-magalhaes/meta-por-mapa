@@ -1,13 +1,15 @@
 // Contas do Draft: a nota de cada brawler, a lista recomendada, o empate, o bloqueio, a
 // chance do time e a leitura da partida. O atualizar.mjs cola este arquivo na página sem
 // as palavras "export ", então ele roda também como script comum: nada de import, de
-// DOM nem de nome que já exista no modelo.html.
+// DOM nem de nome que já exista no modelo.html ou no tier.mjs.
 
 // Coeficientes da regressão logística ajustada em 2026-10-20 com 33.221 partidas do Ranqueado
 // (Mítico a Mestre), que acertou 56,5% delas. A força pesa quase 4 vezes o confronto
 // porque o número de confronto tem mais ruído.
 export const COEF_FORCA = 3.88;
 export const COEF_CONFRONTO = 1.04;
+// O "quase 4 vezes" da ajuda da página (3,88 / 1,04 = 3,7, arredondado).
+export const FORCA_VEZES_CONFRONTO = Math.round(COEF_FORCA / COEF_CONFRONTO);
 
 // Empate: a conta não separa nomes com diferença de nota menor que a margem da força (o
 // sd da tier list, o mesmo do selo "incerto"). Brawler sem sd, com poucas partidas no
