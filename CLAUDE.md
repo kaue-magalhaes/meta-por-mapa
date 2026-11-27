@@ -55,6 +55,7 @@ Não reabra sem o Kauê pedir. Cada uma diz onde está o porquê.
 - A rotação mora só no `site/estado.json`, e a versão dos dados é um resumo do conteúdo (22/11/2026). Porquê: o comentário do topo do `publicacao.mjs` e `2026-11-22-cache-da-pagina.md`.
 - Quem decide não buscar um dado de um modo grava `null` no Map, e a montagem trata modo ausente como erro, nunca como lista vazia (26/11/2026). Porquê: memória `modo-sem-dado-grava-null` e o comentário do `doModoNaCasca`.
 - Função do `montagem.mjs` não recebe opção que muda o caminho da conta: ela devolve os valores do meio e cada parte decide o que é dela. Opção que é dado, como o `limite` do `mapasDoTrofeu`, pode (26/11/2026). Porquê: memória `montagem-nucleo-puro`.
+- Todo teste com partidas reais segue a régua de 7 itens: desenho antes dos dados, ligas juntas, menor efeito que importa de 1,5 ponto e repetição numa amostra sem partida em comum (27/11/2026). Porquê e a lista: memória `regua-dos-testes`.
 
 ## Onde está o resto
 
