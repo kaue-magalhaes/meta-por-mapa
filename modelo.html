@@ -739,8 +739,11 @@ dialog.folha::backdrop { background: rgb(12 10 18 / .55); }
 .folha-topo h2 { outline: none; }
 .fechar { margin-left: auto; flex: none; width: var(--alvo); height: var(--alvo); display: grid; place-items: center; border-radius: 12px; background: var(--linha); }
 .fechar svg { width: 18px; height: 18px; }
-/* O corpo ocupa o resto da folha: assim o toque numa parte vazia não cai no fundo e fecha. */
-.folha-corpo { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--margem) calc(24px + env(safe-area-inset-bottom, 0px)); }
+/* O corpo ocupa o resto da folha: assim o toque numa parte vazia não cai no fundo e fecha.
+   A base é auto, não o 0% do flex: 1. O WebKit anterior à correção de 16/04/2026
+   (https://bugs.webkit.org/show_bug.cgi?id=242837) resolve o 0% como zero dentro do <dialog>,
+   e a folha sem altura fixa abria só com o topo no iPhone (testado em 26/11/2026). */
+.folha-corpo { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--margem) calc(24px + env(safe-area-inset-bottom, 0px)); }
 /* Altura fixa: a folha de mapas não pula quando a busca filtra. */
 #folhaMapa { height: 88dvh; }
 
