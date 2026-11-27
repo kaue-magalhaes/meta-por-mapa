@@ -1402,10 +1402,11 @@ const MENSAGENS = {
   fora: 'Não consegui falar com o jogo agora.',
 };
 // Perfil no formato que a Worker devolve. Resposta torta ou perfil guardado estragado
-// não entra, senão quebraria a página a cada visita.
+// não entra, senão quebraria a página a cada visita. Os recordes viram texto do selo
+// "seu recorde" sem esc, por isso só número passa (revisão de segurança, 27/11/2026).
 function perfilValido(p) {
   return typeof p?.tag === 'string' && typeof p.nome === 'string' && Array.isArray(p.maximizados)
-    && typeof p.recordes === 'object' && p.recordes !== null;
+    && typeof p.recordes === 'object' && p.recordes !== null && Object.values(p.recordes).every(Number.isFinite);
 }
 // Página gerada sem a Worker não tem o campo da tag, então não usa perfil guardado.
 let perfil = DADOS.worker ? guardar.ler('perfil:dados', null) : null;
