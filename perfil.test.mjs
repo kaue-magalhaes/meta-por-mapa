@@ -70,18 +70,20 @@ function daPagina(re, nome) {
   assert.ok(m, `trecho não achado no modelo.html: ${re}`);
   return vm.runInNewContext(`${m[0]}; ${nome}`);
 }
-const NOME_MALICIOSO = '<img src=x onerror="alert(1)">&';
+const NOME_MALICIOSO = `<img src=x onerror="alert(1)">'&`;
 
 test('esc da página transforma o nome do jogador em texto, sem tag nem aspas', () => {
   const esc = daPagina(/^const esc = .*$/m, 'esc');
-  assert.equal(esc(NOME_MALICIOSO), '&lt;img src=x onerror=&quot;alert(1)&quot;&gt;&amp;');
+  assert.equal(esc(NOME_MALICIOSO), '&lt;img src=x onerror=&quot;alert(1)&quot;&gt;&#39;&amp;');
 });
 
 // Os dois usos sem esc montam texto que só sai por textContent e setAttribute, que não
 // interpretam HTML. Uso novo do nome quebra este teste: confira por onde ele sai antes
-// de pôr na lista.
+// de pôr na lista. O teste lê o texto da página, então só vê o nome escrito como
+// perfil.nome ou perfil?.nome. Desestruturar (const { nome } = perfil) ou passar o nome
+// por outra variável escapa dele: quem fizer isso confere o esc à mão.
 test('todo uso do nome do jogador na página passa por esc ou sai por textContent', () => {
-  const semEsc = PAGINA.split('\n').map((l) => l.trim()).filter((l) => /(?<!esc\()perfil\.nome/.test(l));
+  const semEsc = PAGINA.split('\n').map((l) => l.trim()).filter((l) => /(?<!esc\()perfil\??\.nome/.test(l));
   assert.deepEqual(semEsc.map((l) => l.slice(0, 24)), ['if (perfil) frases.push(', 'const rotulo = perfil ? ']);
   assert.match(PAGINA, /getElementById\('info'\)\.textContent = frases\.join/);
   assert.match(PAGINA, /getElementById\('perfilRotulo'\)\.textContent = rotulo;/);

@@ -6,7 +6,7 @@ O `README.md` explica as fontes de dados, os tokens, o deploy e o que fazer depo
 
 ## Como conferir o trabalho
 
-- `node --test` na raiz roda todos os testes, inclusive os da Worker. Sem rede, em menos de 1 segundo (132 testes em 27/11/2026).
+- `node --test` na raiz roda todos os testes, inclusive os da Worker. Sem rede, em menos de 1 segundo (135 testes em 27/11/2026).
 - Um arquivo: `node --test calculo.test.mjs`. Um caso: `node --test --test-name-pattern="freioDeUso"`.
 - Leia o número de testes na saída. Fora da raiz, `node --test` não acha nenhum arquivo e sai com sucesso e `tests 0`.
 - Mudança no `modelo.html`, no `tier.mjs` ou no `draft.mjs` só aparece depois de gerar a página. Peça ao Kauê para rodar `! node atualizar.mjs --so-pagina` (o plugin descrito abaixo não deixa você rodar). Depois sirva a pasta com `python3 -m http.server 8765 --bind 127.0.0.1 -d site` e confira a tela.
@@ -18,7 +18,7 @@ O `README.md` explica as fontes de dados, os tokens, o deploy e o que fazer depo
 - `tier.mjs`: a calibragem da tier list (os cortes de cada tier, `FAIXAS`, e os pesos do freio, `USO_FREIO` e `PESO_USO`), os quatro selos e os textos que dependem desses números.
 - `draft.mjs`: as contas do modo Draft.
 - O gerador cola o `tier.mjs` e o `draft.mjs` dentro da página sem as palavras `export `. Por isso os dois não podem ter `import`, DOM nem nome que já exista no `modelo.html` ou no outro; o teste `nomes colados não colidem` confere os nomes.
-- `modelo.html`: a página inteira, menos as regras que vêm coladas. Não tem teste.
+- `modelo.html`: a página inteira, menos as regras que vêm coladas. Só tem teste do que protege o nome do jogador: o `perfil.test.mjs` tira dele a função `esc`, a `perfilValido` e os usos do nome. Mudou um desses? Rode esse teste.
 - `montagem.mjs`: as contas do gerador, que transformam as linhas cruas do BTN em cada parte do site (a lista de cada mapa, as duplas e os counters de cada parte, a escolha dos mapas). Recebe as linhas já buscadas e o "agora"; não faz pedido, não grava arquivo e não lê o relógio.
 - `atualizar.mjs`: só o que fala com o mundo: argumentos, pedidos, arquivos, relógio, log e a montagem dos arquivos do site. Importar o arquivo já dispara a coleta, por isso ele não tem teste. Conta nova vai para o `montagem.mjs` ou para o `calculo.mjs`, com teste.
 - `publicacao.mjs`: o que vai em cada arquivo do site e a versão dos dados.
