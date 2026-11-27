@@ -32,6 +32,7 @@ Gerados, fora do git, nunca editados à mão: a pasta `site/`, o `dados.json`, o
 - Os cortes de tier (`FAIXAS`, no `modelo.html`) foram calibrados junto com `USO_FREIO` e `PESO_USO` (`calculo.mjs`). Mudar um lado sem o outro desmonta a tier list, e nenhum teste avisa.
 - Campo do `site/estado.json` pode entrar, nunca sair. O robô `.github/workflows/aviso-site-parado.yml` lê `estatisticasEm` para abrir a issue de site parado. Sem o campo, ele usa a data do último commit do `gh-pages`, que muda toda hora, e o aviso nunca mais abre.
 - Mudou o `nomeBonito`? A Worker precisa de deploy novo (`cd worker && npx wrangler deploy`), com o ok do Kauê. O timer só publica a página, nunca a Worker.
+- O Chrome emulado no PC não mostra defeito do Safari, e todo navegador de iPhone usa o motor do Safari. Em 26/11/2026 as folhas sem altura fixa abriam só com o topo no iPhone e inteiras no Chrome (`2026-11-26-pesquisa-folhas-celular.md`, na pasta de specs). Mudança de layout nas folhas ou no `<dialog>` se confere também no iPhone do Kauê, servindo a página na rede de casa.
 - O timer gera e publica a partir desta pasta (`deploy/publicar.sh`), com o que estiver no disco, commitado ou não. Mudança no `modelo.html`, no `draft.mjs`, no `config.json` ou nas contas vai ao ar na rodada seguinte, entre os minutos 10 e 15. Confira a tela antes disso, ou guarde a mudança com `git stash` até a rodada passar.
 
 ## Antes de afirmar ou decidir
